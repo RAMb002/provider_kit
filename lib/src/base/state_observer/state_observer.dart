@@ -10,7 +10,7 @@ abstract class StateObserver {
   @mustCallSuper
   void onCreate(StateNotifierBase<dynamic> stateNotifier) {}
 
-  /// Called whenever a [Change] occurs in any [stateNotifier]
+  /// Called whenever a [Change] occurs in any [StateNotifier]
   /// A [change] occurs when a new state is triggered.
   /// [onChange] is called before a stateNotifier's state has been updated.
   @protected
@@ -18,7 +18,7 @@ abstract class StateObserver {
   void onChange(
       StateNotifierBase<dynamic> stateNotifier, Change<dynamic> change) {}
 
-  /// Called whenever an [error] is thrown in any [Bloc] or [Cubit].
+  /// Called whenever an [error] is thrown in any [StateNotifier].
   /// The [stackTrace] argument may be [StackTrace.empty] if an error
   /// was received without a stack trace.
   @protected

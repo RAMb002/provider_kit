@@ -6,6 +6,57 @@ import 'package:provider_kit/states/states.dart';
 import 'package:provider_kit/utils/type_definitions.dart';
 import 'package:provider_kit/view_state_widgets_provider.dart';
 
+/// A widget that builds its UI based on the specific [ViewState] of a [ViewStateNotifier].
+///
+/// The [ViewStateBuilder] is used to build different UI components in response to different view states
+/// such as `InitialState`, `LoadingState`, `DataState<DataType>`, `EmptyState`, and `ErrorState`.
+/// It ensures that the appropriate builder is called based on the current view state.
+///
+/// If the user does not supply a builder for an optional state, the corresponding widget from the
+/// `ViewStateWidgetsProvider` inherited widget will be used.
+///
+/// ### Parameters:
+/// - **`initialBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `InitialState`.
+/// - **`loadingBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `LoadingState`.
+/// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
+/// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
+/// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
+/// - **`provider`** (*Optional*) **:** Specify the [provider] if the state provider is not accessible via [Provider] and the current `BuildContext`.
+/// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current state. Defaults to calling the builder when `previous != current`.
+/// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
+/// - **`key`** (*Optional*) **:** An optional key for the widget.
+///
+/// ### Example Usage:
+/// ```dart
+/// ViewStateBuilder<Provider, DataType>(
+///   provider: provider, // Optional
+///   rebuildWhen: (previous, current) {
+///     // Return true/false to control rebuilding based on state changes
+///   },
+///   initialBuilder: (context) {
+///     // Build your widget tree for InitialState
+///     return Container();
+///   },
+///   loadingBuilder: (context, message, progress) {
+///     // Build your widget tree for LoadingState
+///     return Container();
+///   },
+///   emptyBuilder: (context, message) {
+///     // Build your widget tree for EmptyState
+///     return Container();
+///   },
+///   errorBuilder: (context, message, onRetry, exception, stackTrace) {
+///     // Build your widget tree for ErrorState
+///     return Container();
+///   },
+///   dataBuilder: (context, data) {
+///     // Build your widget tree for DataState<DataType>
+///     return Container();
+///   },
+///   isSliver: false, // Optional, default is false
+///   key: Key('view_state_builder'), // Optional
+/// )
+/// ```
 class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
     extends StateBuilder<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;

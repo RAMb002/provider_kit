@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
 
+/// A sealed class representing different states of a view.
 sealed class ViewState<T> {
   const ViewState();
 
+  /// Executes the corresponding callback based on the current state.
   R when<R extends Object?>({
     required R Function() initialState,
     required R Function(String? message, double? progress) loadingState,
@@ -23,6 +25,7 @@ sealed class ViewState<T> {
     };
   }
 
+  /// Maps the current state to a corresponding callback.
   R map<R extends Object?>({
     required R Function(InitialState<T> initialState) initialState,
     required R Function(LoadingState<T> loadingState) loadingState,
@@ -40,6 +43,7 @@ sealed class ViewState<T> {
     };
   }
 
+  /// Maps the current state to a corresponding callback, or executes [orElse] if no match is found.
   R maybeMap<R extends Object?>({
     required R Function() orElse,
     R Function(InitialState<T> initialState)? initialState,
@@ -60,6 +64,7 @@ sealed class ViewState<T> {
     };
   }
 
+  /// Executes the corresponding callback based on the current state, or executes [orElse] if no match is found.
   R maybeWhen<R extends Object?>({
     required R Function() orElse,
     R Function()? initialState,
@@ -82,10 +87,12 @@ sealed class ViewState<T> {
   }
 }
 
+/// Represents the initial state of a view.
 class InitialState<T> extends ViewState<T> {
   const InitialState();
 }
 
+/// Represents the loading state of a view.
 class LoadingState<T> extends ViewState<T> {
   final String? message;
   final double? progress;
@@ -103,6 +110,7 @@ class LoadingState<T> extends ViewState<T> {
   int get hashCode => Object.hash(message, progress);
 }
 
+/// Represents the empty state of a view.
 class EmptyState<T> extends ViewState<T> {
   final String? message;
   const EmptyState([this.message]);
@@ -117,6 +125,7 @@ class EmptyState<T> extends ViewState<T> {
   int get hashCode => message.hashCode;
 }
 
+/// Represents the data state of a view.
 class DataState<T> extends ViewState<T> {
   const DataState(this.dataObject);
   final T dataObject;
@@ -132,6 +141,7 @@ class DataState<T> extends ViewState<T> {
   int get hashCode => dataObject.hashCode;
 }
 
+/// Represents the error state of a view.
 class ErrorState<T> extends ViewState<T> {
   final String? message;
   final VoidCallback? onRetry;

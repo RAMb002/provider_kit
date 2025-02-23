@@ -43,7 +43,7 @@ abstract class StateNotifierBase<State> extends ChangeNotifier
   /// Called whenever a [change] occurs with the given [change].
   /// A [change] occurs when a new `state` is triggered.
   /// [onChange] is called before the `state` of the `StateNotifier` is updated.
-  /// [onChange] is a great spot to add logging/analytics for a specific `cubit`.
+  /// [onChange] is a great spot to add logging/analytics for a specific `StateNotifier`.
   ///
   /// **Note: `super.onChange` should always be called first.**
   /// ```dart

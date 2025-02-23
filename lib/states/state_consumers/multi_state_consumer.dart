@@ -2,9 +2,48 @@ import 'package:flutter/widgets.dart';
 import 'package:provider_kit/utils/type_definitions.dart';
 import 'package:provider_kit/notifiers/state_notifier.dart';
 import 'package:provider_kit/states/state_builders/multi_state_builder.dart';
-import 'package:provider_kit/states/state_listeners/multi_state_listener.dart';
 import 'package:provider_kit/utils/equality_check.dart';
 
+/// A widget that combines both listening to and building based on the states of multiple [StateNotifier]s.
+///
+/// The [MultiStateConsumer] widget is used to perform actions and build its child widget
+/// in response to state changes in multiple [StateNotifier]s. It ensures that the appropriate
+/// listener and builder are called based on the current states.
+///
+/// ### Parameters:
+/// - **`providers`** (*Required*) **:** A list of [StateNotifier]s that supply the states.
+/// - **`builder`** (*Required*) **:** A function that constructs the widget tree based on the current states.
+/// - **`listener`** (*Required*) **:** A callback function that is invoked when the states change.
+/// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current states. Defaults to calling the builder when `previous != current`.
+/// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current states. Defaults to calling the listener when `previous != current`.
+/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`child`** (*Optional*) **:** A widget that is part of the widget tree.
+///
+/// ### Example Usage:
+/// ```dart
+/// MultiStateConsumer<State>(
+///   providers: [provider1, provider2], // Required
+///   builder: (context, states, child) {
+///     final state1 = states[0];
+///     final state2 = states[1];
+///     // Build your widget tree based on the states
+///     return Container();
+///   },
+///   listener: (context, states) {
+///     final state1 = states[0];
+///     final state2 = states[1];
+///     // Perform actions based on the states
+///   },
+///   rebuildWhen: (previous, current) {
+///     // Return true/false to control rebuilding based on state changes
+///   },
+///   listenWhen: (previous, current) {
+///     // Return true/false to control listener invocation based on state changes
+///   },
+///   shouldCallListenerOnInit: true, // Optional, default is false
+///   child: SomeWidget(), // Optional
+/// )
+/// ```
 class MultiStateConsumer<T> extends StatefulWidget {
   const MultiStateConsumer({
     super.key,

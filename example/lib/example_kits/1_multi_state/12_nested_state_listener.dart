@@ -13,7 +13,7 @@ class ProviderMutliStateListenerExample extends StatelessWidget {
       onTap: () {},
       title: 'provider multi state listener',
       child: NestedStateListener(
-        listeneres: [
+        listeners: [
           StateListener<ExampleProvider, int>(
               provider: ExampleProvider(1),
               listener: (context, state) {

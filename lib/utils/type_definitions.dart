@@ -23,3 +23,13 @@ typedef EmptyStateListener = void Function(String? message);
 
 typedef ListenWhen<T> = bool Function(T previous, T next);
 typedef RebuildWhen<T> = bool Function(T previous, T next);
+
+typedef StateWidgetBuilder<T> = Widget Function(
+    BuildContext context, T state, Widget? child);
+
+typedef MultiStateWidgetBuilder<T> = Widget Function(
+    BuildContext context, T states, Widget? child);
+
+typedef ListenerCallback<T> = void Function(BuildContext context, T state);
+typedef MultiListenerCallback<T> = void Function(
+    BuildContext context, T states);
