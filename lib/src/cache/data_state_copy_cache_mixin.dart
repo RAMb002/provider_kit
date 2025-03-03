@@ -1,5 +1,5 @@
-import 'package:provider_kit/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/states/view_states.dart';
+import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/states/view_states.dart';
 
 /// A mixin that provides caching functionality for [DataState] in a [ViewStateNotifier].
 ///
@@ -43,7 +43,7 @@ mixin DataStateCopyCacheMixin<T> on ViewStateNotifier<T> {
   void saveDataStateCopy(ViewState<T>? newDataState) {
     if (newDataState is DataState<T>) {
       _dataStateCopy = newDataState;
-      _dataObjectCopy = newDataState.dataObject;
+      _dataObjectCopy = newDataState.data;
     }
   }
 

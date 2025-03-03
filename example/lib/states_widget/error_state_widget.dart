@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class ErrorStateWidget extends StatelessWidget {
-  final String text;
+  final String? text;
   final VoidCallback? onTap;
   final bool isSliver;
 
@@ -28,7 +28,7 @@ class ErrorStateWidget extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            text,
+            text ?? "Something went wrong",
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,

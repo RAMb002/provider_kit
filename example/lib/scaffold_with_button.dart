@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
-class ExampleTemplate extends StatelessWidget {
-  const ExampleTemplate(
-      {super.key, required this.title, required this.child, this.onTap,this.icon});
+class ScaffoldWithButton extends StatelessWidget {
+  const ScaffoldWithButton(
+      {super.key,
+      required this.title,
+      required this.child,
+      this.onTap,
+      this.icon});
 
   final String title;
   final Widget child;

@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/notifiers/provider_kit.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/states/states.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
-import 'package:provider_kit/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/notifiers/provider_kit.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/states/states.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
+import 'package:provider_kit/src/view_state_widgets_provider.dart';
 
 class ViewStateBase {
   static bool hasErrorState<T>(List<ViewState<T>> states) =>

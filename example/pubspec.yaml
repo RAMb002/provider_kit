@@ -28,11 +28,14 @@ environment:
 # the latest version available on pub.dev. To see which dependencies have newer
 # versions available, run `flutter pub outdated`.
 dependencies:
+  equatable: ^2.0.7
   flutter:
     sdk: flutter
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   provider: ^6.1.2
+  provider_kit:
+    path: ../
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -49,8 +52,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
-  provider_kit:
-    path: ../
+  
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

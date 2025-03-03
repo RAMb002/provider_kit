@@ -1,9 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/states/view_states.dart';
+import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/states/view_states.dart';
 
+/// {@template providerkit}
 /// An abstract class that extends [ProviderKitInterface] and provides default implementations for state management.
 ///
 /// The [ProviderKit] class is designed to handle common state transitions such as loading, error, and empty states.
@@ -28,7 +29,7 @@ import 'package:provider_kit/states/view_states.dart';
 /// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
 /// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
 ///
-/// When [ProviderKit] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, and MultiViewStateConsumer**, 
+/// When [ProviderKit] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, and MultiViewStateConsumer**,
 /// the **`onRetry`** function for the `ErrorState` will be determined as follows:
 /// 1. If `onRetry` is explicitly set in the `ErrorState`, that function will be used.
 /// 2. If `onRetry` is `null`, the provider’s `refresh()` function will be automatically used for retrying.
@@ -79,10 +80,14 @@ import 'package:provider_kit/states/view_states.dart';
 ///
 /// ### Initial State:
 /// - By default, the initial state is set to **`LoadingState`**.
+/// {@endtemplate}
+
 abstract class ProviderKit<T> extends ProviderKitInterface<T> {
-  ProviderKit({
-    super.initialState,
-  }) {
+  final bool _disableEmptyState;
+
+  /// {@macro providerkit}
+  ProviderKit({super.initialState, bool disableEmptystate = false})
+      : _disableEmptyState = disableEmptystate {
     _build();
   }
 
@@ -102,11 +107,11 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
       state = loadingStateObject();
     }
     // Fetch data.
-    T? data = await fetchData();
-    // Set the state to empty if the data is null or an empty iterable.
-    if (data == null || (data is Iterable && data.isEmpty)) {
-    state = emptyStateObject();
-  } else {
+    T data = await fetchData();
+    // Set the state to empty if the data is an empty iterable.
+    if (!_disableEmptyState && data is Iterable && data.isEmpty) {
+      state = emptyStateObject();
+    } else {
       // Set the state to data if the data is not null or empty.
       state = DataState<T>(data);
     }
@@ -118,7 +123,7 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
   @override
   @protected
   ErrorState<T> errorStateObject(Object error, StackTrace stackTrace) =>
-      ErrorState<T>(error.toString(), error, stackTrace);
+      ErrorState<T>(error.toString(), error, stackTrace, refresh);
 
   @override
   @protected
@@ -131,6 +136,8 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
   @protected
   @override
   @mustCallSuper
+
+  ///This method takes care of guarding your init logic and trigger state if theres any exception
   void onError(Object error, StackTrace stackTrace) {
     state = errorStateObject(error, stackTrace);
     super.onError(error, stackTrace);

@@ -1,4 +1,4 @@
-import 'package:example/example_Template.dart';
+import 'package:example/scaffold_with_button.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -12,7 +12,7 @@ class StateBuilderExample extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ExampleProvider(1),
       builder: (context, child) {
-        return ExampleTemplate(
+        return ScaffoldWithButton(
             title: "State Builder",
             onTap: () => provider.increment(),
             child: StateBuilder<ExampleProvider, int>(

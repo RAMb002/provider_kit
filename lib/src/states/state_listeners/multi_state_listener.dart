@@ -1,10 +1,11 @@
 import 'package:flutter/widgets.dart';
 // ignore: depend_on_referenced_packages
 import 'package:nested/nested.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/utils/equality_check.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
 
+/// {@template providerkit-multistatelistener}
 /// A widget that listens to changes in the states of multiple [StateNotifier]s and triggers callbacks.
 ///
 /// The [MultiStateListener] widget is used to perform actions in response to state changes
@@ -34,13 +35,15 @@ import 'package:provider_kit/utils/type_definitions.dart';
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
+/// {@endtemplate}
 class MultiStateListener<T> extends MultiStateListenerBase<T> {
+  /// {@macro providerkit-multistatelistener}
   const MultiStateListener({
     super.key,
     required super.providers,
     required super.listener,
     super.listenWhen,
-    super.shouldcallListenerOnInit,
+    super.shouldCallListenerOnInit,
     super.child,
   });
 }
@@ -52,8 +55,8 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
     required this.listener,
     this.listenWhen,
     super.child,
-    bool? shouldcallListenerOnInit,
-  }) : shouldcallListenerOnInit = shouldcallListenerOnInit ?? false;
+    bool? shouldCallListenerOnInit,
+  }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
 
   /// A list of [StateNotifier]s that supply the states.
   final List<StateNotifier<T>> providers;
@@ -66,7 +69,7 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
   final ListenWhen<List<T>>? listenWhen;
 
   /// Whether the listener should be called when the widget is first initialized.
-  final bool shouldcallListenerOnInit;
+  final bool shouldCallListenerOnInit;
 
   @override
   State<StatefulWidget> createState() => _StateListenerState<T>();
@@ -84,7 +87,7 @@ class _StateListenerState<T>
     _previousStates = _currentStates;
     _attachListeners();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldcallListenerOnInit) {
+      if (widget.shouldCallListenerOnInit) {
         widget.listener(
           context,
           _currentStates,

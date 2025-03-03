@@ -1,6 +1,6 @@
-import 'package:example/example_Template.dart';
 import 'package:example/example_kits/providers/2_provider_kit.dart';
 import 'package:example/repository/repository.dart';
+import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,13 +12,13 @@ class ViewStateConsumerExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => ProviderKitProvider(),
+      create: (context) => ItemsProvider(),
       builder: (context, child) {
-        return ExampleTemplate(
-            title: "View State Observer",
-            child: ViewStateConsumer<ProviderKitProvider, List<Item>>(
+        return ScaffoldWithButton(
+            title: "View State Consumer",
+            child: ViewStateConsumer<ItemsProvider, List<Item>>(
               initialStateListener: () => context.showToast('initial'),
-              shouldcallListenerOnInit: true,
+              shouldCallListenerOnInit: true,
               dataStateListener: (data) => context.showToast(data.toString()),
               dataBuilder: (data) => Text(data.toString()),
             ));

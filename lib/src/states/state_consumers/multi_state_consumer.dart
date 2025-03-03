@@ -1,8 +1,10 @@
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/states/state_builders/multi_state_builder.dart';
-import 'package:provider_kit/utils/equality_check.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/states/state_builders/multi_state_builder.dart';
+import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
+
+/// {@template providerkit-multistateconsumer}
 
 /// A widget that combines both listening to and building based on the states of multiple [StateNotifier]s.
 ///
@@ -44,7 +46,10 @@ import 'package:provider_kit/utils/equality_check.dart';
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
+/// {@endtemplate}
+
 class MultiStateConsumer<T> extends StatefulWidget {
+  /// {@macro providerkit-multistateconsumer}
   const MultiStateConsumer({
     super.key,
     required this.builder,
@@ -52,7 +57,7 @@ class MultiStateConsumer<T> extends StatefulWidget {
     required this.listener,
     this.listenWhen,
     required this.providers,
-    this.shouldcallListenerOnInit = false,
+    this.shouldCallListenerOnInit = false,
     this.child,
   });
 
@@ -62,7 +67,7 @@ class MultiStateConsumer<T> extends StatefulWidget {
   final ListenWhen<List<T>>? listenWhen;
   final MultiListenerCallback<List<T>> listener;
   final Widget? child;
-  final bool shouldcallListenerOnInit;
+  final bool shouldCallListenerOnInit;
 
   @override
   State<MultiStateConsumer<T>> createState() => _MultiStateConsumerState<T>();
@@ -76,7 +81,7 @@ class _MultiStateConsumerState<T> extends State<MultiStateConsumer<T>> {
     super.initState();
     _providers = widget.providers;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldcallListenerOnInit) {
+      if (widget.shouldCallListenerOnInit) {
         widget.listener(
           context,
           _providers.map((e) => e.state).toList(),

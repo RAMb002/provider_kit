@@ -1,5 +1,5 @@
 export 'multi_view_states/multi_view_states.dart';
-export '../src/view_state_base.dart';
+export '../view_state_base.dart';
 export 'state_builders/multi_state_builder.dart';
 export 'state_builders/state_builder.dart';
 export 'state_builders/view_state_builder.dart';

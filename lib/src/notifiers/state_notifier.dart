@@ -1,6 +1,7 @@
 import 'package:provider_kit/src/base/state_notifier_base.dart';
 import 'package:provider_kit/src/base/state_observer/state_observer.dart';
 
+/// {@template providerkit-statenotifier}
 /// A class that extends [StateNotifierBase] to manage state changes and notify listeners.
 ///
 /// The [StateNotifier] class is designed to handle state changes and notify listeners when the state changes.
@@ -37,7 +38,10 @@ import 'package:provider_kit/src/base/state_observer/state_observer.dart';
 ///
 /// ### Parameters:
 /// - **`state`** (*Required*) **:** The initial state of the notifier.
+/// {@endtemplate}
+
 class StateNotifier<State> extends StateNotifierBase<State> {
+  /// {@macro providerkit-statenotifier}
   StateNotifier(super.state);
 
   static StateObserver observer = const _DefaultStateObserver();

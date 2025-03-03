@@ -1,30 +1,31 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/states/state_builders/state_builder.dart';
-import 'package:provider_kit/utils/equality_check.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/states/state_builders/state_builder.dart';
+import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
 
+/// {@template providerkit-stateconsumer}
 /// A widget that both listens to and rebuilds based on the state of a [StateNotifier].
 ///
-/// The [StateConsumer] listens to a [StateNotifier] and **invokes the listener callback** 
+/// The [StateConsumer] listens to a [StateNotifier] and **invokes the listener callback**
 /// while also **rebuilding the builder function** when necessary.
 /// It ensures that the `listener` and `builder` are called only once per state change.
 ///
 /// ### Parameters:
 /// - `builder`: **(Required)** A function that constructs the widget tree based on the current state.
 /// - `listener`: **(Required)** A callback function that is invoked when the state changes.
-/// - `provider`: **(Optional)** Specify the [provider] if the state provider is 
+/// - `provider`: **(Optional)** Specify the [provider] if the state provider is
 ///   not accessible via [Provider] and the current `BuildContext`.
-/// - `rebuildWhen`: **(Optional)** A function that determines whether the `builder` 
-///   should be called based on changes between the previous and current state. 
+/// - `rebuildWhen`: **(Optional)** A function that determines whether the `builder`
+///   should be called based on changes between the previous and current state.
 ///   By default, the builder is triggered when `previous != current`.
-/// - `listenWhen`: **(Optional)** A function that determines whether the `listener` 
-///   should be triggered based on the previous and current state. Defaults to 
+/// - `listenWhen`: **(Optional)** A function that determines whether the `listener`
+///   should be triggered based on the previous and current state. Defaults to
 ///   listening when `previous != current`.
-/// - `shouldCallListenerOnInit`: **(Optional, default: `false`)** Determines whether 
+/// - `shouldCallListenerOnInit`: **(Optional, default: `false`)** Determines whether
 ///   the `listener` should be called when the widget is first initialized.
-/// - `child`: **(Optional)** A widget that does not depend on the state. It will 
+/// - `child`: **(Optional)** A widget that does not depend on the state. It will
 ///   be preserved across rebuilds, preventing unnecessary re-renders.
 ///
 /// ### Example Usage:
@@ -49,10 +50,12 @@ import 'package:provider_kit/utils/type_definitions.dart';
 /// )
 /// ```
 ///
-/// This ensures optimal performance by **invoking side effects when needed** and 
+/// This ensures optimal performance by **invoking side effects when needed** and
 /// **rebuilding only when necessary**, while preserving static UI elements passed as `child`.
+/// {@endtemplate}
 
 class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
+  /// {@macro providerkit-stateconsumer}
   const StateConsumer({
     super.key,
     required this.builder,
@@ -60,7 +63,7 @@ class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
     required this.listener,
     this.listenWhen,
     this.provider,
-    this.shouldcallListenerOnInit = false,
+    this.shouldCallListenerOnInit = false,
     this.child,
   });
 
@@ -82,7 +85,7 @@ class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
   final ListenerCallback<T> listener;
 
   /// Whether the listener should be called when the widget is first initialized.
-  final bool shouldcallListenerOnInit;
+  final bool shouldCallListenerOnInit;
 
   /// An optional child widget that does not depend on the state and will not be rebuilt.
   final Widget? child;
@@ -100,7 +103,7 @@ class _StateConsumerState<P extends StateNotifier<T>, T>
     super.initState();
     _provider = widget.provider ?? _readProvider;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldcallListenerOnInit) {
+      if (widget.shouldCallListenerOnInit) {
         widget.listener(
           context,
           _provider.state,

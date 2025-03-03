@@ -2,10 +2,11 @@ import 'package:flutter/widgets.dart';
 // ignore: depend_on_referenced_packages
 import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/utils/equality_check.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
 
+/// {@template providerkit-statelistener}
 /// A widget that listens to changes in a [StateNotifier] and triggers a callback 
 /// when the state changes.
 ///
@@ -37,17 +38,16 @@ import 'package:provider_kit/utils/type_definitions.dart';
 ///
 /// This widget helps separate **state-dependent side effects** from the UI, ensuring that actions 
 /// such as navigation and notifications are triggered appropriately without unnecessary UI rebuilds.
-
-
+/// {@endtemplate}
 class StateListener<P extends StateNotifier<T>, T>
     extends StateListenerBase<P, T> {
-  /// Creates a [StateListener].
+  /// {@macro providerkit-statelistener}
   const StateListener({
     super.key,
     required super.listener,
     super.listenWhen,
     super.provider,
-    super.shouldcallListenerOnInit,
+    super.shouldCallListenerOnInit,
     super.child,
   });
 }
@@ -61,8 +61,8 @@ abstract class StateListenerBase<P extends StateNotifier<T>, T>
     required this.listener,
     this.listenWhen,
     super.child,
-    bool? shouldcallListenerOnInit,
-  }) : shouldcallListenerOnInit = shouldcallListenerOnInit ?? false;
+    bool? shouldCallListenerOnInit,
+  }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
 
   /// The provider that supplies the state. If null, the provider will be read from the context.
   final P? provider;
@@ -75,7 +75,7 @@ abstract class StateListenerBase<P extends StateNotifier<T>, T>
   final ListenWhen<T>? listenWhen;
 
   /// Whether the listener should be called when the widget is first initialized.
-  final bool shouldcallListenerOnInit;
+  final bool shouldCallListenerOnInit;
 
   @override
   State<StatefulWidget> createState() => _StateListenerState<P, T>();
@@ -94,7 +94,7 @@ class _StateListenerState<P extends StateNotifier<T>, T>
     _previousState = _currentState;
     _attachListener();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldcallListenerOnInit) {
+      if (widget.shouldCallListenerOnInit) {
         widget.listener(
           context,
           _currentState,

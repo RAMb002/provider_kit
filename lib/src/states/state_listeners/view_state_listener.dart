@@ -1,8 +1,9 @@
-import 'package:provider_kit/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/states/state_listeners/state_listener.dart';
-import 'package:provider_kit/states/view_states.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
+import 'package:provider_kit/src/states/view_states.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
 
+/// {@template providerkit-viewstatelistener}
 /// A widget that listens to changes in a [ViewStateNotifier] and triggers callbacks
 /// based on the specific [ViewState].
 ///
@@ -44,8 +45,10 @@ import 'package:provider_kit/utils/type_definitions.dart';
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
+/// {@endtemplate}
 class ViewStateListener<P extends ViewStateNotifier<T>, T>
     extends StateListener<P, ViewState<T>> {
+  /// {@macro providerkit-viewstatelistener}
   ViewStateListener({
     super.key,
     super.provider,
@@ -55,7 +58,7 @@ class ViewStateListener<P extends ViewStateNotifier<T>, T>
     ErrorStateListener? errorStateListener,
     DataStateListener<T>? dataStateListener,
     super.listenWhen,
-    super.shouldcallListenerOnInit,
+    super.shouldCallListenerOnInit,
     super.child,
   }) : super(
           listener: (context, state) {

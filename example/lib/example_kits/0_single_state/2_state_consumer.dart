@@ -1,5 +1,5 @@
-import 'package:example/example_Template.dart';
 import 'package:example/example_kits/0_single_state/1_state_builder.dart';
+import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
@@ -18,8 +18,8 @@ class _StateConsumerExampleState extends State<StateConsumerExample> {
     return ChangeNotifierProvider(
       create: (context) => ExampleProvider(1),
       builder: (context, child) {
-        return ExampleTemplate(
-            title: "State Observer",
+        return ScaffoldWithButton(
+            title: "State Consumer",
             onTap: () {
               context.read<ExampleProvider>().increment();
               Future.delayed(const Duration(seconds: 1)).then((_) {
@@ -38,5 +38,3 @@ class _StateConsumerExampleState extends State<StateConsumerExample> {
     );
   }
 }
-
-

@@ -1,6 +1,6 @@
-import 'package:example/example_Template.dart';
 import 'package:example/example_kits/providers/1_view_state_notifier.dart';
 import 'package:example/example_kits/providers/2_provider_kit.dart';
+import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -11,12 +11,12 @@ class MultiViewStateConsumerExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final providers = [
-       ProviderKitProvider(),
+      ItemsProvider(),
       ViewStateProviderOne(),
       ViewStateProviderTwo()
     ];
-    return ExampleTemplate(
-        title: "Multi View State Observer",
+    return ScaffoldWithButton(
+        title: "Multi View State Consumer",
         child: MultiViewStateConsumer(
           providers: providers,
           initialStateListener: () => context.showToast("initial state"),

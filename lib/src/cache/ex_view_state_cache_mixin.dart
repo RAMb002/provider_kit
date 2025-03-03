@@ -1,6 +1,6 @@
-import 'package:provider_kit/notifiers/notifiers.dart';
+import 'package:provider_kit/src/notifiers/notifiers.dart';
 import 'package:provider_kit/src/base/state_observer/change.dart';
-import 'package:provider_kit/states/view_states.dart';
+import 'package:provider_kit/src/states/view_states.dart';
 
 /// A mixin that provides extended caching functionality for various [ViewState] types in a [ViewStateNotifier].
 ///
@@ -14,20 +14,6 @@ import 'package:provider_kit/states/view_states.dart';
 ///     state = newState;
 ///   }
 ///
-///   void restoreLastKnownState() {
-///     if (exDataState != null) {
-///       state = exDataState!;
-///     } else if (exErrorState != null) {
-///       state = exErrorState!;
-///     } else if (exEmptyState != null) {
-///       state = exEmptyState!;
-///     } else if (exLoadingState != null) {
-///       state = exLoadingState!;
-///     } else if (exInitialState != null) {
-///       state = exInitialState!;
-///     }
-///   }
-/// }
 /// ```
 ///
 /// ### Methods:
@@ -44,12 +30,14 @@ mixin ExViewStateCacheMixin<T> on ViewStateNotifier<T> {
   EmptyState<T>? _exEmptyState;
   ErrorState<T>? _exErrorState;
   DataState<T>? _exDataState;
+  T? _exDataStateObject;
 
   InitialState<T>? get exInitialState => _exInitialState;
   LoadingState<T>? get exLoadingState => _exLoadingState;
   EmptyState<T>? get exEmptyState => _exEmptyState;
   ErrorState<T>? get exErrorState => _exErrorState;
   DataState<T>? get exDataState => _exDataState;
+  T? get exDataStateObject => _exDataStateObject;
 
   @override
   void onChange(Change<ViewState<T>> change) {
@@ -58,7 +46,10 @@ mixin ExViewStateCacheMixin<T> on ViewStateNotifier<T> {
     exState.map(
       initialState: (initialState) => _exInitialState = initialState,
       loadingState: (loadingState) => _exLoadingState = loadingState,
-      dataState: (dataState) => _exDataState = dataState,
+      dataState: (dataState) {
+        _exDataState = dataState;
+        _exDataStateObject = dataState.data;
+      },
       emptyState: (emptyState) => _exEmptyState = emptyState,
       errorState: (errorState) => _exErrorState = errorState,
     );
@@ -70,6 +61,7 @@ mixin ExViewStateCacheMixin<T> on ViewStateNotifier<T> {
     _exEmptyState = null;
     _exErrorState = null;
     _exDataState = null;
+    _exDataStateObject = null;
   }
 
   @override

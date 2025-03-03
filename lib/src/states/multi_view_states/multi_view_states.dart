@@ -1,11 +1,10 @@
 // ignore_for_file: unnecessary_import
 
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/notifiers/notifiers.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/states/states.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
-import 'package:provider_kit/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/notifiers/notifiers.dart';
+import 'package:provider_kit/src/states/states.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
+import 'package:provider_kit/src/view_state_widgets_provider.dart';
 
 enum _AggregatedViewState {
   error,
@@ -15,6 +14,8 @@ enum _AggregatedViewState {
   data,
   unknown,
 }
+
+/// {@template providerkit-multiviewstateconsumer}
 /// A widget that combines both listening to and building based on the states of multiple [ViewStateNotifier]s.
 ///
 /// The [MultiViewStateConsumer] widget is used to perform actions and build its child widget
@@ -44,8 +45,8 @@ enum _AggregatedViewState {
 /// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
 /// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current states. Defaults to calling the builder when `previous != current`.
-/// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current states. Defaults to calling the listener when `previous != current`.
+/// - **`rebuildWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering builder whenever any provider's state changes.
+/// - **`listenWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering listener whenever any provider's state changes.
 /// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
 ///
@@ -98,15 +99,18 @@ enum _AggregatedViewState {
 ///   isSliver: false, // Optional, default is false
 /// )
 /// ```
+/// {@endtemplate}
+
 class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
+  /// {@macro providerkit-multiviewstateconsumer}
   MultiViewStateConsumer(
       {super.key,
-      required super.providers,
+      required List<ViewStateNotifier<T>> providers,
       InitialStateBuilder? initialBuilder,
       LoadingStateBuilder? loadingBuilder,
       EmptyStateBuilder? emptyBuilder,
-      ErrorStateBuilder? failureBuilder,
-      required DataStateBuilder<List<DataState<T>>> dataBuilder,
+      ErrorStateBuilder? errorBuilder,
+      required MultiDataStateBuilder<List<DataState<T>>> dataBuilder,
       super.rebuildWhen,
       InitialStateListener? initialStateListener,
       LoadingStateListener? loadingStateListener,
@@ -114,14 +118,15 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
       ErrorStateListener? errorStateListener,
       DataStateListener<List<DataState<T>>>? dataStateListener,
       ListenWhen<List<ViewState<T>>>? listenWhen,
-      super.shouldcallListenerOnInit,
+      super.shouldCallListenerOnInit,
       bool isSliver = false})
       : super(
+          providers: providers,
           builder: (context, states, child) =>
               MultiViewStateBuilder._multiViewStateBuilder(
                   states,
                   providers,
-                  failureBuilder,
+                  errorBuilder,
                   context,
                   isSliver,
                   initialBuilder,
@@ -142,6 +147,7 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
         );
 }
 
+/// {@template providerkit-multiviewstatelistener}
 /// A widget that listens to changes in the states of multiple [ViewStateNotifier]s and triggers callbacks.
 ///
 /// The [MultiViewStateListener] widget is used to perform actions in response to state changes
@@ -166,7 +172,7 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
 /// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
 /// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current states. Defaults to calling the listener when `previous != current`.
+/// - **`listenWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering listener whenever any provider's state changes.
 /// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`child`** (*Optional*) **:** A widget that is part of the widget tree.
 ///
@@ -196,19 +202,23 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
+/// {@endtemplate}
+
 class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
+  /// {@macro providerkit-multiviewstatelistener}
   MultiViewStateListener({
     super.key,
-    required super.providers,
+    required List<ViewStateNotifier<T>> providers,
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,
     EmptyStateListener? emptyStateListener,
     ErrorStateListener? errorStateListener,
-    DataStateListener<List<DataState<T>>>? dataStateListener,
+    MultiDataStateListener<List<DataState<T>>>? dataStateListener,
     ListenWhen<List<ViewState<T>>>? listenWhen,
-    super.shouldcallListenerOnInit,
+    super.shouldCallListenerOnInit,
     super.child,
   }) : super(
+          providers: providers,
           listenWhen: (previous, next) =>
               _listenWhen(listenWhen, previous, next),
           listener: (context, states) {
@@ -234,12 +244,12 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
 
   static void _multiStateListener<T>(
       List<ViewState<T>> states,
-      List<StateNotifier<ViewState<T>>> providers,
+      List<ViewStateNotifier<T>> providers,
       ErrorStateListener? errorStateListener,
       InitialStateListener? initialStateListener,
       LoadingStateListener? loadingStateListener,
       EmptyStateListener? emptyStateListener,
-      DataStateListener<List<DataState<T>>>? dataStateListener) {
+      MultiDataStateListener<List<DataState<T>>>? dataStateListener) {
     final errorStates = ViewStateBase.getErrorStates(states);
 
     if (errorStates.isNotEmpty) {
@@ -282,6 +292,7 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
   }
 }
 
+/// {@template providerkit-multiviewstatebuilder}
 /// A widget that builds its UI based on the states of multiple [ViewStateNotifier]s.
 ///
 /// The [MultiViewStateBuilder] listens to a list of [ViewStateNotifier]s and rebuilds the builder function
@@ -305,7 +316,7 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
 /// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
 /// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
 /// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
-/// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current states. Defaults to calling the builder when `previous != current`.
+/// - **`rebuildWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering builder whenever any provider's state changes.
 /// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
 ///
 /// ### Example Usage:
@@ -338,23 +349,27 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
 ///   isSliver: false, // Optional, default is false
 /// )
 /// ```
+/// {@endtemplate}
+
 class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
-  MultiViewStateBuilder(
-      {super.key,
-      InitialStateBuilder? initialBuilder,
-      LoadingStateBuilder? loadingBuilder,
-      EmptyStateBuilder? emptyBuilder,
-      ErrorStateBuilder? failureBuilder,
-      required DataStateBuilder<List<DataState<T>>> dataBuilder,
-      super.rebuildWhen,
-      bool isSliver = false,
-      required super.providers})
-      : super(
+  /// {@macro providerkit-multiviewstatebuilder}
+  MultiViewStateBuilder({
+    super.key,
+    required List<ViewStateNotifier<T>> providers,
+    InitialStateBuilder? initialBuilder,
+    LoadingStateBuilder? loadingBuilder,
+    EmptyStateBuilder? emptyBuilder,
+    ErrorStateBuilder? errorBuilder,
+    required MultiDataStateBuilder<List<DataState<T>>> dataBuilder,
+    super.rebuildWhen,
+    bool isSliver = false,
+  }) : super(
+          providers: providers,
           builder: (context, states, child) {
             return _multiViewStateBuilder(
                 states,
                 providers,
-                failureBuilder,
+                errorBuilder,
                 context,
                 isSliver,
                 initialBuilder,
@@ -366,17 +381,17 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
 
   static Widget _multiViewStateBuilder<T>(
       List<ViewState<T>> states,
-      List<StateNotifier<ViewState<T>>> providers,
-      ErrorStateBuilder? failureBuilder,
+      List<ViewStateNotifier<T>> providers,
+      ErrorStateBuilder? errorBuilder,
       BuildContext context,
       bool isSliver,
       InitialStateBuilder? initialBuilder,
       LoadingStateBuilder? loadingBuilder,
       EmptyStateBuilder? emptyBuilder,
-      DataStateBuilder<List<DataState<T>>> dataBuilder) {
+      MultiDataStateBuilder<List<DataState<T>>> dataBuilder) {
     if (ViewStateBase.hasErrorState(states)) {
       return _buildErrorWidget(
-          providers, failureBuilder, states, context, isSliver);
+          providers, errorBuilder, states, context, isSliver);
     }
     if (ViewStateBase.hasInitialState(states)) {
       return ViewStateBase.buildInitialWidget(
@@ -400,7 +415,7 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
   }
 
   static Widget _buildErrorWidget<T>(
-    List<StateNotifier<ViewState<T>>> providers,
+    List<ViewStateNotifier<T>> providers,
     ErrorStateBuilder? errorBuilder,
     List<ViewState<T>> states,
     BuildContext context,

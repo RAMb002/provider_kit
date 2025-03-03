@@ -17,11 +17,15 @@ class ViewStateProviderOne extends ViewStateNotifier<List<Item>> {
         state = const EmptyState();
         return;
       }
-      // throw Exception('error'); //trigger errorstate
       state = DataState(items);
-    } catch (e) {
-      state = ErrorState(e.toString());
+    } catch (e, s) {
+      state = ErrorState(e.toString(), e, s, onRetry);
     }
+  }
+
+  void onRetry() {
+    state = const LoadingState();
+    init();
   }
 }
 

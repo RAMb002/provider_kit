@@ -1,8 +1,8 @@
-import 'package:provider_kit/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/states/state_builders/view_state_builder.dart';
-import 'package:provider_kit/states/state_consumers/state_consumer.dart';
-import 'package:provider_kit/states/view_states.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/states/state_builders/view_state_builder.dart';
+import 'package:provider_kit/src/states/state_consumers/state_consumer.dart';
+import 'package:provider_kit/src/states/view_states.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// A widget that combines both listening to and building based on the specific [ViewState] of a [ViewStateNotifier].
 ///
@@ -94,7 +94,7 @@ class ViewStateConsumer<P extends ViewStateNotifier<T>, T>
     EmptyStateListener? emptyStateListener,
     LoadingStateListener? loadingStateListener,
     ErrorStateListener? errorStateListener,
-    super.shouldcallListenerOnInit,
+    super.shouldCallListenerOnInit,
     bool isSliver = false,
   }) : super(
           builder: (context, state, child) {

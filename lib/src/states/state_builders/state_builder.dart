@@ -1,9 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/states/state_listeners/state_listener.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
 
+/// {@template providerkit-statebuilder}
 /// A widget that rebuilds its UI based on the state of a [StateNotifier].
 ///
 /// The [StateBuilder] listens to a [StateNotifier] and **rebuilds the builder function**.
@@ -35,9 +36,10 @@ import 'package:provider_kit/utils/type_definitions.dart';
 /// ```
 /// This ensures optimal performance by rebuilding only when necessary and 
 /// preserving static UI elements passed as `child`.
+/// {@endtemplate}
 class StateBuilder<P extends StateNotifier<T>, T>
     extends StateBuilderBase<P, T> {
-  /// Creates a [StateBuilder].
+  /// {@macro providerkit-statebuilder}
   const StateBuilder({
     super.key,
     super.provider,

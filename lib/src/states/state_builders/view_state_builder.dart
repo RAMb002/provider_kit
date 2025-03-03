@@ -1,11 +1,12 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/notifiers/provider_kit.dart';
-import 'package:provider_kit/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/states/states.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
-import 'package:provider_kit/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/notifiers/provider_kit.dart';
+import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/states/states.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
+import 'package:provider_kit/src/view_state_widgets_provider.dart';
 
+/// {@template providerkit-viewstatebuilder}
 /// A widget that builds its UI based on the specific [ViewState] of a [ViewStateNotifier].
 ///
 /// The [ViewStateBuilder] is used to build different UI components in response to different view states
@@ -54,9 +55,9 @@ import 'package:provider_kit/view_state_widgets_provider.dart';
 ///     return Container();
 ///   },
 ///   isSliver: false, // Optional, default is false
-///   key: Key('view_state_builder'), // Optional
 /// )
 /// ```
+/// {@endtemplate}
 class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
     extends StateBuilder<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;
@@ -66,6 +67,7 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
   final EmptyStateBuilder? emptyBuilder;
   final bool isSliver;
 
+  /// {@macro providerkit-viewstatebuilder}
   ViewStateBuilder({
     super.provider,
     super.rebuildWhen,
@@ -98,7 +100,7 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
     ViewState<T> state,
     InitialStateBuilder? initialBuilder,
     DataStateBuilder<T> dataBuilder,
-    ErrorStateBuilder? failureBuilder,
+    ErrorStateBuilder? errorBuilder,
     LoadingStateBuilder? loadingBuilder,
     EmptyStateBuilder? emptyBuilder,
     bool isSliver,
@@ -121,12 +123,12 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
           provider,
           state,
           context,
-          failureBuilder,
+          errorBuilder,
           isSliver,
         );
 
       case DataState<T>():
-        return dataBuilder(state.dataObject);
+        return dataBuilder(state.data);
     }
   }
 
@@ -134,13 +136,13 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
     P? provider,
     ErrorState<T> errorState,
     BuildContext context,
-    ErrorStateBuilder? failureBuilder,
+    ErrorStateBuilder? errorBuilder,
     bool isSliver,
   ) {
     final effectiveOnRetry =
         errorState.onRetry ?? _getOnRetryFromProvider<P, T>(context, provider);
-    return failureBuilder != null
-        ? failureBuilder(errorState.message, effectiveOnRetry,
+    return errorBuilder != null
+        ? errorBuilder(errorState.message, effectiveOnRetry,
             errorState.exception, errorState.stackTrace, isSliver)
         : context.errorStateWidget(errorState.message, effectiveOnRetry,
             errorState.exception, errorState.stackTrace, isSliver);

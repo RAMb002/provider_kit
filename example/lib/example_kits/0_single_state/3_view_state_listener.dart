@@ -1,6 +1,6 @@
-import 'package:example/example_Template.dart';
 import 'package:example/example_kits/providers/2_provider_kit.dart';
 import 'package:example/repository/repository.dart';
+import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -12,14 +12,14 @@ class ViewStateListenerExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => ProviderKitProvider(),
+      create: (context) => ItemsProvider(),
       builder: (context, child) {
-        return ExampleTemplate(
+        return ScaffoldWithButton(
             title: "View State Listener",
             icon: Icons.refresh,
-            onTap: () => context.read<ProviderKitProvider>().refresh(),
-            child: ViewStateListener<ProviderKitProvider, List<Item>>(
-              shouldcallListenerOnInit: true,
+            onTap: () => context.read<ItemsProvider>().refresh(),
+            child: ViewStateListener<ItemsProvider, List<Item>>(
+              shouldCallListenerOnInit: true,
               initialStateListener: () => context.showToast("initial state"),
               loadingStateListener: (message, progress) =>
                   context.showToast("loading state"),
@@ -34,5 +34,3 @@ class ViewStateListenerExample extends StatelessWidget {
     );
   }
 }
-
-

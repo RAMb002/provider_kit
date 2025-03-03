@@ -1,7 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/notifiers/state_notifier.dart';
-import 'package:provider_kit/states/state_listeners/multi_state_listener.dart';
-import 'package:provider_kit/utils/type_definitions.dart';
+import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/states/state_listeners/multi_state_listener.dart';
+import 'package:provider_kit/src/utils/type_definitions.dart';
+
+/// {@template providerkit-multistatebuilder}
 
 /// A widget that builds its UI based on the states of multiple [StateNotifier]s.
 ///
@@ -30,7 +32,10 @@ import 'package:provider_kit/utils/type_definitions.dart';
 ///   child: SomeStaticWidget(), // Optional
 /// )
 /// ```
+/// {@endtemplate}
+
 class MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
+  /// {@macro providerkit-multistatebuilder}
   const MultiStateBuilder({
     super.key,
     required super.providers,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class CombinedExampleTemplate extends StatelessWidget {
-  const CombinedExampleTemplate({
+class ScaffoldWithMultiButton extends StatelessWidget {
+  const ScaffoldWithMultiButton({
     super.key,
     required this.title,
     required this.child,
