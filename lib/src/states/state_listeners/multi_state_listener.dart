@@ -1,5 +1,4 @@
 import 'package:flutter/widgets.dart';
-// ignore: depend_on_referenced_packages
 import 'package:nested/nested.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';

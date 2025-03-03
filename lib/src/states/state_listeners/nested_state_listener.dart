@@ -1,4 +1,3 @@
-// ignore: depend_on_referenced_packages
 import 'package:nested/nested.dart';
 
 /// {@template providerkit-nestedstatelistener}

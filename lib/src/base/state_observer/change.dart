@@ -1,5 +1,4 @@
-// ignore: depend_on_referenced_packages
-import 'package:meta/meta.dart';
+import 'package:flutter/foundation.dart';
 
 /// {@template change}
 /// A [Change] represents the change from one [State] to another.
