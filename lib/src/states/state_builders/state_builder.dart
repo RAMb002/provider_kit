@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
@@ -54,6 +55,14 @@ class StateBuilder<P extends StateNotifier<T>, T>
   @override
   Widget build(BuildContext context, T state, Widget? child) =>
       builder(context, state, child);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder),
+    );
+  }
 }
 
 /// An abstract base class for [StateBuilder] that provides common functionality.
@@ -81,6 +90,19 @@ abstract class StateBuilderBase<P extends StateNotifier<T>, T>
 
   @override
   State<StateBuilderBase> createState() => _StateBuilderBaseState<P, T>();
+
+   @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(
+        ObjectFlagProperty<RebuildWhen<T>?>.has(
+          'rebuildWhen',
+          rebuildWhen,
+        ),
+      )
+      ..add(DiagnosticsProperty<P?>('provider', provider));
+  }
 }
 
 /// The state class for [StateBuilderBase].
