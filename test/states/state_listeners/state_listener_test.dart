@@ -531,6 +531,44 @@ void main() {
       expect(find.text('Popup Dialog'), findsOneWidget);
     });
 
+    testWidgets(
+      'proves listener never fires after dispose (no mounted check required)',
+      (tester) async {
+        final provider = CounterProvider(0);
+        int listenerCallCount = 0;
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StateListener<CounterProvider, int>(
+                provider: provider,
+                listener: (context, state) {
+                  listenerCallCount++;
+
+                  Scaffold.of(context).showBottomSheet((_) => const SizedBox());
+                },
+                child: const SizedBox(),
+              ),
+            ),
+          ),
+        );
+
+        provider.increment();
+        await tester.pump();
+        expect(listenerCallCount, 1);
+
+        await tester.pumpWidget(const SizedBox());
+
+        provider.increment();
+
+        await tester.pump();
+
+        expect(listenerCallCount, 1);
+
+        expect(tester.takeException(), null);
+      },
+    );
+
     testWidgets('overrides debugFillProperties', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
