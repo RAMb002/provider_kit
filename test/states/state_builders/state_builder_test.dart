@@ -481,6 +481,7 @@ void main() {
         provider: CounterProvider(),
         builder: (context, state, child) => const SizedBox(),
         rebuildWhen: (previous, current) => previous != current,
+        child: const Text('Static Child'),
       ).debugFillProperties(builder);
 
       final description = builder.properties
@@ -503,6 +504,11 @@ void main() {
       expect(
         description,
         contains('has rebuildWhen'),
+      );
+
+      expect(
+        description.any((e) => e.startsWith('child: Text')),
+        isTrue,
       );
     });
   });
