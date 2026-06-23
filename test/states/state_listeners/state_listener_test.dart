@@ -501,6 +501,36 @@ void main() {
       expect(latestPreviousState, 0);
     });
 
+    testWidgets(
+        'Does not trigger a framework crash (markNeedsBuild error) when a side-effect listener '
+        'runs inside the state builder loop and successfully executes the side-effect',
+        (tester) async {
+      final counterProvider = CounterProvider();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: StateListener<CounterProvider, int>(
+              provider: counterProvider,
+              listenWhen: (previous, current) => true,
+              listener: (context, state) {
+                showModalBottomSheet<void>(
+                  context: context,
+                  builder: (context) => const Text('Popup Dialog'),
+                );
+              },
+              child: const SizedBox(),
+            ),
+          ),
+        ),
+      );
+
+      counterProvider.increment();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('Popup Dialog'), findsOneWidget);
+    });
+
     testWidgets('overrides debugFillProperties', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
