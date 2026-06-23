@@ -157,6 +157,52 @@ void main() {
       expect(numBuilds, 2);
     });
 
+    testWidgets('preserves child across state updates and does not rebuild it',
+        (tester) async {
+      var builderBuildCount = 0;
+      var childBuildCount = 0;
+      final counterProvider = CounterProvider();
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateBuilder<CounterProvider, int>(
+            provider: counterProvider,
+            child: StatefulBuilder(
+              builder: (context, setChildState) {
+                childBuildCount++;
+                return const Text('Static Child');
+              },
+            ),
+            builder: (context, state, child) {
+              builderBuildCount++;
+              return Column(
+                children: [
+                  Text('State: $state'),
+                  child!,
+                ],
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(find.text('State: 0'), findsOneWidget);
+      expect(find.text('Static Child'), findsOneWidget);
+      expect(builderBuildCount, 1);
+      expect(childBuildCount, 1);
+
+      counterProvider.increment();
+      await tester.pump();
+
+      expect(find.text('State: 1'), findsOneWidget);
+      expect(find.text('Static Child'), findsOneWidget);
+
+      expect(builderBuildCount, 2);
+
+      expect(childBuildCount, 1);
+    });
+
     testWidgets(
         'infers the provider from the context if the provider is not provided',
         (tester) async {
