@@ -112,7 +112,6 @@ class _StateListenerState<T>
     if (widget.shouldCallListenerOnInit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-
         widget.listener(
           context,
           _currentStates,

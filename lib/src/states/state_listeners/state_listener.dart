@@ -95,8 +95,7 @@ abstract class StateListenerBase<P extends StateNotifier<T>, T>
       ..add(DiagnosticsProperty<bool>(
         'shouldCallListenerOnInit',
         shouldCallListenerOnInit,
-        defaultValue:
-            false, 
+        defaultValue: false,
       ));
   }
 }
@@ -113,14 +112,15 @@ class _StateListenerState<P extends StateNotifier<T>, T>
     _provider = widget.provider ?? _readProvider;
     _previousState = _currentState;
     _attachListener();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldCallListenerOnInit) {
+    if (widget.shouldCallListenerOnInit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         widget.listener(
           context,
           _currentState,
         );
-      }
-    });
+      });
+    }
   }
 
   @override
