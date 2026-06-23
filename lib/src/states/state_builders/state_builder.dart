@@ -101,7 +101,8 @@ abstract class StateBuilderBase<P extends StateNotifier<T>, T>
           rebuildWhen,
         ),
       )
-      ..add(DiagnosticsProperty<P?>('provider', provider));
+      ..add(DiagnosticsProperty<P?>('provider', provider))
+      ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
   }
 }
 
