@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
 import 'package:provider_kit/src/states/view_states.dart';
@@ -48,15 +49,21 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// {@endtemplate}
 class ViewStateListener<P extends ViewStateNotifier<T>, T>
     extends StateListener<P, ViewState<T>> {
+  final InitialStateListener? initialStateListener;
+  final LoadingStateListener? loadingStateListener;
+  final EmptyStateListener? emptyStateListener;
+  final ErrorStateListener? errorStateListener;
+  final DataStateListener<T>? dataStateListener;
+
   /// {@macro providerkit-viewstatelistener}
   ViewStateListener({
     super.key,
     super.provider,
-    InitialStateListener? initialStateListener,
-    LoadingStateListener? loadingStateListener,
-    EmptyStateListener? emptyStateListener,
-    ErrorStateListener? errorStateListener,
-    DataStateListener<T>? dataStateListener,
+    this.initialStateListener,
+    this.loadingStateListener,
+    this.emptyStateListener,
+    this.errorStateListener,
+    this.dataStateListener,
     super.listenWhen,
     super.shouldCallListenerOnInit,
     super.child,
@@ -74,4 +81,20 @@ class ViewStateListener<P extends ViewStateNotifier<T>, T>
             );
           },
         );
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener', initialStateListener))
+      ..add(ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener', loadingStateListener))
+      ..add(ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener', emptyStateListener))
+      ..add(ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener', errorStateListener))
+      ..add(ObjectFlagProperty<DataStateListener<T>?>.has(
+          'dataStateListener', dataStateListener));
+  }
 }
