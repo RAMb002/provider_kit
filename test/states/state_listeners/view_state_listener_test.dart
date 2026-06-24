@@ -639,7 +639,10 @@ void main() {
       await tester.pump();
     });
 
-    testWidgets('debugFillProperties includes relevant properties',
+    // -----------------------------------------------------------------------
+    // 9. Diagnostics
+    // -----------------------------------------------------------------------
+    testWidgets('debugFillProperties includes all relevant properties',
         (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
@@ -647,6 +650,9 @@ void main() {
         provider: TestViewStateNotifier<String>(),
         dataStateListener: (_) {},
         loadingStateListener: (_, __) {},
+        emptyStateListener: (_) {},
+        errorStateListener: (_, __, ___, ____) {},
+        initialStateListener: () {},
         listenWhen: (_, __) => true,
         shouldCallListenerOnInit: true,
         child: const SizedBox(),
@@ -660,10 +666,18 @@ void main() {
       expect(description.any((e) => e.contains('provider')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
-          description.any((e) =>
-              e.contains('shouldCallListenerOnInit') && e.contains('true')),
-          isTrue);
-      // We don't test each callback specifically because they are passed via super.
+        description.any((e) =>
+            e.contains('shouldCallListenerOnInit') && e.contains('true')),
+        isTrue,
+      );
+
+      expect(
+          description.any((e) => e.contains('initialStateListener')), isTrue);
+      expect(
+          description.any((e) => e.contains('loadingStateListener')), isTrue);
+      expect(description.any((e) => e.contains('emptyStateListener')), isTrue);
+      expect(description.any((e) => e.contains('errorStateListener')), isTrue);
+      expect(description.any((e) => e.contains('dataStateListener')), isTrue);
     });
   });
 }
