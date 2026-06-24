@@ -35,7 +35,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 ///   child: SomeStaticWidget(), // Preserved across rebuilds
 /// )
 /// ```
-/// This ensures optimal performance by rebuilding only when necessary and 
+/// This ensures optimal performance by rebuilding only when necessary and
 /// preserving static UI elements passed as `child`.
 /// {@endtemplate}
 class StateBuilder<P extends StateNotifier<T>, T>
@@ -91,7 +91,7 @@ abstract class StateBuilderBase<P extends StateNotifier<T>, T>
   @override
   State<StateBuilderBase> createState() => _StateBuilderBaseState<P, T>();
 
-   @override
+  @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
