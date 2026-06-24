@@ -1,5 +1,3 @@
-// ignore: depend_on_referenced_packages
-import 'package:collection/collection.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
@@ -178,7 +176,7 @@ class _StateListenerState<T>
 
   bool _areProviderListsEqual(
       List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
-    return ListEquality<StateNotifier<T>>().equals(a, b);
+    return ObjectKit.areProviderListsEqual(a, b);
   }
 
   List<T> get _currentStates =>
