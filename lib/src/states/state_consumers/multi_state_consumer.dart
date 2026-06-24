@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/states/state_builders/multi_state_builder.dart';
@@ -71,6 +72,36 @@ class MultiStateConsumer<T> extends StatefulWidget {
 
   @override
   State<MultiStateConsumer<T>> createState() => _MultiStateConsumerState<T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(
+          DiagnosticsProperty<List<StateNotifier<T>>?>('providers', providers))
+      ..add(ObjectFlagProperty<MultiStateWidgetBuilder<List<T>>>.has(
+          'builder', builder))
+      ..add(ObjectFlagProperty<MultiListenerCallback<List<T>>>.has(
+          'listener', listener))
+      ..add(
+        ObjectFlagProperty<RebuildWhen<List<T>>?>.has(
+          'rebuildWhen',
+          rebuildWhen,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ListenWhen<List<T>>?>.has(
+          'listenWhen',
+          listenWhen,
+        ),
+      )
+      ..add(DiagnosticsProperty<bool>(
+        'shouldCallListenerOnInit',
+        shouldCallListenerOnInit,
+        defaultValue: false,
+      ))
+      ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
+  }
 }
 
 class _MultiStateConsumerState<T> extends State<MultiStateConsumer<T>> {
@@ -79,29 +110,41 @@ class _MultiStateConsumerState<T> extends State<MultiStateConsumer<T>> {
   @override
   void initState() {
     super.initState();
-    _providers = widget.providers;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldCallListenerOnInit) {
+    _providers = List<StateNotifier<T>>.from(widget.providers);
+    if (widget.shouldCallListenerOnInit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         widget.listener(
           context,
           _providers.map((e) => e.state).toList(),
         );
-      }
-    });
+      });
+    }
   }
 
   @override
   void didUpdateWidget(MultiStateConsumer<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.providers != widget.providers) {
-      _providers = widget.providers;
+    if (!_areProviderListsEqual(_providers, widget.providers)) {
+      _update();
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_providers != widget.providers) _providers = widget.providers;
+    if (!_areProviderListsEqual(_providers, widget.providers)) {
+      _update();
+    }
+  }
+
+  void _update() {
+    _providers = List<StateNotifier<T>>.from(widget.providers);
+  }
+
+  bool _areProviderListsEqual(
+      List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
+    return ObjectKit.areProviderListsEqual(a, b);
   }
 
   @override
