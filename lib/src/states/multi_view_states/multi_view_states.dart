@@ -7,15 +7,6 @@ import 'package:provider_kit/src/states/states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 import 'package:provider_kit/src/view_state_widgets_provider.dart';
 
-enum _AggregatedViewState {
-  error,
-  initial,
-  loading,
-  empty,
-  data,
-  unknown,
-}
-
 /// {@template providerkit-multiviewstateconsumer}
 /// A widget that combines both listening to and building based on the states of multiple [ViewStateNotifier]s.
 ///
@@ -118,7 +109,7 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
       EmptyStateListener? emptyStateListener,
       ErrorStateListener? errorStateListener,
       DataStateListener<List<DataState<T>>>? dataStateListener,
-      ListenWhen<List<ViewState<T>>>? listenWhen,
+      super.listenWhen,
       super.shouldCallListenerOnInit,
       bool isSliver = false})
       : super(
@@ -134,8 +125,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
                   loadingBuilder,
                   emptyBuilder,
                   dataBuilder),
-          listenWhen: (previous, next) =>
-              MultiViewStateListener._listenWhen(listenWhen, previous, next),
           listener: (context, states) =>
               MultiViewStateListener._multiStateListener(
                   states,
@@ -206,22 +195,26 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
 /// {@endtemplate}
 
 class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
+  final InitialStateListener? initialStateListener;
+  final LoadingStateListener? loadingStateListener;
+  final EmptyStateListener? emptyStateListener;
+  final ErrorStateListener? errorStateListener;
+  final MultiDataStateListener<List<DataState<T>>>? dataStateListener;
+
   /// {@macro providerkit-multiviewstatelistener}
   MultiViewStateListener({
     super.key,
     required List<ViewStateNotifier<T>> providers,
-    InitialStateListener? initialStateListener,
-    LoadingStateListener? loadingStateListener,
-    EmptyStateListener? emptyStateListener,
-    ErrorStateListener? errorStateListener,
-    MultiDataStateListener<List<DataState<T>>>? dataStateListener,
-    ListenWhen<List<ViewState<T>>>? listenWhen,
+    this.initialStateListener,
+    this.loadingStateListener,
+    this.emptyStateListener,
+    this.errorStateListener,
+    this.dataStateListener,
+    super.listenWhen,
     super.shouldCallListenerOnInit,
     super.child,
   }) : super(
           providers: providers,
-          listenWhen: (previous, next) =>
-              _listenWhen(listenWhen, previous, next),
           listener: (context, states) {
             _multiStateListener(
               states,
@@ -234,14 +227,6 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
             );
           },
         );
-
-  static bool _listenWhen<T>(ListenWhen<List<ViewState<T>>>? listenWhen,
-      List<ViewState<T>> previous, List<ViewState<T>> next) {
-    if (listenWhen != null) return listenWhen.call(previous, next);
-    final previousState = _combinedState(previous);
-    final nextState = _combinedState(next);
-    return previousState != nextState;
-  }
 
   static void _multiStateListener<T>(
       List<ViewState<T>> states,
@@ -279,17 +264,20 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
     return;
   }
 
-  static _AggregatedViewState _combinedState<T>(List<ViewState<T>> states) {
-    if (ViewStateBase.hasErrorState(states)) return _AggregatedViewState.error;
-    if (ViewStateBase.hasInitialState(states)) {
-      return _AggregatedViewState.initial;
-    }
-    if (ViewStateBase.hasLoadingState(states)) {
-      return _AggregatedViewState.loading;
-    }
-    if (ViewStateBase.hasEmptyState(states)) return _AggregatedViewState.empty;
-    if (ViewStateBase.allAreDataState(states)) return _AggregatedViewState.data;
-    return _AggregatedViewState.unknown;
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener', initialStateListener))
+      ..add(ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener', loadingStateListener))
+      ..add(ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener', emptyStateListener))
+      ..add(ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener', errorStateListener))
+      ..add(ObjectFlagProperty<MultiDataStateListener<List<DataState<T>>>?>.has(
+          'dataStateListener', dataStateListener));
   }
 }
 
