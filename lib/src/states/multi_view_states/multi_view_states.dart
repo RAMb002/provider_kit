@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_import
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/notifiers/notifiers.dart';
 import 'package:provider_kit/src/states/states.dart';
@@ -352,17 +353,24 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
 /// {@endtemplate}
 
 class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
+  final InitialStateBuilder? initialBuilder;
+  final LoadingStateBuilder? loadingBuilder;
+  final EmptyStateBuilder? emptyBuilder;
+  final ErrorStateBuilder? errorBuilder;
+  final MultiDataStateBuilder<List<DataState<T>>> dataBuilder;
+  final bool isSliver;
+
   /// {@macro providerkit-multiviewstatebuilder}
   MultiViewStateBuilder({
     super.key,
     required List<ViewStateNotifier<T>> providers,
-    InitialStateBuilder? initialBuilder,
-    LoadingStateBuilder? loadingBuilder,
-    EmptyStateBuilder? emptyBuilder,
-    ErrorStateBuilder? errorBuilder,
-    required MultiDataStateBuilder<List<DataState<T>>> dataBuilder,
+    this.initialBuilder,
+    this.loadingBuilder,
+    this.emptyBuilder,
+    this.errorBuilder,
+    required this.dataBuilder,
     super.rebuildWhen,
-    bool isSliver = false,
+    this.isSliver = false,
   }) : super(
           providers: providers,
           builder: (context, states, child) {
@@ -439,5 +447,23 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
         ) ??
         context.errorStateWidget(
             errorMessage, onRetry, exception, stackTrace, isSliver);
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<InitialStateBuilder?>.has(
+          'initialBuilder', initialBuilder))
+      ..add(ObjectFlagProperty<LoadingStateBuilder?>.has(
+          'loadingBuilder', loadingBuilder))
+      ..add(ObjectFlagProperty<EmptyStateBuilder?>.has(
+          'emptyBuilder', emptyBuilder))
+      ..add(ObjectFlagProperty<ErrorStateBuilder?>.has(
+          'errorBuilder', errorBuilder))
+      ..add(ObjectFlagProperty<MultiDataStateBuilder<List<DataState<T>>>>.has(
+          'dataBuilder', dataBuilder))
+      ..add(
+          DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false));
   }
 }
