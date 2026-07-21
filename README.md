@@ -319,7 +319,7 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 |-----------------------------|------------------------------------------|----------------|
 | **Constructor Params**  |                                          |                |
 | `initialState`              | `ViewState<T>`                           | The initial state of the provider. Defaults to `LoadingState`. |
-| `disableEmptystate`         | `bool`                                   | By default, if `T` is an `Iterable` (like `List`, `Set`, etc.), an empty iterable will result in `EmptyState`. Setting this to `true` forces an empty iterable to be assigned as `DataState`. |
+| `disableEmptyState`         | `bool`                                   | By default, if `T` is an `Iterable` (like `List`, `Set`, etc.), an empty iterable will result in `EmptyState`. Setting this to `true` forces an empty iterable to be assigned as `DataState`. |
 | **Property**               |                                          |                |
 | `state`                     | `ViewState<T>`                           | The current state of the provider, which can be `LoadingState`, `DataState`, `EmptyState`, or `ErrorState`. |
 | **Methods**                  |                                          |                |
@@ -336,11 +336,11 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 ```dart
 class MyViewStateProvider extends ProviderKit<List<Item>> {
   // by default `initialState` is `LoadingState`.
-  // by default `disableEmptystate` is false.
+  // by default `disableEmptyState` is false.
   MyViewStateProvider()
       : super(initialState: const InitialState(),
       //disabling empty state will set the state to `DataState` instead of `EmptyState`
-       disableEmptystate: true);
+       disableEmptyState: true);
 
   @override
   FutureOr<void> init() async {

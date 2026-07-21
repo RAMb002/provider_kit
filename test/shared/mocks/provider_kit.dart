@@ -7,7 +7,7 @@ class MockProviderKit<T> extends ProviderKit<T> {
 
   MockProviderKit({
     required this.fetchDataImpl,
-    super.disableEmptystate,
+    super.disableEmptyState,
   });
 
   @override

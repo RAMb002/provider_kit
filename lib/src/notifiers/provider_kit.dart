@@ -86,8 +86,8 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
   final bool _disableEmptyState;
 
   /// {@macro providerkit}
-  ProviderKit({super.initialState, bool disableEmptystate = false})
-      : _disableEmptyState = disableEmptystate {
+  ProviderKit({super.initialState, bool disableEmptyState = false})
+      : _disableEmptyState = disableEmptyState {
     _build();
   }
 
