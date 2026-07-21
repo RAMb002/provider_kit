@@ -94,24 +94,37 @@ import 'package:provider_kit/src/view_state_widgets_provider.dart';
 /// {@endtemplate}
 
 class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
+  final InitialStateBuilder? initialBuilder;
+  final LoadingStateBuilder? loadingBuilder;
+  final EmptyStateBuilder? emptyBuilder;
+  final ErrorStateBuilder? errorBuilder;
+  final MultiDataStateBuilder<List<DataState<T>>> dataBuilder;
+  final bool isSliver;
+
+  final InitialStateListener? initialStateListener;
+  final LoadingStateListener? loadingStateListener;
+  final EmptyStateListener? emptyStateListener;
+  final ErrorStateListener? errorStateListener;
+  final DataStateListener<List<DataState<T>>>? dataStateListener;
+
   /// {@macro providerkit-multiviewstateconsumer}
   MultiViewStateConsumer(
       {super.key,
       required List<ViewStateNotifier<T>> providers,
-      InitialStateBuilder? initialBuilder,
-      LoadingStateBuilder? loadingBuilder,
-      EmptyStateBuilder? emptyBuilder,
-      ErrorStateBuilder? errorBuilder,
-      required MultiDataStateBuilder<List<DataState<T>>> dataBuilder,
+      this.initialBuilder,
+      this.loadingBuilder,
+      this.emptyBuilder,
+      this.errorBuilder,
+      required this.dataBuilder,
       super.rebuildWhen,
-      InitialStateListener? initialStateListener,
-      LoadingStateListener? loadingStateListener,
-      EmptyStateListener? emptyStateListener,
-      ErrorStateListener? errorStateListener,
-      DataStateListener<List<DataState<T>>>? dataStateListener,
+      this.initialStateListener,
+      this.loadingStateListener,
+      this.emptyStateListener,
+      this.errorStateListener,
+      this.dataStateListener,
       super.listenWhen,
       super.shouldCallListenerOnInit,
-      bool isSliver = false})
+      this.isSliver = false})
       : super(
           providers: providers,
           builder: (context, states, child) =>
@@ -135,6 +148,34 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
                   emptyStateListener,
                   dataStateListener),
         );
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<InitialStateBuilder?>.has(
+          'initialBuilder', initialBuilder))
+      ..add(ObjectFlagProperty<LoadingStateBuilder?>.has(
+          'loadingBuilder', loadingBuilder))
+      ..add(ObjectFlagProperty<EmptyStateBuilder?>.has(
+          'emptyBuilder', emptyBuilder))
+      ..add(ObjectFlagProperty<ErrorStateBuilder?>.has(
+          'errorBuilder', errorBuilder))
+      ..add(ObjectFlagProperty<MultiDataStateBuilder<List<DataState<T>>>>.has(
+          'dataBuilder', dataBuilder))
+      ..add(
+          DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false))
+      ..add(ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener', initialStateListener))
+      ..add(ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener', loadingStateListener))
+      ..add(ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener', emptyStateListener))
+      ..add(ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener', errorStateListener))
+      ..add(ObjectFlagProperty<DataStateListener<List<DataState<T>>>?>.has(
+          'dataStateListener', dataStateListener));
+  }
 }
 
 /// {@template providerkit-multiviewstatelistener}
