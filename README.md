@@ -247,7 +247,7 @@ A Typical use case for `ViewState` is when fetching data asynchronously. For exa
 
 `ViewStateNotifier` is a `StateNotifier` that manages `ViewState<T>`. It simplifies state management by handling various states such as **loading, empty, data, and error** for a given data type.
 
-> By default the intial state of `ViewStateNotifier` is LoadingState.
+> By default the initial state of `ViewStateNotifier` is LoadingState.
 
 ```dart
 class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
@@ -278,7 +278,7 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
 }
 ```
 
-**Tired of manually implementing the same logic for every provider?**  
+**Tired of manually implementing the same logic for every provider?**
 No worries! Introducing **ProviderKit**—a more efficient way to manage our view state.
 
 ---
@@ -287,7 +287,7 @@ No worries! Introducing **ProviderKit**—a more efficient way to manage our vie
 
 `ProviderKit` automates state management, eliminating the need to repeatedly extend `ViewStateNotifier` and implement the same boilerplate logic. It streamlines fetching, handling empty states, error management, and retry mechanisms.
 
-> By default the intial state of `ProviderKit` is LoadingState.
+> By default the initial state of `ProviderKit` is LoadingState.
 
 ### **How does it work?**
 
@@ -327,7 +327,7 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 | `fetchData()`                | `FutureOr<T>`                            | Fetches data from an API or database. Must be implemented in subclasses. |
 | `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize default `ErrorState` Object |
 | `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize default `LoadingState` Object  |
-| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize default `EmptyStaet` Object  instance. |
+| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize default `EmptyState` Object  instance. |
 | `refresh()`                  | `Future<void>`                           | Refreshes the provider which will call `init` with `fetchData()` again. |
 
 
@@ -820,7 +820,7 @@ NestedStateListener(
 
 ## StateObserver  
 
-The `StateObserver` helps in monitoring provider activites. It can be used for debugging, for example - by logging lifecycle events such as creation, state changes, errors, and disposal.  
+The `StateObserver` helps in monitoring provider activities. It can be used for debugging, for example - by logging lifecycle events such as creation, state changes, errors, and disposal.  
 
 ```dart
 void main() {
