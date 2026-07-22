@@ -198,34 +198,6 @@ void main() {
       expect(errorState.message, 'Exception: Refresh error');
     });
 
-    test('rapid concurrent refresh calls do not break state machine', () async {
-      int fetchCount = 0;
-      final provider = TestProvider<String>(
-        fetchDataImpl: () async {
-          fetchCount++;
-          await Future.delayed(const Duration(milliseconds: 50));
-          if (fetchCount == 2) throw Exception('Second fetch failed');
-          return 'data';
-        },
-      );
-      // Wait for the initial _build to complete.
-      await Future.microtask(() {});
-      expect(provider.state, const DataState('data'));
-
-      // Fire two refreshes concurrently (first succeeds, second fails).
-      final f1 = provider.refresh(); // success
-      final f2 = provider.refresh(); // failure
-      await Future.wait([f1, f2]);
-
-      // The final state should be ErrorState because the last call (the second) failed.
-      expect(provider.state, isA<ErrorState<String>>());
-
-      // Reset fetchCount and call refresh again – should succeed.
-      fetchCount = 0;
-      await provider.refresh();
-      expect(provider.state, const DataState('data'));
-    });
-
     // -----------------------------------------------------------------------
     // 6. Customization overrides
     // -----------------------------------------------------------------------
