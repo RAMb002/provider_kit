@@ -409,9 +409,7 @@ Instead of checking the state type and passing the respective widgets for every 
 
 
 
->**Note:** These widgets will be used internally by _`ViewStateBuilder`,`ViewStateConsumer`,`MultiViewStateBuilder` and `MultiViewStateConsumer`_ which we’ll explore soon below.  
-
-Additionally, we can wrap a specific part of the widget tree with `ViewStateWidgetsProvider` to override the state widgets for that section.  
+>**Note:** These widgets will be used internally by _`ViewStateBuilder`,`ViewStateConsumer`,`MultiViewStateBuilder` and `MultiViewStateConsumer`_ which we’ll explore soon below.
 
 `ViewStateWidgetsProvider` is simply an **inherited widget** that provides consistent state based widgets across our app.
 
@@ -461,6 +459,27 @@ class MyApp extends StatelessWidget {
   }
 }
 
+```
+
+Additionally, you can wrap any section of your widget tree with `ViewStateWidgetsProvider` to completely redefine its state widgets, or use `ViewStateWidgetsProvider.override` to update only specific state builders while inheriting the rest from the parent `ViewStateWidgetsProvider`.
+
+```dart
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewStateWidgetsProvider.override(
+      context: context,
+      // Overrides ONLY the loading builder for this subtree, used internally by `ViewStateWidgets`.
+      loadingStateBuilder: (message, progress, isSliver) {
+        const widget = Center(child: ProfileSkeletonLoader());
+        return isSliver ? const SliverToBoxAdapter(child: widget) : widget;
+      },
+      child: const ProfileView(),
+    );
+  }
+}
 ```
 > **Note:** In `errorStateBuilder`, the `errorMessage`, `onRetry`, `exception`, and `stackTrace` are automatically passed to the function if your provider is `providerKit`.
 
