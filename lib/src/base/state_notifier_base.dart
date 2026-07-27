@@ -31,7 +31,7 @@ abstract class StateNotifierBase<State> extends ChangeNotifier
       if (_state == newState) {
         return;
       }
-      onChange(Change<State>(currentState: this.state, nextState: newState));
+      onChange(Change<State>(currentState: state, nextState: newState));
       _state = newState;
       notifyListeners();
     } catch (error, stackTrace) {
