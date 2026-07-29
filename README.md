@@ -1134,10 +1134,13 @@ ProxyProvider<PaginationProvider, MyProvider>(
 
 ---
 
-> Few features of this package were inspired from `flutter_bloc`.
+> Few features of this package were inspired by `flutter_bloc`.
 
 ## 🛠 Features & Bug Reports  
 Have a feature request or found a bug? Feel free to open an issue on the [GitHub Issue Tracker](https://github.com/RAMb002/provider_kit/issues). Your feedback helps improve **ProviderKit**!  
+
+## 🧪 Development
+**ProviderKit** is backed by a comprehensive automated test suite covering widgets, state management, listeners, edge cases, and other core package functionality.
 
 ## 📢 Connect with Me  
 Stay updated and reach out for collaborations!  
