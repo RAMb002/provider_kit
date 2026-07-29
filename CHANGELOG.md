@@ -1,3 +1,10 @@
+## Unreleased
+
+- Added comprehensive test suite with over 340 test cases.
+- Fixed core bugs in base widgets.
+- Added override feature to `ViewStateWidgetProvider`.
+- Improved and expanded package documentation.
+
 ## 0.0.1
 
 - Initial release of `provider_kit`.
