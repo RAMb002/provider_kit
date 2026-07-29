@@ -1,6 +1,6 @@
 name: provider_kit
 description: "A tool kit for provider package with predefined builders, listeners, caches, observers and much more with reduced boilerplate."
-version: 0.0.1
+version: 0.0.2
 repository: https://github.com/RAMb002/provider_kit
 issue_tracker: https://github.com/RAMb002/provider_kit/issues
 
