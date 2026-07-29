@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/notifiers/provider_kit.dart';
@@ -155,5 +156,23 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
       return provider.refresh;
     }
     return null;
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<InitialStateBuilder?>.has(
+          'initialBuilder', initialBuilder))
+      ..add(ObjectFlagProperty<LoadingStateBuilder?>.has(
+          'loadingBuilder', loadingBuilder))
+      ..add(ObjectFlagProperty<EmptyStateBuilder?>.has(
+          'emptyBuilder', emptyBuilder))
+      ..add(ObjectFlagProperty<ErrorStateBuilder?>.has(
+          'errorBuilder', errorBuilder))
+      ..add(ObjectFlagProperty<DataStateBuilder<T>>.has(
+          'dataBuilder', dataBuilder))
+      ..add(
+          DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false));
   }
 }

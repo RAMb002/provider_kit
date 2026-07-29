@@ -6,6 +6,7 @@ import 'utils/type_definitions.dart';
 ///
 /// Make sure to wrap this widget around the [MaterialApp], so that all pages and widgets can have access to these default state widgets.
 class ViewStateWidgetsProvider extends InheritedWidget {
+  /// Creates a root [ViewStateWidgetsProvider] with all required state builders.
   const ViewStateWidgetsProvider({
     required this.initialStateBuilder,
     required this.loadingStateBuilder,
@@ -14,6 +15,31 @@ class ViewStateWidgetsProvider extends InheritedWidget {
     required super.child,
     super.key,
   });
+
+  /// Creates a scoped [ViewStateWidgetsProvider] for a subtree (e.g., a specific route or screen).
+  ///
+  /// Any builder explicitly provided to this constructor will override the parent provider's
+  /// builder for that subtree. Any builder omitted (`null`) will continue to use the parent
+  /// provider's builder.
+  factory ViewStateWidgetsProvider.override({
+    required BuildContext context,
+    required Widget child,
+    InitialStateBuilder? initialStateBuilder,
+    LoadingStateBuilder? loadingStateBuilder,
+    ErrorStateBuilder? errorStateBuilder,
+    EmptyStateBuilder? emptyStateBuilder,
+    Key? key,
+  }) {
+    final parent = ViewStateWidgetsProvider.of(context);
+    return ViewStateWidgetsProvider(
+      key: key,
+      initialStateBuilder: initialStateBuilder ?? parent.initialStateBuilder,
+      loadingStateBuilder: loadingStateBuilder ?? parent.loadingStateBuilder,
+      errorStateBuilder: errorStateBuilder ?? parent.errorStateBuilder,
+      emptyStateBuilder: emptyStateBuilder ?? parent.emptyStateBuilder,
+      child: child,
+    );
+  }
 
   /// Builder function for the initial state widget.
   final InitialStateBuilder initialStateBuilder;
@@ -43,9 +69,9 @@ class ViewStateWidgetsProvider extends InheritedWidget {
 
   @override
   bool updateShouldNotify(ViewStateWidgetsProvider oldWidget) =>
-      oldWidget.initialStateBuilder != initialStateBuilder &&
-      oldWidget.loadingStateBuilder != loadingStateBuilder &&
-      oldWidget.errorStateBuilder != errorStateBuilder &&
+      oldWidget.initialStateBuilder != initialStateBuilder ||
+      oldWidget.loadingStateBuilder != loadingStateBuilder ||
+      oldWidget.errorStateBuilder != errorStateBuilder ||
       oldWidget.emptyStateBuilder != emptyStateBuilder;
 }
 

@@ -1,6 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/states/state_listeners/multi_state_listener.dart';
+import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-multistatebuilder}
@@ -50,6 +52,15 @@ class MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
   @override
   Widget build(BuildContext context, List<T> states, Widget? child) =>
       builder(context, states, child);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<MultiStateWidgetBuilder<List<T>>>.has(
+          'builder', builder),
+    );
+  }
 }
 
 /// An abstract base class for [MultiStateBuilder] that provides common functionality.
@@ -77,6 +88,20 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
   @override
   State<MultiStateBuilderBase> createState() =>
       _MultiStateBuilderBaseState<T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(
+        ObjectFlagProperty<RebuildWhen<List<T>>?>.has(
+          'rebuildWhen',
+          rebuildWhen,
+        ),
+      )
+      ..add(DiagnosticsProperty<List<StateNotifier<T>>>('providers', providers))
+      ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
+  }
 }
 
 class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
@@ -86,27 +111,38 @@ class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
   @override
   void initState() {
     super.initState();
-    _providers = widget.providers;
+    _providers = List<StateNotifier<T>>.from(widget.providers);
     _states = _currentStates;
   }
 
   @override
   void didUpdateWidget(MultiStateBuilderBase<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.providers != oldWidget.providers) {
-      _providers = widget.providers;
-      _states = _currentStates;
+    if (!_areProviderListsEqual(_providers, widget.providers)) {
+      _update();
     }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_providers != widget.providers) _providers = widget.providers;
+    if (!_areProviderListsEqual(_providers, widget.providers)) {
+      _update();
+    }
+  }
+
+  void _update() {
+    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _states = _currentStates;
+  }
+
+  bool _areProviderListsEqual(
+      List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
+    return ObjectKit.areProviderListsEqual(a, b);
   }
 
   List<T> get _currentStates =>
-      _providers.map((notifier) => notifier.state).toList();
+      List<T>.unmodifiable(_providers.map((notifier) => notifier.state));
 
   @override
   Widget build(BuildContext context) => MultiStateListener<T>(

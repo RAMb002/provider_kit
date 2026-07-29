@@ -1,0 +1,147 @@
+name: Release
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_bump:
+        description: 'Type of version bump'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+          - patch   # 0.0.1 → 0.0.2 (bug fixes)
+          - minor   # 0.0.1 → 0.1.0 (new features)
+          - major   # 0.0.1 → 1.0.0 (breaking changes)
+      publish:
+        description: 'Publish to pub.dev?'
+        required: false
+        default: false
+        type: boolean
+      dry_run:
+        description: '🚨 Dry run? (No commits, tags, or actual publish)'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  release:
+    name: Release Pipeline
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # Required to push commits and tags
+
+    steps:
+      # -------- Setup --------
+      - name: 📚 Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Fetch all history for proper merge and tags
+
+      - name: 👤 Setup Git user
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      # -------- Merge dev → main (conditional) --------
+      - name: 🔍 Dry‑run preview (would merge commits)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "🚨 DRY RUN: Would merge dev into main."
+          echo ""
+          echo "📋 Commits that would be merged:"
+          git fetch origin dev
+          git log origin/main..origin/dev --oneline
+          echo ""
+          echo "📁 Files changed (summary):"
+          git diff --stat origin/main..origin/dev
+          echo ""
+          echo "📄 Full diff (code changes):"
+          git diff origin/main..origin/dev
+
+      - name: 🔀 Real merge (only when NOT dry‑run)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          git checkout main
+          git merge --no-ff origin/dev -m "chore: release merge dev → main"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # -------- GATEKEEPER: Changelog must have Unreleased --------
+      - name: 📝 Verify CHANGELOG.md has Unreleased entries
+        run: |
+          git fetch origin dev
+          if ! git show origin/dev:CHANGELOG.md | grep -q "^## Unreleased"; then
+            echo "❌ ERROR: '## Unreleased' section not found in CHANGELOG.md on dev branch."
+            echo "Please add your release notes under '## Unreleased' before releasing."
+            exit 1
+          fi
+          echo "✅ CHANGELOG.md has an '## Unreleased' section. Proceeding..."
+
+      # -------- Version bump (always, but not committed yet) --------
+      - name: 🐦 Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44'
+          channel: 'stable'
+          cache: true
+
+      - name: 📈 Bump version in pubspec.yaml
+        id: bump
+        run: |
+          NEW_VERSION=$(dart scripts/bump_version.dart ${{ github.event.inputs.version_bump }})
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Calculated new version: $NEW_VERSION"
+          echo "📝 Changes made to pubspec.yaml:"
+          git diff pubspec.yaml
+
+      # -------- Gatekeeper: tests must pass --------
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🧪 Run tests (GATEKEEPER)
+        run: flutter test
+
+      - name: 🚀 Pre‑flight check (dry‑run publish)
+        run: flutter pub publish --dry-run || echo "⚠️ Dry-run had warnings (expected before commit). Continuing..."
+
+      # -------- Commit, tag, publish (only if NOT dry‑run) --------
+      - name: 💾 Commit version bump (dry‑run preview)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "🚨 DRY RUN: Would commit pubspec.yaml as version ${{ steps.bump.outputs.new_version }}"
+          echo "Changes that would be committed:"
+          git diff pubspec.yaml
+
+      - name: 💾 Commit version bump (real)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          git add pubspec.yaml CHANGELOG.md
+          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
+          git push origin main
+
+      - name: 🏷️ Create Git tag (dry‑run preview)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "🚨 DRY RUN: Would create and push tag v${{ steps.bump.outputs.new_version }}"
+
+      - name: 🏷️ Create Git tag (real)
+        if: ${{ github.event.inputs.dry_run == 'false' }}
+        run: |
+          git tag v${{ steps.bump.outputs.new_version }}
+          git push origin v${{ steps.bump.outputs.new_version }}
+
+      - name: 📦 Publish to pub.dev (dry‑run preview)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: |
+          echo "🚨 DRY RUN: Would publish version ${{ steps.bump.outputs.new_version }} to pub.dev"
+
+      - name: 📦 Publish to pub.dev (real)
+        if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.publish == 'true' }}
+        run: |
+          mkdir -p ~/.pub-cache
+          echo '${{ secrets.PUB_DEV_CREDENTIALS }}' > ~/.pub-cache/credentials.json
+          flutter pub publish --force

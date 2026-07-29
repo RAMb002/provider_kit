@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
@@ -6,11 +7,11 @@ import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-statelistener}
-/// A widget that listens to changes in a [StateNotifier] and triggers a callback 
+/// A widget that listens to changes in a [StateNotifier] and triggers a callback
 /// when the state changes.
 ///
-/// The [StateListener] is typically used for performing side effects in response 
-/// to state changes, such as navigation, showing a SnackBar, or displaying a Dialog. 
+/// The [StateListener] is typically used for performing side effects in response
+/// to state changes, such as navigation, showing a SnackBar, or displaying a Dialog.
 /// It ensures that the `listener` callback is called only once per state change.
 ///
 /// ### Parameters:
@@ -35,7 +36,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// )
 /// ```
 ///
-/// This widget helps separate **state-dependent side effects** from the UI, ensuring that actions 
+/// This widget helps separate **state-dependent side effects** from the UI, ensuring that actions
 /// such as navigation and notifications are triggered appropriately without unnecessary UI rebuilds.
 /// {@endtemplate}
 class StateListener<P extends StateNotifier<T>, T>
@@ -78,6 +79,25 @@ abstract class StateListenerBase<P extends StateNotifier<T>, T>
 
   @override
   State<StatefulWidget> createState() => _StateListenerState<P, T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty<P?>('provider', provider, defaultValue: null))
+      ..add(ObjectFlagProperty<ListenerCallback<T>>.has('listener', listener))
+      ..add(
+        ObjectFlagProperty<ListenWhen<T>?>.has(
+          'listenWhen',
+          listenWhen,
+        ),
+      )
+      ..add(DiagnosticsProperty<bool>(
+        'shouldCallListenerOnInit',
+        shouldCallListenerOnInit,
+        defaultValue: false,
+      ));
+  }
 }
 
 /// The state class for [StateListenerBase].
@@ -92,14 +112,15 @@ class _StateListenerState<P extends StateNotifier<T>, T>
     _provider = widget.provider ?? _readProvider;
     _previousState = _currentState;
     _attachListener();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldCallListenerOnInit) {
+    if (widget.shouldCallListenerOnInit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         widget.listener(
           context,
           _currentState,
         );
-      }
-    });
+      });
+    }
   }
 
   @override
@@ -141,9 +162,15 @@ class _StateListenerState<P extends StateNotifier<T>, T>
 
   /// The listener function that is called when the state changes.
   void _listener() {
-    if (ObjectKit.isNotEqual<T>(
-        widget.listenWhen, _previousState, _currentState)) {
-      _previousState = _currentState;
+    final shouldCallListener = ObjectKit.isNotEqual<T>(
+      widget.listenWhen,
+      _previousState,
+      _currentState,
+    );
+
+    _previousState = _currentState;
+
+    if (shouldCallListener) {
       widget.listener.call(context, _currentState);
     }
   }

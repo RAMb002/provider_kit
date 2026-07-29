@@ -15,21 +15,27 @@ import 'package:provider_kit/src/states/view_states.dart';
 ///   if (state is! LoadingState<T>) {
 ///     state = loadingStateObject();
 ///   }
-///   T? data = await fetchData();
-///   if (data == null || (data is Iterable && data.isEmpty)) {
+///   T data = await fetchData();
+///   if (!_disableEmptyState && data is Iterable && data.isEmpty) {
 ///     state = emptyStateObject();
 ///   } else {
 ///     state = DataState<T>(data);
 ///   }
 /// }
 /// ```
+///
+/// ### Constructor Parameters:
+/// - **`initialState`** (*Optional*) **:** Override the default initial state (which is `LoadingState<T>()`).
+/// - **`disableEmptyState`** (*Optional*, default: `false`) **:** If `true`, an empty `Iterable` result will **not** be converted to `EmptyState`; instead, it will be stored as a `DataState` with the empty collection.
+///
 /// ### Customization:
 /// Users can override the following methods to customize state handling inside default init:
+/// - **`fetchData`** (*Required*) **:** The method that actually fetches the data. Must be implemented by subclasses.
 /// - **`errorStateObject`** (*Optional*) **:** Customize the error state object, allowing you to define a custom error message, additional metadata, or override how errors are handled.
 /// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
 /// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
 ///
-/// When [ProviderKit] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, and MultiViewStateConsumer**,
+/// When [ProviderKit] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
 /// the **`onRetry`** function for the `ErrorState` will be determined as follows:
 /// 1. If `onRetry` is explicitly set in the `ErrorState`, that function will be used.
 /// 2. If `onRetry` is `null`, the provider’s `refresh()` function will be automatically used for retrying.
@@ -37,6 +43,8 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// ### Example Usage:
 /// ```dart
 /// class MyProvider extends ProviderKit<MyDataType> {
+///   MyProvider({super.initialState, super.disableEmptyState});
+///
 ///   @override
 ///   FutureOr<MyDataType> fetchData() async {
 ///     // Fetch data from an API or database
@@ -51,7 +59,7 @@ import 'package:provider_kit/src/states/view_states.dart';
 ///   @override
 ///   LoadingState<MyDataType> loadingStateObject() {
 ///     // Customize the loading state object
-///     return LoadingState<MyDataType>();
+///     return LoadingState<MyDataType>('Loading...', 0.0);
 ///   }
 ///
 ///   @override
@@ -86,8 +94,8 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
   final bool _disableEmptyState;
 
   /// {@macro providerkit}
-  ProviderKit({super.initialState, bool disableEmptystate = false})
-      : _disableEmptyState = disableEmptystate {
+  ProviderKit({super.initialState, bool disableEmptyState = false})
+      : _disableEmptyState = disableEmptyState {
     _build();
   }
 

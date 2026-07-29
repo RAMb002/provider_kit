@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/state_builders/view_state_builder.dart';
 import 'package:provider_kit/src/states/state_consumers/state_consumer.dart';
@@ -79,23 +80,37 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// ```
 class ViewStateConsumer<P extends ViewStateNotifier<T>, T>
     extends StateConsumer<P, ViewState<T>> {
+
+  final InitialStateBuilder? initialBuilder;
+  final LoadingStateBuilder? loadingBuilder;
+  final EmptyStateBuilder? emptyBuilder;
+  final ErrorStateBuilder? errorBuilder;
+  final DataStateBuilder<T> dataBuilder;
+  final bool isSliver;
+
+  final InitialStateListener? initialStateListener;
+  final LoadingStateListener? loadingStateListener;
+  final EmptyStateListener? emptyStateListener;
+  final ErrorStateListener? errorStateListener;
+  final DataStateListener<T>? dataStateListener;
+
   ViewStateConsumer({
     super.key,
     super.provider,
     super.rebuildWhen,
-    InitialStateBuilder? initialBuilder,
-    LoadingStateBuilder? loadingBuilder,
-    EmptyStateBuilder? emptyBuilder,
-    required DataStateBuilder<T> dataBuilder,
-    ErrorStateBuilder? errorBuilder,
+    this.initialBuilder,
+    this.loadingBuilder,
+    this.emptyBuilder,
+    this.errorBuilder,
+    required this.dataBuilder,
+    this.isSliver = false,
+    this.initialStateListener,
+    this.loadingStateListener,
+    this.emptyStateListener,
+    this.errorStateListener,
+    this.dataStateListener,
     super.listenWhen,
-    InitialStateListener? initialStateListener,
-    DataStateListener<T>? dataStateListener,
-    EmptyStateListener? emptyStateListener,
-    LoadingStateListener? loadingStateListener,
-    ErrorStateListener? errorStateListener,
     super.shouldCallListenerOnInit,
-    bool isSliver = false,
   }) : super(
           builder: (context, state, child) {
             return ViewStateBuilder.buildStateWidget<P, T>(
@@ -123,4 +138,33 @@ class ViewStateConsumer<P extends ViewStateNotifier<T>, T>
             );
           },
         );
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<InitialStateBuilder?>.has(
+          'initialBuilder', initialBuilder))
+      ..add(ObjectFlagProperty<LoadingStateBuilder?>.has(
+          'loadingBuilder', loadingBuilder))
+      ..add(ObjectFlagProperty<EmptyStateBuilder?>.has(
+          'emptyBuilder', emptyBuilder))
+      ..add(ObjectFlagProperty<ErrorStateBuilder?>.has(
+          'errorBuilder', errorBuilder))
+      ..add(ObjectFlagProperty<DataStateBuilder<T>>.has(
+          'dataBuilder', dataBuilder))
+      ..add(DiagnosticsProperty<bool>('isSliver', isSliver,
+          defaultValue: false))
+          
+      ..add(ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener', initialStateListener))
+      ..add(ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener', loadingStateListener))
+      ..add(ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener', emptyStateListener))
+      ..add(ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener', errorStateListener))
+      ..add(ObjectFlagProperty<DataStateListener<T>?>.has(
+          'dataStateListener', dataStateListener));
+  }
 }

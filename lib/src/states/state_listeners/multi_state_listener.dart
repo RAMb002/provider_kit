@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
@@ -72,6 +73,27 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
 
   @override
   State<StatefulWidget> createState() => _StateListenerState<T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty<List<StateNotifier<T>>>('providers', providers,
+          defaultValue: null))
+      ..add(ObjectFlagProperty<ListenerCallback<List<T>>>.has(
+          'listener', listener))
+      ..add(
+        ObjectFlagProperty<ListenWhen<List<T>>?>.has(
+          'listenWhen',
+          listenWhen,
+        ),
+      )
+      ..add(DiagnosticsProperty<bool>(
+        'shouldCallListenerOnInit',
+        shouldCallListenerOnInit,
+        defaultValue: false,
+      ));
+  }
 }
 
 class _StateListenerState<T>
@@ -82,74 +104,89 @@ class _StateListenerState<T>
   @override
   void initState() {
     super.initState();
-    _providers = widget.providers;
+    _providers = List<StateNotifier<T>>.from(widget.providers);
     _previousStates = _currentStates;
-    _attachListeners();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldCallListenerOnInit) {
+    _attachListeners(_providers);
+    if (widget.shouldCallListenerOnInit) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
         widget.listener(
           context,
           _currentStates,
         );
-      }
-    });
+      });
+    }
   }
 
   @override
   void didUpdateWidget(MultiStateListenerBase<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.providers != oldWidget.providers) _update();
+    if (!_areProviderListsEqual(_providers, widget.providers)) {
+      _update();
+    }
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_providers != widget.providers) _update();
+    if (!_areProviderListsEqual(_providers, widget.providers)) {
+      _update();
+    }
   }
 
   void _update() {
     _detachListeners(_providers);
-    _providers = widget.providers;
+    _providers = List<StateNotifier<T>>.from(widget.providers);
     _previousStates = _currentStates;
-    _attachListeners();
+    _attachListeners(_providers);
   }
 
   @override
   void dispose() {
-    _detachListeners();
+    _detachListeners(_providers);
     super.dispose();
   }
 
   void _listener() {
     if (!mounted) return;
 
-    if (ObjectKit.isNotEqual<List<T>>(
-        widget.listenWhen, _previousStates, _currentStates)) {
-      _previousStates = _currentStates;
-      widget.listener.call(context, _currentStates);
+    final currentStates = _currentStates;
+
+    final shouldCallListener = ObjectKit.isNotEqual<List<T>>(
+        widget.listenWhen, _previousStates, currentStates);
+
+    _previousStates = currentStates;
+
+    if (shouldCallListener) {
+      widget.listener.call(context, currentStates);
     }
   }
 
-  void _attachListeners([List<StateNotifier<T>>? providers]) {
-    for (var provider in providers ?? widget.providers) {
+  void _attachListeners(List<StateNotifier<T>> providers) {
+    for (var provider in providers) {
       provider.addListener(_listener);
     }
   }
 
-  void _detachListeners([List<StateNotifier<T>>? providers]) {
-    for (var provider in providers ?? widget.providers) {
+  void _detachListeners(List<StateNotifier<T>> providers) {
+    for (var provider in providers) {
       provider.removeListener(_listener);
     }
   }
 
+  bool _areProviderListsEqual(
+      List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
+    return ObjectKit.areProviderListsEqual(a, b);
+  }
+
   List<T> get _currentStates =>
-      _providers.map((notifier) => notifier.state).toList();
+      List<T>.unmodifiable(_providers.map((notifier) => notifier.state));
 
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
     assert(
       child != null,
-      '''${widget.runtimeType} used outside of ProviderCombinedStateListener must specify a child''',
+      '''${widget.runtimeType} used outside of MultiStateListener must specify a child''',
     );
     return child!;
   }

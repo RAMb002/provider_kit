@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
@@ -92,6 +93,33 @@ class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
 
   @override
   State<StateConsumer<P, T>> createState() => _StateConsumerState<P, T>();
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(DiagnosticsProperty<P?>('provider', provider))
+      ..add(ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder))
+      ..add(ObjectFlagProperty<ListenerCallback<T>>.has('listener', listener))
+      ..add(
+        ObjectFlagProperty<RebuildWhen<T>?>.has(
+          'rebuildWhen',
+          rebuildWhen,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ListenWhen<T>?>.has(
+          'listenWhen',
+          listenWhen,
+        ),
+      )
+      ..add(DiagnosticsProperty<bool>(
+        'shouldCallListenerOnInit',
+        shouldCallListenerOnInit,
+        defaultValue: false,
+      ))
+      ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
+  }
 }
 
 class _StateConsumerState<P extends StateNotifier<T>, T>

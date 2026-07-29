@@ -4,8 +4,8 @@ import 'package:example/toast.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-class ProviderMutliStateListenerExample extends StatelessWidget {
-  const ProviderMutliStateListenerExample({super.key});
+class ProviderMultiStateListenerExample extends StatelessWidget {
+  const ProviderMultiStateListenerExample({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -247,7 +247,7 @@ A Typical use case for `ViewState` is when fetching data asynchronously. For exa
 
 `ViewStateNotifier` is a `StateNotifier` that manages `ViewState<T>`. It simplifies state management by handling various states such as **loading, empty, data, and error** for a given data type.
 
-> By default the intial state of `ViewStateNotifier` is LoadingState.
+> By default the initial state of `ViewStateNotifier` is LoadingState.
 
 ```dart
 class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
@@ -278,7 +278,7 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
 }
 ```
 
-**Tired of manually implementing the same logic for every provider?**  
+**Tired of manually implementing the same logic for every provider?**
 No worries! Introducing **ProviderKit**—a more efficient way to manage our view state.
 
 ---
@@ -287,7 +287,7 @@ No worries! Introducing **ProviderKit**—a more efficient way to manage our vie
 
 `ProviderKit` automates state management, eliminating the need to repeatedly extend `ViewStateNotifier` and implement the same boilerplate logic. It streamlines fetching, handling empty states, error management, and retry mechanisms.
 
-> By default the intial state of `ProviderKit` is LoadingState.
+> By default the initial state of `ProviderKit` is LoadingState.
 
 ### **How does it work?**
 
@@ -319,7 +319,7 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 |-----------------------------|------------------------------------------|----------------|
 | **Constructor Params**  |                                          |                |
 | `initialState`              | `ViewState<T>`                           | The initial state of the provider. Defaults to `LoadingState`. |
-| `disableEmptystate`         | `bool`                                   | By default, if `T` is an `Iterable` (like `List`, `Set`, etc.), an empty iterable will result in `EmptyState`. Setting this to `true` forces an empty iterable to be assigned as `DataState`. |
+| `disableEmptyState`         | `bool`                                   | By default, if `T` is an `Iterable` (like `List`, `Set`, etc.), an empty iterable will result in `EmptyState`. Setting this to `true` forces an empty iterable to be assigned as `DataState`. |
 | **Property**               |                                          |                |
 | `state`                     | `ViewState<T>`                           | The current state of the provider, which can be `LoadingState`, `DataState`, `EmptyState`, or `ErrorState`. |
 | **Methods**                  |                                          |                |
@@ -327,7 +327,7 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 | `fetchData()`                | `FutureOr<T>`                            | Fetches data from an API or database. Must be implemented in subclasses. |
 | `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize default `ErrorState` Object |
 | `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize default `LoadingState` Object  |
-| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize default `EmptyStaet` Object  instance. |
+| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize default `EmptyState` Object  instance. |
 | `refresh()`                  | `Future<void>`                           | Refreshes the provider which will call `init` with `fetchData()` again. |
 
 
@@ -336,11 +336,11 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 ```dart
 class MyViewStateProvider extends ProviderKit<List<Item>> {
   // by default `initialState` is `LoadingState`.
-  // by default `disableEmptystate` is false.
+  // by default `disableEmptyState` is false.
   MyViewStateProvider()
       : super(initialState: const InitialState(),
       //disabling empty state will set the state to `DataState` instead of `EmptyState`
-       disableEmptystate: true);
+       disableEmptyState: true);
 
   @override
   FutureOr<void> init() async {
@@ -409,9 +409,7 @@ Instead of checking the state type and passing the respective widgets for every 
 
 
 
->**Note:** These widgets will be used internally by _`ViewStateBuilder`,`ViewStateConsumer`,`MultiViewStateBuilder` and `MultiViewStateConsumer`_ which we’ll explore soon below.  
-
-Additionally, we can wrap a specific part of the widget tree with `ViewStateWidgetsProvider` to override the state widgets for that section.  
+>**Note:** These widgets will be used internally by _`ViewStateBuilder`,`ViewStateConsumer`,`MultiViewStateBuilder` and `MultiViewStateConsumer`_ which we’ll explore soon below.
 
 `ViewStateWidgetsProvider` is simply an **inherited widget** that provides consistent state based widgets across our app.
 
@@ -461,6 +459,27 @@ class MyApp extends StatelessWidget {
   }
 }
 
+```
+
+Additionally, you can wrap any section of your widget tree with `ViewStateWidgetsProvider` to completely redefine its state widgets, or use `ViewStateWidgetsProvider.override` to update only specific state builders while inheriting the rest from the parent `ViewStateWidgetsProvider`.
+
+```dart
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ViewStateWidgetsProvider.override(
+      context: context,
+      // Overrides ONLY the loading builder for this subtree, used internally by `ViewStateWidgets`.
+      loadingStateBuilder: (message, progress, isSliver) {
+        const widget = Center(child: ProfileSkeletonLoader());
+        return isSliver ? const SliverToBoxAdapter(child: widget) : widget;
+      },
+      child: const ProfileView(),
+    );
+  }
+}
 ```
 > **Note:** In `errorStateBuilder`, the `errorMessage`, `onRetry`, `exception`, and `stackTrace` are automatically passed to the function if your provider is `providerKit`.
 
@@ -820,7 +839,7 @@ NestedStateListener(
 
 ## StateObserver  
 
-The `StateObserver` helps in monitoring provider activites. It can be used for debugging, for example - by logging lifecycle events such as creation, state changes, errors, and disposal.  
+The `StateObserver` helps in monitoring provider activities. It can be used for debugging, for example - by logging lifecycle events such as creation, state changes, errors, and disposal.  
 
 ```dart
 void main() {
@@ -1115,10 +1134,13 @@ ProxyProvider<PaginationProvider, MyProvider>(
 
 ---
 
-> Few features of this package were inspired from `flutter_bloc` and `flutter_bloc_ease`.
+> Few features of this package were inspired by `flutter_bloc`.
 
 ## 🛠 Features & Bug Reports  
 Have a feature request or found a bug? Feel free to open an issue on the [GitHub Issue Tracker](https://github.com/RAMb002/provider_kit/issues). Your feedback helps improve **ProviderKit**!  
+
+## 🧪 Development
+**ProviderKit** is backed by a comprehensive automated test suite covering widgets, state management, listeners, edge cases, and other core package functionality.
 
 ## 📢 Connect with Me  
 Stay updated and reach out for collaborations!  
