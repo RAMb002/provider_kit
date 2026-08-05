@@ -1,4 +1,4 @@
-## Unreleased
+## 0.1.0
 
 - Added `NotifierBuilder`, `NotifierListener`, and `NotifierConsumer` aliases to eliminate verbose `<StateNotifier<T>, T>` generics on `State Widgets` when passing a `StateNotifier` directly.
 
