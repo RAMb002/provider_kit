@@ -1,5 +1,15 @@
 ## Unreleased
 
+- Added `NotifierBuilder`, `NotifierListener`, and `NotifierConsumer` aliases to eliminate verbose `<StateNotifier<T>, T>` generics on `State Widgets` when passing a `StateNotifier` directly.
+
+  ```dart
+  // Before
+  StateBuilder<StateNotifier<int>, int>(provider: notifier, ...)
+
+  // After
+  NotifierBuilder<int>(provider: notifier, ...)
+  ```
+
 ## 0.0.2
 
 - Added comprehensive test suite with over 340 test cases.
