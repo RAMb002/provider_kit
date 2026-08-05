@@ -82,8 +82,6 @@ void main(List<String> args) {
       // Replace the FIRST occurrence of "## Unreleased" with "## $newVersion"
       // This is safe because unreleased is usually at the top.
       changelog = changelog.replaceFirst(unreleasedHeader, '## $newVersion');
-      // Now prepend a fresh "## Unreleased" section at the very top.
-      changelog = '$unreleasedHeader\n\n$changelog';
     } else {
       // No "Unreleased" section – just prepend a new version entry.
       final newEntry = '## $newVersion\n\n- Automated release.\n\n';

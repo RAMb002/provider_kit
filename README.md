@@ -164,6 +164,16 @@ StateConsumer<MyProvider, MyDataType>(
   child: YourStaticWidget(), // Optional, won't be rebuilt
 );
 ```
+ **💡 Tip:** Passing a `StateNotifier` directly? Use `NotifierBuilder`, `NotifierListener`, or `NotifierConsumer` instead of `StateBuilder`, `StateListener`, or `StateConsumer` to avoid repeatedly typing `<StateNotifier<T>, T>`.
+> ```dart
+> // ✅ Clean
+> NotifierBuilder<int>(provider: counterProvider, builder: ...)
+>
+> // ❌ Verbose
+> StateBuilder<StateNotifier<int>, int>(provider: counterProvider, builder: ...)
+> ```
+>
+> For automatic provider lookup, use the original widgets instead.
 
 ---
 
