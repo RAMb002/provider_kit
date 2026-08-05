@@ -1,6 +1,5 @@
 import 'package:collection/collection.dart';
-
-import '../notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 
 class ObjectKit {
   static bool isNotEqual<T extends Object?>(
@@ -9,9 +8,9 @@ class ObjectKit {
   }
 
   static bool areProviderListsEqual<T>(
-    List<StateNotifier<T>> a,
-    List<StateNotifier<T>> b,
+    List<StateValueListenable<T>> a,
+    List<StateValueListenable<T>> b,
   ) {
-    return ListEquality<StateNotifier<T>>().equals(a, b);
+    return ListEquality<StateValueListenable<T>>().equals(a, b);
   }
 }

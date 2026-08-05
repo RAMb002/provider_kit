@@ -1,3 +1,9 @@
+## Unreleased
+
+- Replaced `StateNotifier` with `StateValueListenable` as the shared abstraction for ProviderKit state widgets.
+- Generalized all state and multi-state widgets to support any `StateValueListenable`.
+- Improved documentation and README with clearer explanations and usage examples.
+
 ## 0.1.0
 
 - Added `NotifierBuilder`, `NotifierListener`, and `NotifierConsumer` aliases to eliminate verbose `<StateNotifier<T>, T>` generics on `State Widgets` when passing a `StateNotifier` directly.

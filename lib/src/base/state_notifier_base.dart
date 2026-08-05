@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/base/state_observer/change.dart';
 import 'package:provider_kit/src/base/state_observer/state_observer.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
 
 abstract class StateNotifierBase<State> extends ChangeNotifier
@@ -100,14 +101,4 @@ abstract class StateNotifierBase<State> extends ChangeNotifier
 
   @override
   String toString() => '${describeIdentity(this)}($state)';
-}
-
-abstract class StateValueListenable<State> implements Listenable {
-  /// Abstract const constructor. This constructor enables subclasses to provide
-  /// const constructors so that they can be used in const expressions.
-  const StateValueListenable();
-
-  /// The current value of the object. When the value changes, the callbacks
-  /// registered with [addListener] will be invoked.
-  State get state;
 }

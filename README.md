@@ -76,8 +76,8 @@
 #### Add them to your `pubspec.yaml` file
 ```yaml
 dependencies:
-  provider_kit: ^0.0.1
-  provider: ^6.1.2  # Replace with the latest version
+  provider_kit: ^0.1.0 # Replace with the latest version
+  provider: ^6.1.5
   ```
 
 Make sure to register your provider to gain full advantage of this package.
@@ -93,11 +93,13 @@ Alright, now lets dive in !
 
 ## State
 
-State management is simplified using `StateNotifier` and various widgets designed for listening, building, and consuming state changes efficiently.
+State management is simplified using `StateNotifier` (or any object implementing `StateValueListenable`) and various widgets designed for listening, building, and consuming state changes efficiently.
 
 ### StateNotifier
 
 `StateNotifier` acts as the core class of this library, similar to `ValueNotifier` but with enhanced capabilities. By extending `StateNotifier`, our providers become observable, allowing widgets to listen and react to state changes.
+
+> **Note:** All state widgets in this package are generic over any object implementing StateValueListenable. StateNotifier is the default implementation provided by ProviderKit.
 
 ```dart
 class MyProvider extends StateNotifier<int> {
@@ -110,9 +112,11 @@ class MyProvider extends StateNotifier<int> {
 
 ### _**State Widgets**_
 
-To listen to state changes from our provider, we would use built-in widgets that are designed to interact with the `StateNotifier`. Each widget includes an optional **provider** attribute. By default, state widgets automatically search the widget tree for the corresponding provider type (e.g., `MyProvider`). Alternatively, we can pass a specific provider instance using the **provider** attribute.
+To listen to state changes from our provider, we use built-in widgets that are designed to interact with the `StateNotifier`. Each widget includes an optional **provider** attribute. By default, state widgets automatically search the widget tree for the corresponding provider type (e.g., `MyProvider`). Alternatively, we can pass a specific provider instance using the **provider** attribute.
 
-- State Widgets includes **`StateListener`, `StateBuilder`, `StateConsumer`**.
+> **Note:** These widgets are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
+
+- State Widgets include **`StateListener`, `StateBuilder`, `StateConsumer`**.
 
 ### StateListener
 
@@ -164,13 +168,13 @@ StateConsumer<MyProvider, MyDataType>(
   child: YourStaticWidget(), // Optional, won't be rebuilt
 );
 ```
- **💡 Tip:** Passing a `StateNotifier` directly? Use `NotifierBuilder`, `NotifierListener`, or `NotifierConsumer` instead of `StateBuilder`, `StateListener`, or `StateConsumer` to avoid repeatedly typing `<StateNotifier<T>, T>`.
+ **💡 Tip:** Passing a `StateValueListenable` instance directly (such as a `StateNotifier`)? Use `NotifierBuilder`, `NotifierListener`, or `NotifierConsumer` instead of `StateBuilder`, `StateListener`, or `StateConsumer` to avoid repeatedly typing `<StateValueListenable<T>, T>`.
 > ```dart
 > // ✅ Clean
 > NotifierBuilder<int>(provider: counterProvider, builder: ...)
 >
 > // ❌ Verbose
-> StateBuilder<StateNotifier<int>, int>(provider: counterProvider, builder: ...)
+> StateBuilder<StateValueListenable<int>, int>(provider: counterProvider, builder: ...)
 > ```
 >
 > For automatic provider lookup, use the original widgets instead.
@@ -180,10 +184,11 @@ StateConsumer<MyProvider, MyDataType>(
 
 ### _**Multi State Widgets**_
 
-With Multi State Widgets, we can listen to multiple providers states with a single widget. However, these widgets won't try to read the provider. 
->**Note:**  Our providers states can either be of the same type or dynamic.
+With Multi State Widgets, we can listen to the states of multiple providers using a single widget. However, these widgets won't try to read the provider. 
+> **Note:** The providers' states can be of the same type or different types (`dynamic`).  
+> The providers themselves are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
 
-- Multi State Widgets includes **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
+- Multi State Widgets include **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
 
 ### MultiStateListener
 
