@@ -3,8 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-
-class TestCachedProvider extends ProviderKit<String>
+class TestCachedProvider extends AsyncViewStateNotifier<String>
     with DataStateCopyCacheMixin<String> {
   String? dataToReturn;
   Exception? exceptionToThrow;
@@ -35,7 +34,7 @@ class TestCachedProvider extends ProviderKit<String>
 // Test Suite
 // -----------------------------------------------------------------------------
 void main() {
-  group('DataStateCopyCacheMixin with ProviderKit', () {
+  group('DataStateCopyCacheMixin with AsyncViewStateNotifier', () {
     late TestCachedProvider provider;
 
     setUp(() {
@@ -67,7 +66,8 @@ void main() {
       expect(provider.dataObjectCopy, equals('Initial Data'));
     });
 
-    test('saveDataStateCopy overwrites existing cache with new DataState', () async {
+    test('saveDataStateCopy overwrites existing cache with new DataState',
+        () async {
       await Future<void>.delayed(Duration.zero);
 
       // 1. Cache initial data
@@ -103,7 +103,9 @@ void main() {
       expect(provider.dataObjectCopy, equals('Initial Data'));
     });
 
-    test('supports filtering workflow by preserving master copy when state updates', () async {
+    test(
+        'supports filtering workflow by preserving master copy when state updates',
+        () async {
       await Future<void>.delayed(Duration.zero);
 
       // 1. Save master copy
@@ -114,15 +116,19 @@ void main() {
       provider.state = const DataState<String>('Filtered Data');
 
       // 3. Current state has filtered value, but cache still holds master copy
-      expect((provider.state as DataState<String>).data, equals('Filtered Data'));
+      expect(
+          (provider.state as DataState<String>).data, equals('Filtered Data'));
       expect(provider.dataObjectCopy, equals('Initial Data'));
 
       // 4. Reset/restore filter from cache
       provider.restoreCachedData();
-      expect((provider.state as DataState<String>).data, equals('Initial Data'));
+      expect(
+          (provider.state as DataState<String>).data, equals('Initial Data'));
     });
 
-    test('cache preserves previous DataState across ProviderKit error refresh cycles', () async {
+    test(
+        'cache preserves previous DataState across AsyncViewStateNotifier error refresh cycles',
+        () async {
       await Future<void>.delayed(Duration.zero);
 
       // 1. Cache initial successful state
@@ -159,7 +165,8 @@ void main() {
       expect(provider.dataObjectCopy, isNull);
     });
 
-    test('dispose automatically clears cache in ProviderKit lifecycle', () async {
+    test('dispose automatically clears cache in AsyncViewStateNotifier lifecycle',
+        () async {
       await Future<void>.delayed(Duration.zero);
 
       provider.saveDataStateCopy(provider.state);

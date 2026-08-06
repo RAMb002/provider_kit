@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/notifiers/provider_kit.dart';
+import 'package:provider_kit/src/notifiers/async_view_state_notifier.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/states/states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
@@ -52,8 +52,8 @@ class ViewStateBase {
       if (state is ErrorState<T>) {
         if (state.onRetry != null) {
           state.onRetry!.call();
-        } else if (provider is ProviderKit) {
-          (provider as ProviderKit).refresh();
+        } else if (provider is AsyncViewStateNotifier) {
+          (provider as AsyncViewStateNotifier).refresh();
         }
       }
     }

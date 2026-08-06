@@ -19,7 +19,7 @@ class SpyObserver extends StateObserver {
 
 /// A test provider that allows controlling `fetchData` and optionally
 /// overriding `init` behaviour.
-class TestProvider<T> extends ProviderKit<T> {
+class TestProvider<T> extends AsyncViewStateNotifier<T> {
   final FutureOr<T> Function() fetchDataImpl;
   final FutureOr<void> Function()? initOverride;
 
@@ -87,7 +87,7 @@ class CustomEmptyProvider extends TestProvider<List<int>> {
 // -----------------------------------------------------------------------------
 
 void main() {
-  group('ProviderKit', () {
+  group('AsyncViewStateNotifier', () {
     // -----------------------------------------------------------------------
     // 1. Initial state
     // -----------------------------------------------------------------------

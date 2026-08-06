@@ -1,5 +1,6 @@
 ## Unreleased
 
+- **Breaking:** Renamed `ProviderKit` to `AsyncViewStateNotifier`.
 - Replaced `StateNotifier` with `StateValueListenable` as the shared abstraction for ProviderKit state widgets.
 - Generalized all state and multi-state widgets to support any `StateValueListenable`.
 - Improved documentation and README with clearer explanations and usage examples.

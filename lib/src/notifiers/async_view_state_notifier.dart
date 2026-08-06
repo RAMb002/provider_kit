@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/view_states.dart';
 
-/// {@template providerkit}
-/// An abstract class that extends [ProviderKitInterface] and provides default implementations for state management.
+/// {@template providerkit-asyncviewstatenotifier}
+/// An abstract class that extends [AsyncViewStateNotifierInterface] and provides default implementations for state management.
 ///
-/// The [ProviderKit] class is designed to handle common state transitions such as loading, error, and empty states.
+/// The [AsyncViewStateNotifier] class is designed to handle common state transitions such as loading, error, and empty states.
 /// It ensures that the `init` method is guarded and automatically converts exceptions to error states.
 /// Override `init` method for full customization.
 /// ```dart
@@ -35,14 +35,14 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
 /// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
 ///
-/// When [ProviderKit] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
+/// When [AsyncViewStateNotifier] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
 /// the **`onRetry`** function for the `ErrorState` will be determined as follows:
 /// 1. If `onRetry` is explicitly set in the `ErrorState`, that function will be used.
 /// 2. If `onRetry` is `null`, the provider’s `refresh()` function will be automatically used for retrying.
 ///
 /// ### Example Usage:
 /// ```dart
-/// class MyProvider extends ProviderKit<MyDataType> {
+/// class MyProvider extends AsyncViewStateNotifier<MyDataType> {
 ///   MyProvider({super.initialState, super.disableEmptyState});
 ///
 ///   @override
@@ -90,11 +90,11 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// - By default, the initial state is set to **`LoadingState`**.
 /// {@endtemplate}
 
-abstract class ProviderKit<T> extends ProviderKitInterface<T> {
+abstract class AsyncViewStateNotifier<T> extends AsyncViewStateNotifierInterface<T> {
   final bool _disableEmptyState;
 
-  /// {@macro providerkit}
-  ProviderKit({super.initialState, bool disableEmptyState = false})
+  /// {@macro providerkit-asyncviewstatenotifier}
+  AsyncViewStateNotifier({super.initialState, bool disableEmptyState = false})
       : _disableEmptyState = disableEmptyState {
     _build();
   }
@@ -161,9 +161,9 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
   }
 }
 
-/// An abstract class that provides the interface for [ProviderKit].
+/// An abstract class that provides the interface for [AsyncViewStateNotifier].
 ///
-/// The [ProviderKitInterface] class defines the methods that must be implemented by subclasses.
+/// The [AsyncViewStateNotifierInterface] class defines the methods that must be implemented by subclasses.
 /// It extends [ViewStateNotifier] and provides a default initial state of **`LoadingState`**.
 ///
 /// ### Methods:
@@ -173,8 +173,8 @@ abstract class ProviderKit<T> extends ProviderKitInterface<T> {
 /// - **`errorStateObject`** (*Required*) **:** A method that provides the error state object.
 /// - **`loadingStateObject`** (*Required*) **:** A method that provides the loading state object.
 /// - **`emptyStateObject`** (*Required*) **:** A method that provides the empty state object.
-abstract class ProviderKitInterface<T> extends ViewStateNotifier<T> {
-  ProviderKitInterface({
+abstract class AsyncViewStateNotifierInterface<T> extends ViewStateNotifier<T> {
+  AsyncViewStateNotifierInterface({
     ViewState<T>? initialState,
   }) : super(initialState ?? LoadingState<T>());
 
