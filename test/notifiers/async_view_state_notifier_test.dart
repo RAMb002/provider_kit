@@ -2,14 +2,15 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
+import 'package:provider_kit/src/base/notifier_base.dart';
 
 /// A spy observer that records the initial state via `onCreate`.
-class SpyObserver extends StateObserver {
+class SpyObserver extends NotifierObserver {
   ViewState? capturedInitialState;
-  StateNotifierBase? lastNotifier;
+  NotifierBase? lastNotifier;
 
   @override
-  void onCreate(StateNotifierBase notifier) {
+  void onCreate(NotifierBase notifier) {
     super.onCreate(notifier);
     lastNotifier = notifier;
     // Capture the initial state.
@@ -100,8 +101,8 @@ void main() {
         'initial state can be overridden via constructor (verified via observer)',
         () {
       final spy = SpyObserver();
-      final original = StateNotifier.observer;
-      StateNotifier.observer = spy;
+      final original = NotifierBase.observer;
+      NotifierBase.observer = spy;
 
       TestProvider<String>(
         fetchDataImpl: () => 'data',
@@ -109,7 +110,7 @@ void main() {
       );
       expect(spy.capturedInitialState, const DataState('custom'));
 
-      StateNotifier.observer = original;
+      NotifierBase.observer = original;
     });
 
     // -----------------------------------------------------------------------

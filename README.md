@@ -61,7 +61,7 @@
       - [Ex View State Cache Mixin](#exviewstatecachemixin)
       - [Data State Copy Cache Mixin](#datastatecopycachemixin)
 - [Nested State Listener](#nestedstatelistener)
-- [State Observer](#stateobserver)
+- [Notifier Observer](#notifierobserver)
 - [Templates](#templates)
     - [Vs Code Template Setup](#vs-code-template-setup)
     - [Android Studio and IntelliJ Template Setup](#android-studio-and-intellij-template-setup)
@@ -852,47 +852,53 @@ NestedStateListener(
 
 ---
 
-## StateObserver  
+## NotifierObserver  
 
-The `StateObserver` helps in monitoring provider activities. It can be used for debugging, for example - by logging lifecycle events such as creation, state changes, errors, and disposal.  
+The `NotifierObserver` helps you monitor the lifecycle of all notifiers in your application.  
+It can be used for debugging, logging, analytics, or any other cross‑cutting concern – it receives callbacks whenever a notifier is created, changes state, throws an error, or is disposed.
+
+### Setting up a global observer
+
+Assign an implementation of `NotifierObserver` to the static `observer` field on `NotifierBase`.  
+This is typically done at the start of your app, before running the `MaterialApp`.
 
 ```dart
 void main() {
-  // Set the state observer
-  StateNotifier.observer = NotifierLogger();
+  // Set the global observer
+  NotifierBase.observer = MyNotifierObserver();
   runApp(const MyApp());
 }
 
-class MyStateObserver extends StateObserver {
+class MyNotifierObserver extends NotifierObserver {
   @override
-  void onChange(StateNotifierBase stateNotifier, Change change) {
-    super.onChange(stateNotifier, change);
+  void onChange(NotifierBase notifier, Change change) {
+    super.onChange(notifier, change);
     debugPrint(
-      'StateNotifier onChange -- \${stateNotifier.runtimeType}, '
+      'notifier onChange -- \${notifier.runtimeType}, '
       '\${change.currentState.runtimeType} ---> \${change.nextState.runtimeType}',
     );
   }
 
   @override
-  void onCreate(StateNotifierBase stateNotifier) {
-    super.onCreate(stateNotifier);
-    debugPrint('StateNotifier onCreate -- \${stateNotifier.runtimeType}');
+  void onCreate(NotifierBase notifier) {
+    super.onCreate(notifier);
+    debugPrint('notifier onCreate -- \${notifier.runtimeType}');
   }
 
   @override
   void onError(
-      StateNotifierBase stateNotifier, Object error, StackTrace stackTrace) {
+      NotifierBase notifier, Object error, StackTrace stackTrace) {
     debugPrint(
-      'StateNotifier onError -- \${stateNotifier.runtimeType} '
+      'notifier onError -- \${notifier.runtimeType} '
       'Error: \$error StackTrace: \$stackTrace',
     );
-    super.onError(stateNotifier, error, stackTrace);
+    super.onError(notifier, error, stackTrace);
   }
 
   @override
-  void onDispose(StateNotifierBase stateNotifier) {
-    super.onDispose(stateNotifier);
-    debugPrint('StateNotifier onDispose -- \${stateNotifier.runtimeType}');
+  void onDispose(NotifierBase notifier) {
+    super.onDispose(notifier);
+    debugPrint('notifier onDispose -- \${notifier.runtimeType}');
   }
 }
 ```
