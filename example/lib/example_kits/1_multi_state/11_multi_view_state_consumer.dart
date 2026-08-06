@@ -3,6 +3,7 @@ import 'package:example/example_kits/providers/2_async_view_state_notifier.dart'
 import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 class MultiViewStateConsumerExample extends StatelessWidget {
@@ -10,23 +11,35 @@ class MultiViewStateConsumerExample extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final providers = [
-      ItemsProvider(),
-      ViewStateProviderOne(),
-      ViewStateProviderTwo()
-    ];
-    return ScaffoldWithButton(
-        title: "Multi View State Consumer",
-        child: MultiViewStateConsumer(
-          providers: providers,
-          initialStateListener: () => context.showToast("initial state"),
-          loadingStateListener: (message, progress) =>
-              context.showToast("loading state"),
-          emptyStateListener: (message) => context.showToast("empty state"),
-          dataStateListener: (data) => context.showToast(data.toString()),
-          errorStateListener: (errorMessage, onRetry, exception, stackTrace) =>
-              context.showToast("error state, message - $errorMessage"),
-          dataBuilder: (data) => Text(data.toString()),
-        ));
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ItemsProvider()),
+        ChangeNotifierProvider(create: (_) => ViewStateProviderOne()),
+        ChangeNotifierProvider(create: (_) => ViewStateProviderTwo()),
+      ],
+      child: Builder(
+        builder: (context) {
+          final providers = [
+            context.read<ItemsProvider>(),
+            context.read<ViewStateProviderOne>(),
+            context.read<ViewStateProviderTwo>(),
+          ];
+          return ScaffoldWithButton(
+            title: "Multi View State Consumer",
+            child: MultiViewStateConsumer(
+              providers: providers,
+              initialStateListener: () => context.showToast("initial state"),
+              loadingStateListener: (message, progress) =>
+                  context.showToast("loading state"),
+              emptyStateListener: (message) => context.showToast("empty state"),
+              dataStateListener: (data) => context.showToast(data.toString()),
+              errorStateListener: (errorMessage, onRetry, exception, stackTrace) =>
+                  context.showToast("error state, message - $errorMessage"),
+              dataBuilder: (data) => Text(data.toString()),
+            ),
+          );
+        },
+      ),
+    );
   }
 }
