@@ -1,6 +1,8 @@
+// ignore_for_file: invalid_use_of_protected_member
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
-import 'package:provider_kit/src/base/notifier_base.dart';
 
 // -----------------------------------------------------------------------------
 // Spy observer (copied from state_notifier_test)
@@ -76,10 +78,89 @@ class ThrowingNotifier extends StateNotifier<int> {
   }
 }
 
+class ExposedNotifier extends StateNotifier<int> {
+  ExposedNotifier(super.state);
+  void callOnError(Object error, StackTrace st) => onError(error, st);
+  void callOnChange(Change<int> change) => onChange(change);
+}
+
 // -----------------------------------------------------------------------------
 // Tests
 // -----------------------------------------------------------------------------
 void main() {
+  group('lifecycle', () {
+    test('mounted returns true before dispose, false after', () {
+      final notifier = StateNotifier<int>(0);
+      expect(notifier.mounted, isTrue);
+
+      notifier.dispose();
+      expect(notifier.mounted, isFalse);
+    });
+
+    test('debugAssertNotDisposed throws with operation hint when disposed', () {
+      final notifier = StateNotifier<int>(0);
+      notifier.dispose();
+
+      expect(
+        () => NotifierBase.debugAssertNotDisposed(notifier, 'test operation'),
+        throwsA(isA<FlutterError>().having(
+          (e) => e.message,
+          'message',
+          contains('test operation'),
+        )),
+      );
+    });
+
+    test('debugAssertNotDisposed does not throw when not disposed', () {
+      final notifier = StateNotifier<int>(0);
+      expect(
+        () => NotifierBase.debugAssertNotDisposed(notifier),
+        returnsNormally,
+      );
+    });
+
+    test('dispose sets _disposed flag and notifies observer', () {
+      final spy = SpyObserver();
+      final original = NotifierBase.observer;
+      NotifierBase.observer = spy;
+
+      final notifier = StateNotifier<int>(0);
+      notifier.dispose();
+
+      expect(spy.onDisposeCalls, 1);
+      expect(spy.lastOnDisposeTarget, notifier);
+      expect(notifier.mounted, isFalse);
+
+      NotifierBase.observer = original;
+    });
+
+    test('dispose can be called multiple times safely', () {
+      final notifier = StateNotifier<int>(0);
+      notifier.dispose();
+      expect(notifier.dispose, returnsNormally);
+    });
+
+    test('onChange asserts when called after dispose', () {
+      final notifier = ExposedNotifier(0);
+      notifier.dispose();
+
+      expect(
+        () => notifier
+            .callOnChange(const Change<int>(currentState: 0, nextState: 1)),
+        throwsFlutterError,
+      );
+    });
+
+    test('onError asserts when called after dispose', () {
+      final notifier = ExposedNotifier(0);
+      notifier.dispose();
+
+      expect(
+        () => notifier.callOnError(Exception('test'), StackTrace.current),
+        throwsFlutterError,
+      );
+    });
+  });
   group('NotifierBase observer integration', () {
     test('default observer does nothing (no‑op)', () {
       final notifier = StateNotifier<int>(0);

@@ -276,6 +276,7 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
     try {
       state = const LoadingState();
       final List<Item> items = await _repo.getItems(10);
+      if (!mounted) return; // Guard against disposal
       if (items.isEmpty) {
         state = const EmptyState();
         return;
@@ -292,6 +293,9 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
   }
 }
 ```
+> **Note:** Use `mounted` to check whether the notifier is still alive before updating state after asynchronous operations. This prevents "used after disposed" errors.
+
+
 
 **Tired of manually implementing the same logic for every provider?**
 No worries! Introducing **AsyncViewStateNotifier**—a more efficient way to manage our view state.
@@ -326,7 +330,9 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
 ✅ Catches exceptions and converts them into `ErrorState`.  
 ✅ Includes a built-in `onRefresh` function, which rebuilds the initialization logic.  
 ✅ Passes the `onRefresh` function, exception, and stack trace to `ErrorState`.  
- 
+✅ Internally guarded with `mounted` – For safe async state updates.  
+
+> **Note** `FlutterError` exceptions are **re‑thrown** and **not** converted to `ErrorState`. This ensures that fatal programming errors (e.g., assertion failures) are not masked by the UI.
 
 With `AsyncViewStateNotifier`, state management becomes **cleaner, more efficient, and hassle-free**. 
 
@@ -364,6 +370,8 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
 
     state = const LoadingState();
     List<Item> items = await fetchData();
+
+    if (!mounted) return; // Guard against disposal
 
     // Additional processing, such as filtering, can be done here
     state = DataState(items);

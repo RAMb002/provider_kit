@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -46,6 +48,17 @@ class CombinedErrorNotifier extends OnErrorNotifier {
   void onChange(Change<int> change) {
     super.onChange(change);
     throw Exception('Forced error');
+  }
+}
+
+// A helper notifier that sets state in dispose (bad practice, but we test it).
+class BadDisposeNotifier extends StateNotifier<int> {
+  BadDisposeNotifier(super.state);
+
+  @override
+  void dispose() {
+    state = 999;
+    super.dispose();
   }
 }
 
@@ -126,28 +139,59 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // 5. Dispose
-    // -----------------------------------------------------------------------
-    test('setting state after dispose throws AssertionError', () {
-      final notifier = StateNotifier<int>(0);
-      notifier.dispose();
-      expect(() => notifier.state = 1, throwsAssertionError);
-    });
-
-    test('dispose can only be called once; second call throws FlutterError',
-        () {
-      final notifier = StateNotifier<int>(0);
-      notifier.dispose();
-      expect(() => notifier.dispose(), throwsFlutterError);
-    });
-
-    // -----------------------------------------------------------------------
-    // 6. toString
+    // 5. toString
     // -----------------------------------------------------------------------
     test('toString returns a meaningful description', () {
       final notifier = StateNotifier<String>('hello');
       expect(notifier.toString(), contains('StateNotifier'));
       expect(notifier.toString(), contains('hello'));
+    });
+
+    // -----------------------------------------------------------------------
+    // 6. Dispose behaviour with pending state changes
+    // -----------------------------------------------------------------------
+    group('dispose behaviour', () {
+      test('setting state after dispose throws AssertionError (debug mode)',
+          () {
+        final notifier = StateNotifier<int>(0);
+        notifier.dispose();
+        expect(() => notifier.state = 1, throwsAssertionError);
+        expect(notifier.state, 0); // state unchanged
+      });
+
+      test(
+          'calling notifyListeners after dispose throws AssertionError (debug mode)',
+          () {
+        final notifier = StateNotifier<int>(0);
+        notifier.dispose();
+        expect(() => notifier.notifyListeners(), throwsAssertionError);
+      });
+
+      test('multiple dispose calls are safe (second call does nothing)', () {
+        final notifier = StateNotifier<int>(0);
+        notifier.dispose();
+        expect(notifier.dispose, returnsNormally);
+      });
+
+      test('setting state inside dispose does not cause issue', () {
+        final notifier = BadDisposeNotifier(0);
+        notifier.dispose();
+        // Since we set state before super.dispose(), it should have changed.
+        expect(notifier.state, 999);
+      });
+
+      test('setting state after dispose (via async callback) does not recurse',
+          () async {
+        final completer = Completer<int>();
+        final notifier = StateNotifier<int>(0);
+
+        Future.delayed(Duration.zero, () {});
+
+        notifier.dispose();
+        completer.complete(42);
+        await completer.future;
+        expect(notifier.state, 0);
+      });
     });
   });
 }

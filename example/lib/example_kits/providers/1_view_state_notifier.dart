@@ -11,8 +11,10 @@ class ViewStateProviderOne extends ViewStateNotifier<List<Item>> {
   Future<void> init() async {
     try {
       await _repo.delay();
+      if (!mounted) return;
       state = const LoadingState();
       final List<Item> items = await _repo.getItems(10);
+      if (!mounted) return;
       if (items.isEmpty) {
         state = const EmptyState();
         return;
@@ -40,8 +42,11 @@ class ViewStateProviderTwo extends ViewStateNotifier<List<Item>>
   Future<void> init() async {
     try {
       await _repo.delay(1);
+      if (!mounted) return;
+
       state = const LoadingState();
       final List<Item> items = await _repo.getItems(10);
+      if (!mounted) return;
       if (items.isEmpty) {
         state = const EmptyState();
         return;

@@ -57,6 +57,39 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   /// The global observer used to monitor notifier lifecycle events.
   static NotifierObserver observer = const _DefaultNotifierObserver();
 
+  bool _disposed = false;
+
+  /// Whether this notifier is still active.
+  ///
+  /// This is useful for asynchronous notifiers to avoid updating state after
+  /// they have been disposed.
+  @protected
+  bool get mounted => !_disposed;
+
+  /// Throws a descriptive assertion if this notifier has already been disposed.
+  ///
+  /// Mirrors Flutter's `ChangeNotifier.debugAssertNotDisposed`.
+  @protected
+  static bool debugAssertNotDisposed(NotifierBase<dynamic> notifier,
+      [String? operation]) {
+    assert(() {
+      if (notifier._disposed) {
+        throw FlutterError(
+          '\n'
+          'A ${notifier.runtimeType} was used after being disposed.\n'
+          '${operation != null ? ''
+              'Attempted operation:\n'
+              '  - $operation' '\n\n' : ''}'
+          'Once dispose() has been called on a ${notifier.runtimeType}, '
+          'it can no longer be used.',
+        );
+      }
+      return true;
+    }());
+
+    return true;
+  }
+
   /// Called whenever a [Change] occurs.
   /// A [Change] occurs before the notifier's state has been updated.
   ///
@@ -77,6 +110,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   @protected
   @mustCallSuper
   void onChange(Change<State> change) {
+    assert(debugAssertNotDisposed(this, 'onChange'));
     // ignore: invalid_use_of_protected_member
     observer.onChange(this, change);
   }
@@ -101,6 +135,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
     Object error,
     StackTrace stackTrace,
   ) {
+    assert(debugAssertNotDisposed(this, 'onError'));
     // ignore: invalid_use_of_protected_member
     observer.onError(this, error, stackTrace);
   }
@@ -113,6 +148,12 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   @override
   @mustCallSuper
   void dispose() {
+    if (_disposed) {
+      return;
+    }
+
+    _disposed = true;
+
     // ignore: invalid_use_of_protected_member
     observer.onDispose(this);
     super.dispose();

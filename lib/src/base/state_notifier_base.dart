@@ -17,6 +17,16 @@ abstract class StateNotifierBase<State> extends NotifierBase<State>
   State _state;
 
   set state(State newState) {
+    assert(NotifierBase.debugAssertNotDisposed(
+      this,
+      'set state ($State)',
+    ));
+
+    // Runtime protection (important for async notifiers in release).
+    if (!mounted) {
+      return;
+    }
+
     try {
       if (_state == newState) return;
 

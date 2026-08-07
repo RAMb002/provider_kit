@@ -90,7 +90,8 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// - By default, the initial state is set to **`LoadingState`**.
 /// {@endtemplate}
 
-abstract class AsyncViewStateNotifier<T> extends AsyncViewStateNotifierInterface<T> {
+abstract class AsyncViewStateNotifier<T>
+    extends AsyncViewStateNotifierInterface<T> {
   final bool _disableEmptyState;
 
   /// {@macro providerkit-asyncviewstatenotifier}
@@ -100,9 +101,13 @@ abstract class AsyncViewStateNotifier<T> extends AsyncViewStateNotifierInterface
   }
 
   FutureOr<void> _build() async {
+    if (!mounted) return;
     try {
       await init();
+    } on FlutterError {
+      rethrow;
     } catch (e, s) {
+      if (!mounted) return;
       onError(e, s);
     }
   }
@@ -116,6 +121,8 @@ abstract class AsyncViewStateNotifier<T> extends AsyncViewStateNotifierInterface
     }
     // Fetch data.
     T data = await fetchData();
+
+    if (!mounted) return;
     // Set the state to empty if the data is an empty iterable.
     if (!_disableEmptyState && data is Iterable && data.isEmpty) {
       state = emptyStateObject();
@@ -147,6 +154,7 @@ abstract class AsyncViewStateNotifier<T> extends AsyncViewStateNotifierInterface
 
   ///This method takes care of guarding your init logic and trigger state if theres any exception
   void onError(Object error, StackTrace stackTrace) {
+    if (!mounted) return;
     state = errorStateObject(error, stackTrace);
     super.onError(error, stackTrace);
   }
@@ -154,6 +162,7 @@ abstract class AsyncViewStateNotifier<T> extends AsyncViewStateNotifierInterface
   @mustCallSuper
   @override
   Future<void> refresh() async {
+    if (!mounted) return;
     if (state is! LoadingState<T>) {
       state = loadingStateObject();
     }
