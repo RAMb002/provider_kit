@@ -112,14 +112,14 @@ jobs:
       - name: 💾 Commit version bump (dry‑run preview)
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: |
-          echo "🚨 DRY RUN: Would commit pubspec.yaml as version ${{ steps.bump.outputs.new_version }}"
+          echo "🚨 DRY RUN: Would commit pubspec.yaml, CHANGELOG.md, and README.md as version ${{ steps.bump.outputs.new_version }}"
           echo "Changes that would be committed:"
-          git diff pubspec.yaml
+          git diff pubspec.yaml CHANGELOG.md README.md
 
       - name: 💾 Commit version bump (real)
         if: ${{ github.event.inputs.dry_run == 'false' }}
         run: |
-          git add pubspec.yaml CHANGELOG.md
+          git add pubspec.yaml CHANGELOG.md README.md
           git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
           git push origin main
 
