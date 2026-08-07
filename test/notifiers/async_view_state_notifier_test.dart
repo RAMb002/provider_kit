@@ -1,15 +1,16 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 /// A spy observer that records the initial state via `onCreate`.
-class SpyObserver extends StateObserver {
+class SpyObserver extends NotifierObserver {
   ViewState? capturedInitialState;
-  StateNotifierBase? lastNotifier;
+  NotifierBase? lastNotifier;
 
   @override
-  void onCreate(StateNotifierBase notifier) {
+  void onCreate(NotifierBase notifier) {
     super.onCreate(notifier);
     lastNotifier = notifier;
     // Capture the initial state.
@@ -19,7 +20,7 @@ class SpyObserver extends StateObserver {
 
 /// A test provider that allows controlling `fetchData` and optionally
 /// overriding `init` behaviour.
-class TestProvider<T> extends ProviderKit<T> {
+class TestProvider<T> extends AsyncViewStateNotifier<T> {
   final FutureOr<T> Function() fetchDataImpl;
   final FutureOr<void> Function()? initOverride;
 
@@ -87,7 +88,7 @@ class CustomEmptyProvider extends TestProvider<List<int>> {
 // -----------------------------------------------------------------------------
 
 void main() {
-  group('ProviderKit', () {
+  group('AsyncViewStateNotifier', () {
     // -----------------------------------------------------------------------
     // 1. Initial state
     // -----------------------------------------------------------------------
@@ -100,8 +101,8 @@ void main() {
         'initial state can be overridden via constructor (verified via observer)',
         () {
       final spy = SpyObserver();
-      final original = StateNotifier.observer;
-      StateNotifier.observer = spy;
+      final original = NotifierBase.observer;
+      NotifierBase.observer = spy;
 
       TestProvider<String>(
         fetchDataImpl: () => 'data',
@@ -109,7 +110,7 @@ void main() {
       );
       expect(spy.capturedInitialState, const DataState('custom'));
 
-      StateNotifier.observer = original;
+      NotifierBase.observer = original;
     });
 
     // -----------------------------------------------------------------------
@@ -256,5 +257,141 @@ void main() {
       await Future.microtask(() {});
       expect(provider.state, const DataState('auto'));
     });
+
+    // -----------------------------------------------------------------------
+    // 8. Dispose behaviour with pending async operations
+    // -----------------------------------------------------------------------
+
+    group('dispose', () {
+      test('dispose can be called multiple times', () {
+        final provider = TestProvider<String>(
+          fetchDataImpl: () => 'data',
+        );
+
+        expect(() {
+          provider.dispose();
+          provider.dispose();
+          provider.dispose();
+        }, returnsNormally);
+      });
+
+      test(
+        'dispose while fetchData is pending prevents state update',
+        () async {
+          final completer = Completer<String>();
+
+          final provider = TestProvider<String>(
+            fetchDataImpl: () => completer.future,
+          );
+
+          provider.dispose();
+
+          completer.complete('data');
+
+          await Future.microtask(() {});
+
+          expect(provider.state, isA<LoadingState<String>>());
+          expect(provider.state, isNot(isA<DataState<String>>()));
+          expect(provider.state, isNot(isA<ErrorState<String>>()));
+        },
+      );
+
+      test(
+        'dispose while fetchData is pending prevents error state update',
+        () async {
+          final completer = Completer<String>();
+
+          final provider = TestProvider<String>(
+            fetchDataImpl: () => completer.future,
+          );
+
+          provider.dispose();
+
+          completer.completeError(Exception('Delayed error'));
+
+          await Future.microtask(() {});
+
+          expect(provider.state, isA<LoadingState<String>>());
+          expect(provider.state, isNot(isA<ErrorState<String>>()));
+        },
+      );
+
+      test(
+        'refresh after dispose does nothing',
+        () async {
+          final provider = TestProvider<String>(
+            fetchDataImpl: () => 'data',
+          );
+
+          await Future.microtask(() {});
+
+          expect(provider.state, const DataState('data'));
+
+          provider.dispose();
+
+          await provider.refresh();
+
+          expect(provider.state, const DataState('data'));
+        },
+      );
+
+      test(
+        'setting state after dispose throws FlutterError in debug mode',
+        () {
+          final notifier = StateNotifier<int>(0);
+
+          notifier.dispose();
+
+          expect(
+            () => notifier.state = 1,
+            throwsFlutterError,
+          );
+        },
+        skip: kReleaseMode,
+      );
+    });
+
+    test(
+      'notifyListeners after dispose throws FlutterError in debug mode',
+      () {
+        final notifier = StateNotifier<int>(0);
+
+        notifier.dispose();
+
+        expect(
+          () => notifier.notifyListeners(),
+          throwsFlutterError,
+        );
+      },
+      skip: kReleaseMode,
+    );
+
+    test(
+      'dispose while custom init is pending prevents further execution',
+      () async {
+        final completer = Completer<void>();
+
+        late TestProvider<String> provider;
+
+        provider = TestProvider<String>(
+          fetchDataImpl: () => 'unused',
+          initOverride: () async {
+            await completer.future;
+            // ignore: invalid_use_of_protected_member
+            if (!provider.mounted) return;
+            provider.state = const DataState('completed');
+          },
+        );
+
+        provider.dispose();
+
+        completer.complete();
+
+        await Future.microtask(() {});
+
+        expect(provider.state, isA<LoadingState<String>>());
+        expect(provider.state, isNot(isA<DataState<String>>()));
+      },
+    );
   });
 }

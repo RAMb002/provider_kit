@@ -278,10 +278,10 @@ void main() {
     // 3. onRetry resolution
     // -----------------------------------------------------------------------
     testWidgets(
-        'errorBuilder receives onRetry from ProviderKit when not explicitly set',
+        'errorBuilder receives onRetry from AsyncViewStateNotifier when not explicitly set',
         (tester) async {
       final exception = Exception('Test');
-      final provider = MockProviderKit<String>(
+      final provider = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => throw exception,
       );
       await tester.pumpAndSettle();
@@ -291,7 +291,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<MockProviderKit<String>, String>(
+          child: ViewStateBuilder<MockAsyncViewStateNotifier<String>, String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -308,7 +308,7 @@ void main() {
     testWidgets(
         'errorBuilder receives onRetry from ErrorState when explicitly set (overrides provider)',
         (tester) async {
-      final provider = MockProviderKit<String>(
+      final provider = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => throw Exception('Test'),
       );
       await tester.pumpAndSettle();
@@ -323,7 +323,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<MockProviderKit<String>, String>(
+          child: ViewStateBuilder<MockAsyncViewStateNotifier<String>, String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -337,9 +337,8 @@ void main() {
       expect(capturedOnRetry, explicitOnRetry);
     });
 
-
     testWidgets(
-        'errorBuilder receives null onRetry when provider is not a ProviderKit',
+        'errorBuilder receives null onRetry when provider is not a AsyncViewStateNotifier',
         (tester) async {
       final provider = TestViewStateNotifier<String>(
         ErrorState<String>('Error', Exception(), StackTrace.current, null),
@@ -360,7 +359,7 @@ void main() {
         ),
       );
 
-      // Since provider is not ProviderKit, onRetry should be null.
+      // Since provider is not AsyncViewStateNotifier, onRetry should be null.
       expect(capturedOnRetry, isNull);
     });
 

@@ -1,20 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/states/state_builders/multi_state_builder.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-multistateconsumer}
 
-/// A widget that combines both listening to and building based on the states of multiple [StateNotifier]s.
+/// A widget that combines both listening to and building based on the states of multiple [StateValueListenable]s.
 ///
 /// The [MultiStateConsumer] widget is used to perform actions and build its child widget
-/// in response to state changes in multiple [StateNotifier]s. It ensures that the appropriate
+/// in response to state changes in multiple [StateValueListenable]s. It ensures that the appropriate
 /// listener and builder are called based on the current states.
 ///
 /// ### Parameters:
-/// - **`providers`** (*Required*) **:** A list of [StateNotifier]s that supply the states.
+/// - **`providers`** (*Required*) **:** A list of [StateValueListenable]s that supply the states.
 /// - **`builder`** (*Required*) **:** A function that constructs the widget tree based on the current states.
 /// - **`listener`** (*Required*) **:** A callback function that is invoked when the states change.
 /// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current states. Defaults to calling the builder when `previous != current`.
@@ -62,7 +62,7 @@ class MultiStateConsumer<T> extends StatefulWidget {
     this.child,
   });
 
-  final List<StateNotifier<T>> providers;
+  final List<StateValueListenable<T>> providers;
   final MultiStateWidgetBuilder<List<T>> builder;
   final RebuildWhen<List<T>>? rebuildWhen;
   final ListenWhen<List<T>>? listenWhen;
@@ -77,8 +77,8 @@ class MultiStateConsumer<T> extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(
-          DiagnosticsProperty<List<StateNotifier<T>>?>('providers', providers))
+      ..add(DiagnosticsProperty<List<StateValueListenable<T>>?>(
+          'providers', providers))
       ..add(ObjectFlagProperty<MultiStateWidgetBuilder<List<T>>>.has(
           'builder', builder))
       ..add(ObjectFlagProperty<MultiListenerCallback<List<T>>>.has(
@@ -105,18 +105,18 @@ class MultiStateConsumer<T> extends StatefulWidget {
 }
 
 class _MultiStateConsumerState<T> extends State<MultiStateConsumer<T>> {
-  late List<StateNotifier<T>> _providers;
+  late List<StateValueListenable<T>> _providers;
 
   @override
   void initState() {
     super.initState();
-    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _providers = List<StateValueListenable<T>>.from(widget.providers);
     if (widget.shouldCallListenerOnInit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         widget.listener(
           context,
-          _providers.map((e) => e.state).toList(),
+          List<T>.unmodifiable(_providers.map((notifier) => notifier.state)),
         );
       });
     }
@@ -139,11 +139,11 @@ class _MultiStateConsumerState<T> extends State<MultiStateConsumer<T>> {
   }
 
   void _update() {
-    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _providers = List<StateValueListenable<T>>.from(widget.providers);
   }
 
   bool _areProviderListsEqual(
-      List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
+      List<StateValueListenable<T>> a, List<StateValueListenable<T>> b) {
     return ObjectKit.areProviderListsEqual(a, b);
   }
 

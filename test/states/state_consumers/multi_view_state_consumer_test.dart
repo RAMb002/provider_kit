@@ -442,12 +442,12 @@ void main() {
       ]);
     });
 
-    testWidgets('onRetry calls refresh on all ProviderKit providers',
+    testWidgets('onRetry calls refresh on all AsyncViewStateNotifier providers',
         (tester) async {
-      final provider1 = MockProviderKit<String>(
+      final provider1 = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => 'data1',
       );
-      final provider2 = MockProviderKit<String>(
+      final provider2 = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => 'data2',
       );
       await tester.pumpAndSettle();

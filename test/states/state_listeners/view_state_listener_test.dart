@@ -580,10 +580,10 @@ void main() {
     });
 
     testWidgets(
-      'errorStateListener receives correct error details and refresh as onRetry when using ProviderKit',
+      'errorStateListener receives correct error details and refresh as onRetry when using AsyncViewStateNotifier',
       (tester) async {
         final exception = Exception('Test error');
-        final provider = MockProviderKit<String>(
+        final provider = MockAsyncViewStateNotifier<String>(
           fetchDataImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
@@ -598,7 +598,8 @@ void main() {
         await tester.pumpWidget(
           Directionality(
             textDirection: TextDirection.ltr,
-            child: ViewStateListener<MockProviderKit<String>, String>(
+            child:
+                ViewStateListener<MockAsyncViewStateNotifier<String>, String>(
               provider: provider,
               errorStateListener:
                   (errorMessage, onRetry, exception, stackTrace) {

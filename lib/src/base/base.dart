@@ -1,3 +1,4 @@
 export 'state_notifier_base.dart';
-export 'state_observer/change.dart';
-export 'state_observer/state_observer.dart';
+export 'observer/change.dart';
+export 'observer/notifier_observer.dart';
+export 'notifier_base.dart';

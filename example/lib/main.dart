@@ -11,7 +11,7 @@ import 'package:example/example_kits/1_multi_state/6_multi_state_listener.dart';
 import 'package:example/example_kits/1_multi_state/7_multi_state_builder.dart';
 import 'package:example/example_kits/1_multi_state/8_multi_state_consumer.dart';
 import 'package:example/example_kits/1_multi_state/9_multi_view_state_listener.dart';
-import 'package:example/example_kits/observer/state_observer.dart';
+import 'package:example/example_kits/observer/notifier_observer.dart';
 import 'package:example/states_widget/empty_state_widget.dart';
 import 'package:example/states_widget/error_state_widget.dart';
 import 'package:example/states_widget/initial_state_widget.dart';
@@ -20,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 void main() {
-  StateNotifier.observer = NotifierLogger();
+  NotifierBase.observer = NotifierLogger();
   runApp(const MyApp());
 }
 

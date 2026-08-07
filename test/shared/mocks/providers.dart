@@ -11,6 +11,5 @@ class ThemeProvider extends StateNotifier<ThemeData> {
 class DarkThemeProvider extends StateNotifier<ThemeData> {
   DarkThemeProvider() : super(ThemeData.dark());
 
-  void setLightTheme() => state = ThemeData.light() ;
+  void setLightTheme() => state = ThemeData.light();
 }
-

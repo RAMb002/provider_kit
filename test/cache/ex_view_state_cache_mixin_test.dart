@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-class TestExCachedProvider extends ProviderKit<List<String>>
+class TestExCachedProvider extends AsyncViewStateNotifier<List<String>>
     with ExViewStateCacheMixin<List<String>> {
   List<String>? dataToReturn;
   Exception? exceptionToThrow;
@@ -28,7 +28,9 @@ class TestExCachedProvider extends ProviderKit<List<String>>
 // Test Suite
 // -----------------------------------------------------------------------------
 void main() {
-  group('ExViewStateCacheMixin with ProviderKit Tests (Previous State Cache)', () {
+  group(
+      'ExViewStateCacheMixin with AsyncViewStateNotifier Tests (Previous State Cache)',
+      () {
     late TestExCachedProvider provider;
 
     tearDown(() {
@@ -45,7 +47,9 @@ void main() {
       expect(provider.exLoadingState, isA<LoadingState<List<String>>>());
     });
 
-    test('caches DataState and exDataStateObject when transitioning away to another state', () async {
+    test(
+        'caches DataState and exDataStateObject when transitioning away to another state',
+        () async {
       provider = TestExCachedProvider(dataToReturn: ['Apple', 'Banana']);
 
       await pumpEventQueue();
@@ -59,7 +63,8 @@ void main() {
       expect(provider.exDataStateObject, equals(['Apple', 'Banana']));
     });
 
-    test('caches EmptyState when transitioning away after empty fetch', () async {
+    test('caches EmptyState when transitioning away after empty fetch',
+        () async {
       provider = TestExCachedProvider(dataToReturn: []);
 
       await pumpEventQueue();
@@ -73,7 +78,8 @@ void main() {
     });
 
     test('caches ErrorState when transitioning away after error', () async {
-      provider = TestExCachedProvider(exceptionToThrow: Exception('Initial error'));
+      provider =
+          TestExCachedProvider(exceptionToThrow: Exception('Initial error'));
 
       await pumpEventQueue();
 
@@ -107,7 +113,9 @@ void main() {
       expect(provider.exDataStateObject, isNull);
     });
 
-    test('dispose automatically purges cache in ProviderKit lifecycle', () async {
+    test(
+        'dispose automatically purges cache in AsyncViewStateNotifier lifecycle',
+        () async {
       provider = TestExCachedProvider(dataToReturn: ['Data']);
       await pumpEventQueue();
 

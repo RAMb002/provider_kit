@@ -277,10 +277,10 @@ void main() {
     // onRetry resolution (for builder)
     // -----------------------------------------------------------------------
     testWidgets(
-        'errorBuilder receives onRetry from ProviderKit when not explicitly set',
+        'errorBuilder receives onRetry from AsyncViewStateNotifier when not explicitly set',
         (tester) async {
       final exception = Exception('Test');
-      final provider = MockProviderKit<String>(
+      final provider = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => throw exception,
       );
       await tester.pumpAndSettle();
@@ -290,7 +290,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<MockProviderKit<String>, String>(
+          child: ViewStateConsumer<MockAsyncViewStateNotifier<String>, String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -307,7 +307,7 @@ void main() {
     testWidgets(
         'errorBuilder receives onRetry from ErrorState when explicitly set (overrides provider)',
         (tester) async {
-      final provider = MockProviderKit<String>(
+      final provider = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => throw Exception('Test'),
       );
       await tester.pumpAndSettle();
@@ -320,7 +320,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<MockProviderKit<String>, String>(
+          child: ViewStateConsumer<MockAsyncViewStateNotifier<String>, String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -335,7 +335,7 @@ void main() {
     });
 
     testWidgets(
-        'errorBuilder receives null onRetry when provider is not a ProviderKit',
+        'errorBuilder receives null onRetry when provider is not a AsyncViewStateNotifier',
         (tester) async {
       final provider = TestViewStateNotifier<String>(
         ErrorState<String>('Error', Exception(), StackTrace.current, null),
@@ -702,10 +702,10 @@ void main() {
     });
 
     testWidgets(
-      'errorStateListener receives correct error details and refresh as onRetry when using ProviderKit',
+      'errorStateListener receives correct error details and refresh as onRetry when using AsyncViewStateNotifier',
       (tester) async {
         final exception = Exception('Test error');
-        final provider = MockProviderKit<String>(
+        final provider = MockAsyncViewStateNotifier<String>(
           fetchDataImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
@@ -721,7 +721,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: _withDefaultWidgetProvider(
-              ViewStateConsumer<MockProviderKit<String>, String>(
+              ViewStateConsumer<MockAsyncViewStateNotifier<String>, String>(
                 provider: provider,
                 dataBuilder: (_) => const SizedBox(),
                 errorStateListener:

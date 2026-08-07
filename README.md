@@ -20,8 +20,8 @@
     <th align="center">After</th>
   </tr>
   <tr valign="top">
-    <td><img src="https://github.com/user-attachments/assets/88a771dd-3c0e-482f-9777-a4ad43de6926" alt="Before" width="100%" style="max-height: 400px;"></td>
-    <td><img src="https://github.com/user-attachments/assets/238ab060-d432-4b1a-ac9d-1916470de441" alt="After" width="100%" style="max-height: 400px;"></td>
+    <td><img src="https://github.com/user-attachments/assets/5c4daa9b-b700-4c73-8df1-2d44ee0bd635" alt="Before" width="100%" style="max-height: 400px;"></td>
+    <td><img src="https://github.com/user-attachments/assets/3bc90915-14d3-467f-9e36-70e7faa201ab" alt="After" width="100%" style="max-height: 400px;"></td>
   </tr>
   <tr valign="top">
     <td><img src="https://github.com/user-attachments/assets/63167856-c219-4587-8db9-14f4cd6bbc91" alt="Before" width="100%" style="max-height: 400px;"></td>
@@ -46,7 +46,7 @@
       - [Multi State Consumer](#multistateconsumer)
 - [View State](#viewstate)
     - [View State Notifier](#viewstatenotifier)
-    - [Provider Kit](#providerkit)
+    - [Async View State Notifier](#asyncviewstatenotifier)
     - [View State Widgets Provider](#viewstatewidgetsprovider)
     - [View State Widgets](#view-state-widgets)
       - [View State Listener](#viewstatelistener)
@@ -61,7 +61,7 @@
       - [Ex View State Cache Mixin](#exviewstatecachemixin)
       - [Data State Copy Cache Mixin](#datastatecopycachemixin)
 - [Nested State Listener](#nestedstatelistener)
-- [State Observer](#stateobserver)
+- [Notifier Observer](#notifierobserver)
 - [Templates](#templates)
     - [Vs Code Template Setup](#vs-code-template-setup)
     - [Android Studio and IntelliJ Template Setup](#android-studio-and-intellij-template-setup)
@@ -76,8 +76,8 @@
 #### Add them to your `pubspec.yaml` file
 ```yaml
 dependencies:
-  provider_kit: ^0.0.1
-  provider: ^6.1.2  # Replace with the latest version
+  provider_kit: ^0.1.0
+  provider: ^6.1.5
   ```
 
 Make sure to register your provider to gain full advantage of this package.
@@ -93,11 +93,13 @@ Alright, now lets dive in !
 
 ## State
 
-State management is simplified using `StateNotifier` and various widgets designed for listening, building, and consuming state changes efficiently.
+State management is simplified using `StateNotifier` (or any object implementing `StateValueListenable`) and various widgets designed for listening, building, and consuming state changes efficiently.
 
 ### StateNotifier
 
 `StateNotifier` acts as the core class of this library, similar to `ValueNotifier` but with enhanced capabilities. By extending `StateNotifier`, our providers become observable, allowing widgets to listen and react to state changes.
+
+> **Note:** All state widgets in this package are generic over any object implementing StateValueListenable. StateNotifier is the default implementation provided by ProviderKit.
 
 ```dart
 class MyProvider extends StateNotifier<int> {
@@ -110,9 +112,11 @@ class MyProvider extends StateNotifier<int> {
 
 ### _**State Widgets**_
 
-To listen to state changes from our provider, we would use built-in widgets that are designed to interact with the `StateNotifier`. Each widget includes an optional **provider** attribute. By default, state widgets automatically search the widget tree for the corresponding provider type (e.g., `MyProvider`). Alternatively, we can pass a specific provider instance using the **provider** attribute.
+To listen to state changes from our provider, we use built-in widgets that are designed to interact with the `StateNotifier`. Each widget includes an optional **provider** attribute. By default, state widgets automatically search the widget tree for the corresponding provider type (e.g., `MyProvider`). Alternatively, we can pass a specific provider instance using the **provider** attribute.
 
-- State Widgets includes **`StateListener`, `StateBuilder`, `StateConsumer`**.
+> **Note:** These widgets are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
+
+- State Widgets include **`StateListener`, `StateBuilder`, `StateConsumer`**.
 
 ### StateListener
 
@@ -164,13 +168,13 @@ StateConsumer<MyProvider, MyDataType>(
   child: YourStaticWidget(), // Optional, won't be rebuilt
 );
 ```
- **💡 Tip:** Passing a `StateNotifier` directly? Use `NotifierBuilder`, `NotifierListener`, or `NotifierConsumer` instead of `StateBuilder`, `StateListener`, or `StateConsumer` to avoid repeatedly typing `<StateNotifier<T>, T>`.
+ **💡 Tip:** Passing a `StateValueListenable` instance directly (such as a `StateNotifier`)? Use `NotifierBuilder`, `NotifierListener`, or `NotifierConsumer` instead of `StateBuilder`, `StateListener`, or `StateConsumer` to avoid repeatedly typing `<StateValueListenable<T>, T>`.
 > ```dart
 > // ✅ Clean
 > NotifierBuilder<int>(provider: counterProvider, builder: ...)
 >
 > // ❌ Verbose
-> StateBuilder<StateNotifier<int>, int>(provider: counterProvider, builder: ...)
+> StateBuilder<StateValueListenable<int>, int>(provider: counterProvider, builder: ...)
 > ```
 >
 > For automatic provider lookup, use the original widgets instead.
@@ -180,10 +184,11 @@ StateConsumer<MyProvider, MyDataType>(
 
 ### _**Multi State Widgets**_
 
-With Multi State Widgets, we can listen to multiple providers states with a single widget. However, these widgets won't try to read the provider. 
->**Note:**  Our providers states can either be of the same type or dynamic.
+With Multi State Widgets, we can listen to the states of multiple providers using a single widget. However, these widgets won't try to read the provider. 
+> **Note:** The providers' states can be of the same type or different types (`dynamic`).  
+> The providers themselves are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
 
-- Multi State Widgets includes **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
+- Multi State Widgets include **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
 
 ### MultiStateListener
 
@@ -271,6 +276,7 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
     try {
       state = const LoadingState();
       final List<Item> items = await _repo.getItems(10);
+      if (!mounted) return; // Guard against disposal
       if (items.isEmpty) {
         state = const EmptyState();
         return;
@@ -287,24 +293,27 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
   }
 }
 ```
+> **Note:** Use `mounted` to check whether the notifier is still alive before updating state after asynchronous operations. This prevents "used after disposed" errors.
+
+
 
 **Tired of manually implementing the same logic for every provider?**
-No worries! Introducing **ProviderKit**—a more efficient way to manage our view state.
+No worries! Introducing **AsyncViewStateNotifier**—a more efficient way to manage our view state.
 
 ---
 
-## ProviderKit
+## AsyncViewStateNotifier
 
-`ProviderKit` automates state management, eliminating the need to repeatedly extend `ViewStateNotifier` and implement the same boilerplate logic. It streamlines fetching, handling empty states, error management, and retry mechanisms.
+`AsyncViewStateNotifier` automates state management, eliminating the need to repeatedly extend `ViewStateNotifier` and implement the same boilerplate logic. It streamlines fetching, handling empty states, error management, and retry mechanisms.
 
-> By default the initial state of `ProviderKit` is LoadingState.
+> By default the initial state of `AsyncViewStateNotifier` is LoadingState.
 
 ### **How does it work?**
 
-Instead of writing the entire `MyViewStateProvider` which we seen above, we can simply extend `ProviderKit` like this:
+Instead of writing the entire `MyViewStateProvider` which we seen above, we can simply extend `AsyncViewStateNotifier` like this:
 
 ```dart
-class MyViewStateProvider extends ProviderKit<List<Item>> {
+class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
 
   @override
   FutureOr<List<Item>> fetchData() => Repository().getItems(10);
@@ -314,16 +323,18 @@ class MyViewStateProvider extends ProviderKit<List<Item>> {
 
 **That's it!** 🎉
 
-### **What does `ProviderKit` handle for us?**
+### **What does `AsyncViewStateNotifier` handle for us?**
 ✅ Automatically fetches data upon initialization.  
 ✅ Transitions to `LoadingState` before fetching.  
 ✅ If the data is `Iterable` and if its empty, it switches to `EmptyState`.  
 ✅ Catches exceptions and converts them into `ErrorState`.  
 ✅ Includes a built-in `onRefresh` function, which rebuilds the initialization logic.  
 ✅ Passes the `onRefresh` function, exception, and stack trace to `ErrorState`.  
- 
+✅ Internally guarded with `mounted` – For safe async state updates.  
 
-With `ProviderKit`, state management becomes **cleaner, more efficient, and hassle-free**. 
+> **Note** `FlutterError` exceptions are **re‑thrown** and **not** converted to `ErrorState`. This ensures that fatal programming errors (e.g., assertion failures) are not masked by the UI.
+
+With `AsyncViewStateNotifier`, state management becomes **cleaner, more efficient, and hassle-free**. 
 
 | **Attributes**         | **Type**                                  | **Description**  |
 |-----------------------------|------------------------------------------|----------------|
@@ -333,7 +344,7 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 | **Property**               |                                          |                |
 | `state`                     | `ViewState<T>`                           | The current state of the provider, which can be `LoadingState`, `DataState`, `EmptyState`, or `ErrorState`. |
 | **Methods**                  |                                          |                |
-| `init()`                     | `FutureOr<void>`                         | Runs on initialization, setting up states and **Guared with Try catch**. It won't execute again if already initialized unless `refresh` is called. |
+| `init()`                     | `FutureOr<void>`                         | Runs on initialization, setting up states and **Guarded with Try catch**. It won't execute again if already initialized unless `refresh` is called. |
 | `fetchData()`                | `FutureOr<T>`                            | Fetches data from an API or database. Must be implemented in subclasses. |
 | `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize default `ErrorState` Object |
 | `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize default `LoadingState` Object  |
@@ -344,7 +355,7 @@ With `ProviderKit`, state management becomes **cleaner, more efficient, and hass
 **Lets customize our `MyViewStateProvider` to the fullest.**
 
 ```dart
-class MyViewStateProvider extends ProviderKit<List<Item>> {
+class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
   // by default `initialState` is `LoadingState`.
   // by default `disableEmptyState` is false.
   MyViewStateProvider()
@@ -359,6 +370,8 @@ class MyViewStateProvider extends ProviderKit<List<Item>> {
 
     state = const LoadingState();
     List<Item> items = await fetchData();
+
+    if (!mounted) return; // Guard against disposal
 
     // Additional processing, such as filtering, can be done here
     state = DataState(items);
@@ -403,7 +416,7 @@ class MyViewStateProvider extends ProviderKit<List<Item>> {
   }
 }
 ```
-> **Note:** Even if `refresh` is not passed inside the `ErrorState` for `retry` mechanism, the `refresh` will be automatically be read by the `View State Widgets` as long as the provider extends `ProviderKit`.
+> **Note:** Even if `refresh` is not passed inside the `ErrorState` for `retry` mechanism, the `refresh` will be automatically be read by the `View State Widgets` as long as the provider extends `AsyncViewStateNotifier`.
 ---
 
 ## ViewStateWidgetsProvider
@@ -499,7 +512,7 @@ class ProfileScreen extends StatelessWidget {
 
 ### View State Widgets
 
-These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding `ViewState`. They listen to a provider that extends either `ViewStateNotifier` or `ProviderKit`, ensuring they respond dynamically to state changes.For example `MyViewStateProvider` which we learned above.
+These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding `ViewState`. They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes.For example `MyViewStateProvider` which we learned above.
 
 - View State Widgets includes **`ViewStateListener`, `ViewStateBuilder`, `ViewStateConsumer`**.
 
@@ -738,7 +751,7 @@ Some mixins to help with `ViewState` caching and data caching that will come han
 
 ### ExViewStateCacheMixin
 
-This mixin can be used on provider with `ViewState` support like `ViewStateNotifier` or `ProviderKit`. It provides caching capabilities for different view states. It keeps track of the most recent state of each type and allows easy retrieval of cached states.
+This mixin can be used on provider with `ViewState` support like `ViewStateNotifier` or `AsyncViewStateNotifier`. It provides caching capabilities for different view states. It keeps track of the most recent state of each type and allows easy retrieval of cached states.
 
 #### Features
 - Stores the last known state for each `ViewState` type.
@@ -765,7 +778,7 @@ class MyViewStateProvider extends ViewStateNotifier<MyDataType> with ExViewState
 
 ### DataStateCopyCacheMixin
 
-This mixin can be used on provider with `ViewState` support like `ViewStateNotifier` or `ProviderKit`. We can use this mixin to cache original data.
+This mixin can be used on provider with `ViewState` support like `ViewStateNotifier` or `AsyncViewStateNotifier`. We can use this mixin to cache original data.
 > sometimes we do local filtering on data we fetched from server and when user cancel filter we need to show the original data back which is exactly when we should use this mixin.
 
 #### Features:
@@ -774,7 +787,7 @@ This mixin can be used on provider with `ViewState` support like `ViewStateNotif
 - Allows clearing cached state manually using `clearDataStateCopy`.
 
 ```dart
-class MyViewStateProvider extends ProviderKit<List<String>> with DataStateCopyCacheMixin {
+class MyViewStateProvider extends AsyncViewStateNotifier<List<String>> with DataStateCopyCacheMixin {
   void updateDataState(List<String> newData) {
     final newState = DataState(newData);
     saveDataStateCopy(newState);
@@ -847,47 +860,53 @@ NestedStateListener(
 
 ---
 
-## StateObserver  
+## NotifierObserver  
 
-The `StateObserver` helps in monitoring provider activities. It can be used for debugging, for example - by logging lifecycle events such as creation, state changes, errors, and disposal.  
+The `NotifierObserver` helps you monitor the lifecycle of all notifiers in your application.  
+It can be used for debugging, logging, analytics, or any other cross‑cutting concern – it receives callbacks whenever a notifier is created, changes state, throws an error, or is disposed.
+
+### Setting up a global observer
+
+Assign an implementation of `NotifierObserver` to the static `observer` field on `NotifierBase`.  
+This is typically done at the start of your app, before running the `MaterialApp`.
 
 ```dart
 void main() {
-  // Set the state observer
-  StateNotifier.observer = NotifierLogger();
+  // Set the global observer
+  NotifierBase.observer = MyNotifierObserver();
   runApp(const MyApp());
 }
 
-class MyStateObserver extends StateObserver {
+class MyNotifierObserver extends NotifierObserver {
   @override
-  void onChange(StateNotifierBase stateNotifier, Change change) {
-    super.onChange(stateNotifier, change);
+  void onChange(NotifierBase notifier, Change change) {
+    super.onChange(notifier, change);
     debugPrint(
-      'StateNotifier onChange -- \${stateNotifier.runtimeType}, '
+      'notifier onChange -- \${notifier.runtimeType}, '
       '\${change.currentState.runtimeType} ---> \${change.nextState.runtimeType}',
     );
   }
 
   @override
-  void onCreate(StateNotifierBase stateNotifier) {
-    super.onCreate(stateNotifier);
-    debugPrint('StateNotifier onCreate -- \${stateNotifier.runtimeType}');
+  void onCreate(NotifierBase notifier) {
+    super.onCreate(notifier);
+    debugPrint('notifier onCreate -- \${notifier.runtimeType}');
   }
 
   @override
   void onError(
-      StateNotifierBase stateNotifier, Object error, StackTrace stackTrace) {
+      NotifierBase notifier, Object error, StackTrace stackTrace) {
     debugPrint(
-      'StateNotifier onError -- \${stateNotifier.runtimeType} '
+      'notifier onError -- \${notifier.runtimeType} '
       'Error: \$error StackTrace: \$stackTrace',
     );
-    super.onError(stateNotifier, error, stackTrace);
+    super.onError(notifier, error, stackTrace);
   }
 
   @override
-  void onDispose(StateNotifierBase stateNotifier) {
-    super.onDispose(stateNotifier);
-    debugPrint('StateNotifier onDispose -- \${stateNotifier.runtimeType}');
+  void onDispose(NotifierBase notifier) {
+    super.onDispose(notifier);
+    debugPrint('notifier onDispose -- \${notifier.runtimeType}');
   }
 }
 ```
@@ -907,20 +926,20 @@ This guide provides step-by-step instructions for setting up the **ProviderKit T
 3. Type `"Snippets: Configure Snippets"` and select it.
 4. Choose **`dart.json`** to open the Dart snippets file.
 
-### 🔹 **Step 2: Add ProviderKit Snippet**
+### 🔹 **Step 2: Add AsyncViewStateNotifier Snippet**
 1. Copy the following snippet:
 
    ```json
    {
-     "ProviderKit Template": {
+     "AsyncViewStateNotifier Template": {
        "prefix": "pkit",
-       "description": "ProviderKit template for view state provider",
+       "description": "AsyncViewStateNotifier template",
        "body": [
          "import 'dart:async';",
          "",
          "import 'package:provider_kit/provider_kit.dart';",
          "",
-         "class ${1:ProviderName}Provider extends ProviderKit<${2:DataType}> {",
+         "class ${1:ProviderName}Provider extends AsyncViewStateNotifier<${2:DataType}> {",
          "",
          "  @override",
          "  FutureOr<${2:DataType}> fetchData() async {",
@@ -983,7 +1002,7 @@ This guide provides step-by-step instructions for setting up the **ProviderKit T
 
 
 ```xml
-<template name="providerkit" value="import 'dart:async';&#10;&#10;import 'package:provider_kit/provider_kit.dart';&#10;&#10;class $NAME$Provider extends ProviderKit&lt;$DATA_TYPE$&gt; {&#10;&#10;  @override&#10;  FutureOr&lt;$DATA_TYPE$&gt; fetchData() async {&#10;    return ;&#10;  }&#10;}&#10;&#10;typedef $NAME$ViewState = ViewState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$InitialState = InitialState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$LoadingState = LoadingState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$EmptyState = EmptyState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$DataState = DataState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$ErrorState = ErrorState&lt;$DATA_TYPE$&gt;;&#10;&#10;typedef $NAME$ViewStateBuilder = ViewStateBuilder&lt;$NAME$Provider, $DATA_TYPE$&gt;;&#10;typedef $NAME$ViewStateListener = ViewStateListener&lt;$NAME$Provider, $DATA_TYPE$&gt;;&#10;typedef $NAME$ViewStateConsumer = ViewStateConsumer&lt;$NAME$Provider, $DATA_TYPE$&gt;;" description="ProviderKit template for four-state provider" toReformat="false" toShortenFQNames="true">
+<template name="providerkit" value="import 'dart:async';&#10;&#10;import 'package:provider_kit/provider_kit.dart';&#10;&#10;class $NAME$Provider extends AsyncViewStateNotifier&lt;$DATA_TYPE$&gt; {&#10;&#10;  @override&#10;  FutureOr&lt;$DATA_TYPE$&gt; fetchData() async {&#10;    return ;&#10;  }&#10;}&#10;&#10;typedef $NAME$ViewState = ViewState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$InitialState = InitialState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$LoadingState = LoadingState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$EmptyState = EmptyState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$DataState = DataState&lt;$DATA_TYPE$&gt;;&#10;typedef $NAME$ErrorState = ErrorState&lt;$DATA_TYPE$&gt;;&#10;&#10;typedef $NAME$ViewStateBuilder = ViewStateBuilder&lt;$NAME$Provider, $DATA_TYPE$&gt;;&#10;typedef $NAME$ViewStateListener = ViewStateListener&lt;$NAME$Provider, $DATA_TYPE$&gt;;&#10;typedef $NAME$ViewStateConsumer = ViewStateConsumer&lt;$NAME$Provider, $DATA_TYPE$&gt;;" description="AsyncViewStateNotifier template" toReformat="false" toShortenFQNames="true">
   <variable name="NAME" expression="" defaultValue="" alwaysStopAt="true" />
   <variable name="DATA_TYPE" expression="" defaultValue="" alwaysStopAt="true" />
   <context>
@@ -1001,15 +1020,15 @@ This guide provides step-by-step instructions for setting up the **ProviderKit T
 
 ## Taking full advantage of templates
 
-### ProviderKit Template
+### AsyncViewStateNotifier Template
 
-`ProviderKit` provides a structured way to manage view states efficiently. Below is a template that allows you to create a `FeedProvider` using `ProviderKit`.
+`AsyncViewStateNotifier` provides a structured way to manage view states efficiently. Below is a template that allows you to create a `FeedProvider` using `AsyncViewStateNotifier`.
 
 ```dart
 import 'dart:async';
 import 'package:provider_kit/provider_kit.dart';
 
-class FeedProvider extends ProviderKit<List<Item>> {
+class FeedProvider extends AsyncViewStateNotifier<List<Item>> {
   @override
   FutureOr<List<Item>> fetchData() async {
     return []; // Fetch data from an API or database
@@ -1033,7 +1052,7 @@ typedef FeedViewStateConsumer = ViewStateConsumer<FeedProvider, List<Item>>;
 
 ### Advantages of Typedefs
 
-Using typedefs in `ProviderKit` offers several advantages:
+Using typedefs in `AsyncViewStateNotifier` offers several advantages:
 
 ### 1. Improved Readability
 Instead of writing long generic types, typedefs make it easier to understand what each state represents:
@@ -1087,7 +1106,7 @@ When managing state in `provider_kit`, you may need additional parameters like p
 Since `provider_kit` extends `ChangeNotifier`, you can declare additional variables inside the provider and update them using `notifyListeners()`. These variables can be listened to via `Selector` in the UI.
 
 ```dart
-class MyProvider extends ProviderKit<List<Item>> {
+class MyProvider extends AsyncViewStateNotifier<List<Item>> {
   PaginationData? paginationData;
   FilterData? filterData;
 
@@ -1126,9 +1145,9 @@ DataState((
 A scalable approach is to keep pagination and filter logic in separate providers and link them using `ProxyProvider`.
 
 ```dart
-class PaginationProvider extends ProviderKit<PaginationData> {}
+class PaginationProvider extends AsyncViewStateNotifier<PaginationData> {}
 
-class FilterProvider extends ProviderKit<FilterData> {}
+class FilterProvider extends AsyncViewStateNotifier<FilterData> {}
 
 ProxyProvider<PaginationProvider, MyProvider>(
   update: (_, pagination, myProvider) =>

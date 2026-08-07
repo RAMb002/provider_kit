@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/states/state_builders/state_builder.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-stateconsumer}
-/// A widget that both listens to and rebuilds based on the state of a [StateNotifier].
+/// A widget that both listens to and rebuilds based on the state of a [StateValueListenable].
 ///
-/// The [StateConsumer] listens to a [StateNotifier] and **invokes the listener callback**
+/// The [StateConsumer] listens to a [StateValueListenable] and **invokes the listener callback**
 /// while also **rebuilding the builder function** when necessary.
 /// It ensures that the `listener` and `builder` are called only once per state change.
 ///
@@ -55,7 +55,8 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// **rebuilding only when necessary**, while preserving static UI elements passed as `child`.
 /// {@endtemplate}
 
-class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
+class StateConsumer<P extends StateValueListenable<T>, T>
+    extends StatefulWidget {
   /// {@macro providerkit-stateconsumer}
   const StateConsumer({
     super.key,
@@ -68,7 +69,7 @@ class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
     this.child,
   });
 
-  /// The provider that supplies the state. If null, the provider will be read from the context.
+  /// The state source to listen to. If null, it is resolved from the current BuildContext using Provider.
   final P? provider;
 
   /// The function that builds the widget tree based on the current state.
@@ -122,7 +123,7 @@ class StateConsumer<P extends StateNotifier<T>, T> extends StatefulWidget {
   }
 }
 
-class _StateConsumerState<P extends StateNotifier<T>, T>
+class _StateConsumerState<P extends StateValueListenable<T>, T>
     extends State<StateConsumer<P, T>> {
   late P _provider;
 

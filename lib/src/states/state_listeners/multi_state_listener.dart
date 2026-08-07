@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-multistatelistener}
-/// A widget that listens to changes in the states of multiple [StateNotifier]s and triggers callbacks.
+/// A widget that listens to changes in the states of multiple [StateValueListenable]s and triggers callbacks.
 ///
 /// The [MultiStateListener] widget is used to perform actions in response to state changes
-/// in multiple [StateNotifier]s. It ensures that the listener function is called only when
+/// in multiple [StateValueListenable]s. It ensures that the listener function is called only when
 /// the states change.
 ///
 /// ### Parameters:
-/// - **`providers`** (*Required*) **:** A list of [StateNotifier]s that supply the states.
+/// - **`providers`** (*Required*) **:** A list of [StateValueListenable]s that supply the states.
 /// - **`listener`** (*Required*) **:** A callback function that is invoked when the states change.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current states. Defaults to calling the listener when `previous != current`.
 /// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
@@ -58,8 +58,8 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
     bool? shouldCallListenerOnInit,
   }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
 
-  /// A list of [StateNotifier]s that supply the states.
-  final List<StateNotifier<T>> providers;
+  /// A list of [StateValueListenable]s that supply the states.
+  final List<StateValueListenable<T>> providers;
 
   /// The listener function that is called when the states change.
   final MultiListenerCallback<List<T>> listener;
@@ -78,9 +78,10 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<List<StateNotifier<T>>>('providers', providers,
+      ..add(DiagnosticsProperty<List<StateValueListenable<T>>>(
+          'providers', providers,
           defaultValue: null))
-      ..add(ObjectFlagProperty<ListenerCallback<List<T>>>.has(
+      ..add(ObjectFlagProperty<MultiListenerCallback<List<T>>>.has(
           'listener', listener))
       ..add(
         ObjectFlagProperty<ListenWhen<List<T>>?>.has(
@@ -99,12 +100,12 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
 class _StateListenerState<T>
     extends SingleChildState<MultiStateListenerBase<T>> {
   late List<T> _previousStates;
-  late List<StateNotifier<T>> _providers;
+  late List<StateValueListenable<T>> _providers;
 
   @override
   void initState() {
     super.initState();
-    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _providers = List<StateValueListenable<T>>.from(widget.providers);
     _previousStates = _currentStates;
     _attachListeners(_providers);
     if (widget.shouldCallListenerOnInit) {
@@ -136,7 +137,7 @@ class _StateListenerState<T>
 
   void _update() {
     _detachListeners(_providers);
-    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _providers = List<StateValueListenable<T>>.from(widget.providers);
     _previousStates = _currentStates;
     _attachListeners(_providers);
   }
@@ -162,20 +163,20 @@ class _StateListenerState<T>
     }
   }
 
-  void _attachListeners(List<StateNotifier<T>> providers) {
+  void _attachListeners(List<StateValueListenable<T>> providers) {
     for (var provider in providers) {
       provider.addListener(_listener);
     }
   }
 
-  void _detachListeners(List<StateNotifier<T>> providers) {
+  void _detachListeners(List<StateValueListenable<T>> providers) {
     for (var provider in providers) {
       provider.removeListener(_listener);
     }
   }
 
   bool _areProviderListsEqual(
-      List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
+      List<StateValueListenable<T>> a, List<StateValueListenable<T>> b) {
     return ObjectKit.areProviderListsEqual(a, b);
   }
 

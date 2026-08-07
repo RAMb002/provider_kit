@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:provider_kit/provider_kit.dart';
 
-class MockProviderKit<T> extends ProviderKit<T> {
+class MockAsyncViewStateNotifier<T> extends AsyncViewStateNotifier<T> {
   final FutureOr<T> Function() fetchDataImpl;
 
-  MockProviderKit({
+  MockAsyncViewStateNotifier({
     required this.fetchDataImpl,
     super.disableEmptyState,
   });
