@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/notifiers/provider_kit.dart';
+import 'package:provider_kit/src/notifiers/async_view_state_notifier.dart';
 import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
@@ -152,7 +152,7 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
   static VoidCallback? _getOnRetryFromProvider<P, T>(
       BuildContext context, P? providerParam) {
     final provider = providerParam ?? context.read<P>();
-    if (provider is ProviderKit<T>) {
+    if (provider is AsyncViewStateNotifier<T>) {
       return provider.refresh;
     }
     return null;

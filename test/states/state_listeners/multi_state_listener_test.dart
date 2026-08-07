@@ -6,8 +6,7 @@ import 'package:provider_kit/provider_kit.dart';
 import '../../shared/mocks/notifiers.dart';
 
 const incrementProvider0ButtonKey = Key('multi_increment_p0');
-const multiIncrementProvider0Key =
-    Key('multi_increment_p0'); 
+const multiIncrementProvider0Key = Key('multi_increment_p0');
 const multiResetButtonKey = Key('multi_reset_btn');
 const multiNoopButtonKey = Key('multi_noop_btn');
 
@@ -15,7 +14,7 @@ class MultiListenerTestApp extends StatefulWidget {
   const MultiListenerTestApp({
     super.key,
     required this.initialProviders,
-    this.newProviders, 
+    this.newProviders,
     required this.onListenerCalled,
     this.listenWhen,
   });

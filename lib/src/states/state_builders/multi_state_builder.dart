@@ -1,19 +1,19 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/states/state_listeners/multi_state_listener.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-multistatebuilder}
 
-/// A widget that builds its UI based on the states of multiple [StateNotifier]s.
+/// A widget that builds its UI based on the states of multiple [StateValueListenable]s.
 ///
-/// The [MultiStateBuilder] listens to a list of [StateNotifier]s and rebuilds the builder function
+/// The [MultiStateBuilder] listens to a list of [StateValueListenable]s and rebuilds the builder function
 /// based on the combined states. It ensures that the `builder` is called only once per state change.
 ///
 /// ### Parameters:
-/// - **`providers`** (*Required*) **:** A list of [StateNotifier]s that supply the states.
+/// - **`providers`** (*Required*) **:** A list of [StateValueListenable]s that supply the states.
 /// - **`builder`** (*Required*) **:** A function that constructs the widget tree based on the current states.
 /// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current states. Defaults to calling the builder when `previous != current`.
 /// - **`child`** (*Optional*) **:** A widget that does not depend on the states. It will be preserved across rebuilds, preventing unnecessary re-renders.
@@ -72,8 +72,8 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
     this.child,
   });
 
-  /// A list of [StateNotifier]s that supply the states.
-  final List<StateNotifier<T>> providers;
+  /// A list of [StateValueListenable]s that supply the states.
+  final List<StateValueListenable<T>> providers;
 
   /// A function that determines whether the builder should be called based on
   /// the previous and current states.
@@ -99,19 +99,20 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
           rebuildWhen,
         ),
       )
-      ..add(DiagnosticsProperty<List<StateNotifier<T>>>('providers', providers))
+      ..add(DiagnosticsProperty<List<StateValueListenable<T>>>(
+          'providers', providers))
       ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
   }
 }
 
 class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
   late List<T> _states;
-  late List<StateNotifier<T>> _providers;
+  late List<StateValueListenable<T>> _providers;
 
   @override
   void initState() {
     super.initState();
-    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _providers = List<StateValueListenable<T>>.from(widget.providers);
     _states = _currentStates;
   }
 
@@ -132,12 +133,12 @@ class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
   }
 
   void _update() {
-    _providers = List<StateNotifier<T>>.from(widget.providers);
+    _providers = List<StateValueListenable<T>>.from(widget.providers);
     _states = _currentStates;
   }
 
   bool _areProviderListsEqual(
-      List<StateNotifier<T>> a, List<StateNotifier<T>> b) {
+      List<StateValueListenable<T>> a, List<StateValueListenable<T>> b) {
     return ObjectKit.areProviderListsEqual(a, b);
   }
 

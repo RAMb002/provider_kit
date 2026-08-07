@@ -2,13 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-statelistener}
-/// A widget that listens to changes in a [StateNotifier] and triggers a callback
-/// when the state changes.
+/// A widget that listens to a [StateValueListenable] and invokes a callback
+/// whenever its state changes.
 ///
 /// The [StateListener] is typically used for performing side effects in response
 /// to state changes, such as navigation, showing a SnackBar, or displaying a Dialog.
@@ -39,7 +39,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// This widget helps separate **state-dependent side effects** from the UI, ensuring that actions
 /// such as navigation and notifications are triggered appropriately without unnecessary UI rebuilds.
 /// {@endtemplate}
-class StateListener<P extends StateNotifier<T>, T>
+class StateListener<P extends StateValueListenable<T>, T>
     extends StateListenerBase<P, T> {
   /// {@macro providerkit-statelistener}
   const StateListener({
@@ -53,7 +53,7 @@ class StateListener<P extends StateNotifier<T>, T>
 }
 
 /// An abstract base class for [StateListener] that provides common functionality.
-abstract class StateListenerBase<P extends StateNotifier<T>, T>
+abstract class StateListenerBase<P extends StateValueListenable<T>, T>
     extends SingleChildStatefulWidget {
   const StateListenerBase({
     super.key,
@@ -64,7 +64,7 @@ abstract class StateListenerBase<P extends StateNotifier<T>, T>
     bool? shouldCallListenerOnInit,
   }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
 
-  /// The provider that supplies the state. If null, the provider will be read from the context.
+  /// The state source to listen to. If null, it is resolved from the current BuildContext using Provider.
   final P? provider;
 
   /// The listener function that is called when the state changes.
@@ -101,7 +101,7 @@ abstract class StateListenerBase<P extends StateNotifier<T>, T>
 }
 
 /// The state class for [StateListenerBase].
-class _StateListenerState<P extends StateNotifier<T>, T>
+class _StateListenerState<P extends StateValueListenable<T>, T>
     extends SingleChildState<StateListenerBase<P, T>> {
   late T _previousState;
   late P _provider;

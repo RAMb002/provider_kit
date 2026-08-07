@@ -69,7 +69,8 @@ void main() {
         expect(state1, isNot(equals(state3)));
       });
 
-      test('different state types are not equal even with same inner value', () {
+      test('different state types are not equal even with same inner value',
+          () {
         const state1 = EmptyState<String>('test');
         const state2 = DataState<String>('test');
 
@@ -93,7 +94,8 @@ void main() {
         expect(result, 'initial');
       });
 
-      test('executes correct branch and passes parameters for LoadingState', () {
+      test('executes correct branch and passes parameters for LoadingState',
+          () {
         const ViewState<String> state = LoadingState('Fetching', 0.4);
         final result = state.when(
           initialState: () => 'initial',
@@ -129,7 +131,8 @@ void main() {
         expect(result, 'Nothing here');
       });
 
-      test('executes correct branch and passes all parameters for ErrorState', () {
+      test('executes correct branch and passes all parameters for ErrorState',
+          () {
         void dummyRetry() {}
         final exception = Exception('Custom error');
         final stackTrace = StackTrace.current;
@@ -202,7 +205,8 @@ void main() {
 
       test('passes correct message and onRetry parameters for ErrorState', () {
         void dummyRetry() {}
-        final ViewState<String> state = ErrorState('Fail', null, null, dummyRetry);
+        final ViewState<String> state =
+            ErrorState('Fail', null, null, dummyRetry);
 
         final result = state.maybeWhen(
           orElse: () => 'fallback',

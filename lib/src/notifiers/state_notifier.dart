@@ -1,56 +1,51 @@
+import 'package:provider_kit/src/base/observer/notifier_observer.dart';
 import 'package:provider_kit/src/base/state_notifier_base.dart';
-import 'package:provider_kit/src/base/state_observer/state_observer.dart';
 
 /// {@template providerkit-statenotifier}
-/// A class that extends [StateNotifierBase] to manage state changes and notify listeners.
+/// A notifier that holds a single state value and notifies listeners when it changes.
 ///
-/// The [StateNotifier] class is designed to handle state changes and notify listeners when the state changes.
-/// It uses a [StateObserver] to observe state changes and perform actions such as logging or analytics.
+/// [StateNotifier] is the most basic state‑holding notifier in this package. It is
+/// similar to `ValueNotifier` but integrates with the global [NotifierObserver]
+/// for lifecycle tracking and debugging.
 ///
-/// ### Example Usage:
+/// ### Usage
+///
+/// Extend [StateNotifier] with your own state type and update the state via the
+/// `state` setter – listeners are notified automatically.
+///
 /// ```dart
-/// class MyStateNotifier extends StateNotifier<MyState> {
-///   MyStateNotifier() : super(MyState.initial());
+/// class CounterNotifier extends StateNotifier<int> {
+///   CounterNotifier() : super(0);
 ///
-///   void updateState(MyState newState) {
-///     state = newState;
-///   }
+///   void increment() => state++;
+///   void decrement() => state--;
 /// }
 /// ```
 ///
-/// ### State Observer:
-/// The [StateNotifier] class uses a [StateObserver] to observe state changes.
-/// By default, it uses a [_DefaultStateObserver] which does nothing.
-/// Users can provide their own implementation of [StateObserver] to perform custom actions on state changes.
+/// ### Global Observer
+///
+/// All notifiers (including [StateNotifier]) report their lifecycle events to the
+/// global observer stored in [NotifierBase.observer]. To add logging or analytics,
+/// assign a custom [NotifierObserver] implementation:
 ///
 /// ```dart
-/// class CustomStateObserver extends StateObserver {
+/// class MyObserver extends NotifierObserver {
 ///   @override
-///   void onStateChange(State oldState, State newState) {
-///     // Custom logic for handling state changes
+///   void onChange(NotifierBase notifier, Change change) {
+///     print('${notifier.runtimeType} changed: ${change.currentState} → ${change.nextState}');
 ///   }
 /// }
 ///
 /// void main() {
-///   StateNotifier.observer = CustomStateObserver();
+///   NotifierBase.observer = MyObserver();
+///   runApp(MyApp());
 /// }
 /// ```
 ///
-/// ### Parameters:
-/// - **`state`** (*Required*) **:** The initial state of the notifier.
+/// ### Parameters
+/// - **`state`** – The initial state of the notifier.
 /// {@endtemplate}
-
 class StateNotifier<State> extends StateNotifierBase<State> {
   /// {@macro providerkit-statenotifier}
   StateNotifier(super.state);
-
-  static StateObserver observer = const _DefaultStateObserver();
-}
-
-/// A default implementation of [StateObserver] that does nothing.
-///
-/// The [_DefaultStateObserver] class is used as the default observer for [StateNotifier].
-/// It provides a no-op implementation of [StateObserver] methods.
-class _DefaultStateObserver extends StateObserver {
-  const _DefaultStateObserver();
 }

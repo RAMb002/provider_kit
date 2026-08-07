@@ -1,14 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template providerkit-statebuilder}
-/// A widget that rebuilds its UI based on the state of a [StateNotifier].
+/// A widget that rebuilds its UI based on the state of a [StateValueListenable].
 ///
-/// The [StateBuilder] listens to a [StateNotifier] and **rebuilds the builder function**.
+/// The [StateBuilder] listens to a [StateValueListenable] and **rebuilds the builder function**.
 /// It ensures that the `builder` is called only once per state change.
 ///
 /// ### Parameters:
@@ -38,7 +38,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// This ensures optimal performance by rebuilding only when necessary and
 /// preserving static UI elements passed as `child`.
 /// {@endtemplate}
-class StateBuilder<P extends StateNotifier<T>, T>
+class StateBuilder<P extends StateValueListenable<T>, T>
     extends StateBuilderBase<P, T> {
   /// {@macro providerkit-statebuilder}
   const StateBuilder({
@@ -66,7 +66,7 @@ class StateBuilder<P extends StateNotifier<T>, T>
 }
 
 /// An abstract base class for [StateBuilder] that provides common functionality.
-abstract class StateBuilderBase<P extends StateNotifier<T>, T>
+abstract class StateBuilderBase<P extends StateValueListenable<T>, T>
     extends StatefulWidget {
   const StateBuilderBase({
     super.key,
@@ -75,7 +75,7 @@ abstract class StateBuilderBase<P extends StateNotifier<T>, T>
     this.child,
   });
 
-  /// The provider that supplies the state. If null, the provider will be read from the context.
+  /// The state source to listen to. If null, it is resolved from the current BuildContext using Provider.
   final P? provider;
 
   /// A function that determines whether the builder should be called based on
@@ -107,7 +107,7 @@ abstract class StateBuilderBase<P extends StateNotifier<T>, T>
 }
 
 /// The state class for [StateBuilderBase].
-class _StateBuilderBaseState<P extends StateNotifier<T>, T>
+class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
     extends State<StateBuilderBase<P, T>> {
   late T _state;
   late P _provider;

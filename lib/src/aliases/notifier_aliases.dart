@@ -1,14 +1,15 @@
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/states/state_builders/state_builder.dart';
 import 'package:provider_kit/src/states/state_consumers/state_consumer.dart';
 import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
 
-/// A convenient alias for [StateBuilder] when working directly with a
-/// [StateNotifier] instance.
+/// A type alias for [StateBuilder] when working directly with a
+/// [StateValueListenable] instance, such as a [StateNotifier].
 ///
-/// Use this typedef when you already have a concrete [StateNotifier] instance
-/// and want to pass it directly to the `provider` parameter, without typing
-/// the verbose generic `<StateNotifier<T>, T>` every time.
+/// Use this typedef when you already have a concrete
+/// [StateValueListenable] instance (such as a [StateNotifier]) and want to
+/// pass it directly to the `provider` parameter, without typing the verbose
+/// generic `<StateValueListenable<T>, T>` every time.
 ///
 /// ## Example
 ///
@@ -30,14 +31,15 @@ import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
 ///   builder: (context, state, child) => Text('$state'),
 /// )
 /// ```
-typedef NotifierBuilder<T> = StateBuilder<StateNotifier<T>, T>;
+typedef NotifierBuilder<T> = StateBuilder<StateValueListenable<T>, T>;
 
 /// A convenient alias for [StateListener] when working directly with a
-/// [StateNotifier] instance.
+/// [StateValueListenable] instance, such as a [StateNotifier].
 ///
-/// Use this typedef when you already have a concrete [StateNotifier] instance
-/// and want to pass it directly to the `provider` parameter, without typing
-/// the verbose generic `<StateNotifier<T>, T>` every time.
+/// Use this typedef when you already have a concrete
+/// [StateValueListenable] instance (such as a [StateNotifier]) and want to
+/// pass it directly to the `provider` parameter, without typing the verbose
+/// generic `<StateValueListenable<T>, T>` every time.
 ///
 /// ## Example
 ///
@@ -63,14 +65,15 @@ typedef NotifierBuilder<T> = StateBuilder<StateNotifier<T>, T>;
 ///   child: YourWidget(),
 /// )
 /// ```
-typedef NotifierListener<T> = StateListener<StateNotifier<T>, T>;
+typedef NotifierListener<T> = StateListener<StateValueListenable<T>, T>;
 
 /// A convenient alias for [StateConsumer] when working directly with a
-/// [StateNotifier] instance.
+/// [StateValueListenable] instance, such as a [StateNotifier].
 ///
-/// Use this typedef when you already have a concrete [StateNotifier] instance
-/// and want to pass it directly to the `provider` parameter, without typing
-/// the verbose generic `<StateNotifier<T>, T>` every time.
+/// Use this typedef when you already have a concrete
+/// [StateValueListenable] instance (such as a [StateNotifier]) and want to
+/// pass it directly to the `provider` parameter, without typing the verbose
+/// generic `<StateValueListenable<T>, T>` every time.
 ///
 /// [StateConsumer] combines listening to state changes with building widgets,
 /// and provides the notifier instance inside the builder for method calls.
@@ -96,4 +99,4 @@ typedef NotifierListener<T> = StateListener<StateNotifier<T>, T>;
 ///   builder: (context, state, child) { ... },
 /// )
 /// ```
-typedef NotifierConsumer<T> = StateConsumer<StateNotifier<T>, T>;
+typedef NotifierConsumer<T> = StateConsumer<StateValueListenable<T>, T>;

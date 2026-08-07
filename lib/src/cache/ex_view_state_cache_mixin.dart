@@ -1,5 +1,5 @@
 import 'package:provider_kit/src/notifiers/notifiers.dart';
-import 'package:provider_kit/src/base/state_observer/change.dart';
+import 'package:provider_kit/src/base/observer/change.dart';
 import 'package:provider_kit/src/states/view_states.dart';
 
 /// A mixin that provides extended caching functionality for various [ViewState] types in a [ViewStateNotifier].

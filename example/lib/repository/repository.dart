@@ -13,7 +13,7 @@ class Repository {
   }
 
   Future<void> delay([int delay = 2]) async {
-    await Future.delayed( Duration(seconds: delay));
+    await Future.delayed(Duration(seconds: delay));
   }
 }
 
