@@ -76,7 +76,7 @@
 #### Add them to your `pubspec.yaml` file
 ```yaml
 dependencies:
-  provider_kit: ^0.1.0
+  provider_kit: ^0.2.0
   provider: ^6.1.5
   ```
 
