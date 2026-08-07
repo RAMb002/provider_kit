@@ -18,8 +18,7 @@ class NotifierLogger extends NotifierObserver {
   }
 
   @override
-  void onError(
-      NotifierBase notifier, Object error, StackTrace stackTrace) {
+  void onError(NotifierBase notifier, Object error, StackTrace stackTrace) {
     debugPrint(
         'notifier onError -- ${notifier.runtimeType} ${"error - $error"} ${"stackTrace - $stackTrace"}');
     super.onError(notifier, error, stackTrace);

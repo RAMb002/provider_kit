@@ -80,7 +80,6 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// ```
 class ViewStateConsumer<P extends ViewStateNotifier<T>, T>
     extends StateConsumer<P, ViewState<T>> {
-
   final InitialStateBuilder? initialBuilder;
   final LoadingStateBuilder? loadingBuilder;
   final EmptyStateBuilder? emptyBuilder;
@@ -153,9 +152,8 @@ class ViewStateConsumer<P extends ViewStateNotifier<T>, T>
           'errorBuilder', errorBuilder))
       ..add(ObjectFlagProperty<DataStateBuilder<T>>.has(
           'dataBuilder', dataBuilder))
-      ..add(DiagnosticsProperty<bool>('isSliver', isSliver,
-          defaultValue: false))
-          
+      ..add(
+          DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false))
       ..add(ObjectFlagProperty<InitialStateListener?>.has(
           'initialStateListener', initialStateListener))
       ..add(ObjectFlagProperty<LoadingStateListener?>.has(

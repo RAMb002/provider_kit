@@ -938,7 +938,7 @@ void main() {
                     builder: (_) => const AlertDialog(title: Text('Alert')),
                   );
                 },
-                listenWhen: (_, __) => true, 
+                listenWhen: (_, __) => true,
               ),
             ),
           ),

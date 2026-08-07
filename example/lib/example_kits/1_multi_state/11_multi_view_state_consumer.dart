@@ -33,8 +33,9 @@ class MultiViewStateConsumerExample extends StatelessWidget {
                   context.showToast("loading state"),
               emptyStateListener: (message) => context.showToast("empty state"),
               dataStateListener: (data) => context.showToast(data.toString()),
-              errorStateListener: (errorMessage, onRetry, exception, stackTrace) =>
-                  context.showToast("error state, message - $errorMessage"),
+              errorStateListener:
+                  (errorMessage, onRetry, exception, stackTrace) =>
+                      context.showToast("error state, message - $errorMessage"),
               dataBuilder: (data) => Text(data.toString()),
             ),
           );

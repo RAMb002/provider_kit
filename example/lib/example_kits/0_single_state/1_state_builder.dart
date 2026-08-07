@@ -11,7 +11,8 @@ class StateBuilderExample extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ExampleProvider(1),
       builder: (context, child) {
-         final provider = context.watch<ExampleProvider>(); // or context.read, bu
+        final provider =
+            context.watch<ExampleProvider>(); // or context.read, bu
         return ScaffoldWithButton(
             title: "State Builder",
             onTap: () => provider.increment(),

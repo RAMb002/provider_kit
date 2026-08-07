@@ -28,7 +28,8 @@ class TestExCachedProvider extends AsyncViewStateNotifier<List<String>>
 // Test Suite
 // -----------------------------------------------------------------------------
 void main() {
-  group('ExViewStateCacheMixin with AsyncViewStateNotifier Tests (Previous State Cache)',
+  group(
+      'ExViewStateCacheMixin with AsyncViewStateNotifier Tests (Previous State Cache)',
       () {
     late TestExCachedProvider provider;
 
@@ -112,7 +113,8 @@ void main() {
       expect(provider.exDataStateObject, isNull);
     });
 
-    test('dispose automatically purges cache in AsyncViewStateNotifier lifecycle',
+    test(
+        'dispose automatically purges cache in AsyncViewStateNotifier lifecycle',
         () async {
       provider = TestExCachedProvider(dataToReturn: ['Data']);
       await pumpEventQueue();

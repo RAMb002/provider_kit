@@ -77,8 +77,8 @@ class MultiStateConsumer<T> extends StatefulWidget {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(
-          DiagnosticsProperty<List<StateValueListenable<T>>?>('providers', providers))
+      ..add(DiagnosticsProperty<List<StateValueListenable<T>>?>(
+          'providers', providers))
       ..add(ObjectFlagProperty<MultiStateWidgetBuilder<List<T>>>.has(
           'builder', builder))
       ..add(ObjectFlagProperty<MultiListenerCallback<List<T>>>.has(

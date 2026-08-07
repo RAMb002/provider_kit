@@ -16,7 +16,8 @@ void main(List<String> args) {
   final pubspecFile = File('pubspec.yaml');
   var content = pubspecFile.readAsStringSync();
 
-  final versionRegex = RegExp(r'^version:\s*(\d+)\.(\d+)\.(\d+)', multiLine: true);
+  final versionRegex =
+      RegExp(r'^version:\s*(\d+)\.(\d+)\.(\d+)', multiLine: true);
   final match = versionRegex.firstMatch(content);
   if (match == null) {
     // ignore: avoid_print

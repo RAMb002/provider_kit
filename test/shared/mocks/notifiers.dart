@@ -76,7 +76,6 @@ class ToggleNotifier extends StateNotifier<bool> {
   }
 }
 
-
 /// The base counter provider that increments by 1.
 class CounterProvider extends StateNotifier<int> {
   CounterProvider([super.initialState = 0]);
@@ -96,17 +95,17 @@ class DecadeCounterProvider extends CounterProvider {
   }
 }
 
-/// The utility class used throughout the test suites to supply 
+/// The utility class used throughout the test suites to supply
 /// tracking configurations and batch mutations.
 class MyProvider {
   MyProvider() {
     providersOne = [
-      CounterProvider(),       // Initial state: 0
+      CounterProvider(), // Initial state: 0
       DecadeCounterProvider(), // Initial state: 10
     ];
 
     providersTwo = [
-      CounterProvider(),       // Initial state: 0
+      CounterProvider(), // Initial state: 0
       DecadeCounterProvider(), // Initial state: 10
     ];
   }

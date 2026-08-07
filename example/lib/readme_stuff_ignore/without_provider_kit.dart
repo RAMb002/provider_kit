@@ -19,6 +19,7 @@ class FeedProvider extends ValueNotifier<FeedViewState> {
       value = FeedErrorState(e.toString(), e, s, refresh);
     }
   }
+
   @protected
   Future<void> init() async {
     final List<Item> data = await fetchData();
@@ -29,41 +30,49 @@ class FeedProvider extends ValueNotifier<FeedViewState> {
       value = FeedDataState(data);
     }
   }
+
   Future<List<Item>> fetchData() async {
     return Repository().getItems(10);
   }
+
   Future<void> refresh() async {
     if (!mounted) return;
     value = const FeedLoadingState();
     await _build();
   }
+
   @override
   void dispose() {
     _disposed = true;
     super.dispose();
   }
 }
+
 sealed class FeedViewState extends Equatable {
   const FeedViewState();
 }
+
 class FeedInitialState extends FeedViewState {
   const FeedInitialState();
 
   @override
   List<Object?> get props => [];
 }
+
 class FeedLoadingState extends FeedViewState {
   const FeedLoadingState();
 
   @override
   List<Object?> get props => [];
 }
+
 class FeedEmptyState extends FeedViewState {
   const FeedEmptyState();
 
   @override
   List<Object?> get props => [];
 }
+
 class FeedDataState extends FeedViewState {
   const FeedDataState(this.data);
 
@@ -72,6 +81,7 @@ class FeedDataState extends FeedViewState {
   @override
   List<Object?> get props => [data];
 }
+
 class FeedErrorState extends FeedViewState {
   const FeedErrorState(
     this.message,

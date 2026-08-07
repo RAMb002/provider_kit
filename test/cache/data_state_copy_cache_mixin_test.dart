@@ -165,7 +165,8 @@ void main() {
       expect(provider.dataObjectCopy, isNull);
     });
 
-    test('dispose automatically clears cache in AsyncViewStateNotifier lifecycle',
+    test(
+        'dispose automatically clears cache in AsyncViewStateNotifier lifecycle',
         () async {
       await Future<void>.delayed(Duration.zero);
 

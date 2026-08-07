@@ -12,8 +12,7 @@ class MultiStateListenerExample extends StatefulWidget {
       _MultiStateListenerExampleState();
 }
 
-class _MultiStateListenerExampleState
-    extends State<MultiStateListenerExample> {
+class _MultiStateListenerExampleState extends State<MultiStateListenerExample> {
   late ExampleProvider provider1;
   late ExampleProvider provider2;
   late ExampleProvider provider3;
