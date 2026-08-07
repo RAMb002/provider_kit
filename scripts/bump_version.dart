@@ -14,11 +14,13 @@ void main(List<String> args) {
   // 1. Bump version in pubspec.yaml
   // ------------------------------------------------
   final pubspecFile = File('pubspec.yaml');
-  var content = pubspecFile.readAsStringSync();
+  var pubspec = pubspecFile.readAsStringSync();
 
   final versionRegex =
       RegExp(r'^version:\s*(\d+)\.(\d+)\.(\d+)', multiLine: true);
-  final match = versionRegex.firstMatch(content);
+
+  final match = versionRegex.firstMatch(pubspec);
+
   if (match == null) {
     // ignore: avoid_print
     print('Could not find version in pubspec.yaml');
@@ -35,13 +37,16 @@ void main(List<String> args) {
       minor = 0;
       patch = 0;
       break;
+
     case 'minor':
       minor++;
       patch = 0;
       break;
+
     case 'patch':
       patch++;
       break;
+
     default:
       // ignore: avoid_print
       print('Invalid bump type: $type. Use patch, minor, or major.');
@@ -50,20 +55,19 @@ void main(List<String> args) {
 
   final newVersion = '$major.$minor.$patch';
 
-  // Update pubspec.yaml
-  final newContent = content.replaceFirst(
+  pubspec = pubspec.replaceFirst(
     match.group(0)!,
     'version: $newVersion',
   );
-  pubspecFile.writeAsStringSync(newContent);
+
+  pubspecFile.writeAsStringSync(pubspec);
 
   // ------------------------------------------------
-  // 2. Update CHANGELOG.md safely
+  // 2. Update CHANGELOG.md
   // ------------------------------------------------
   final changelogFile = File('CHANGELOG.md');
 
   if (!changelogFile.existsSync()) {
-    // If CHANGELOG.md is missing, create a basic one.
     changelogFile.writeAsStringSync('''
 ## Unreleased
 
@@ -77,22 +81,53 @@ void main(List<String> args) {
   } else {
     var changelog = changelogFile.readAsStringSync();
 
-    // Look for the "## Unreleased" section.
     const unreleasedHeader = '## Unreleased';
+
     if (changelog.contains(unreleasedHeader)) {
-      // Replace the FIRST occurrence of "## Unreleased" with "## $newVersion"
-      // This is safe because unreleased is usually at the top.
-      changelog = changelog.replaceFirst(unreleasedHeader, '## $newVersion');
+      changelog = changelog.replaceFirst(
+        unreleasedHeader,
+        '## $newVersion',
+      );
     } else {
-      // No "Unreleased" section – just prepend a new version entry.
-      final newEntry = '## $newVersion\n\n- Automated release.\n\n';
-      changelog = '$newEntry$changelog';
+      changelog = '''
+## $newVersion
+
+- Automated release.
+
+$changelog
+''';
     }
 
     changelogFile.writeAsStringSync(changelog);
   }
 
-  // Output the new version for GitHub Actions to capture.
+  // ------------------------------------------------
+  // 3. Update README.md dependency version
+  // ------------------------------------------------
+  final readmeFile = File('README.md');
+
+  if (readmeFile.existsSync()) {
+    var readme = readmeFile.readAsStringSync();
+
+    final dependencyRegex = RegExp(
+      r'(^\s*provider_kit:\s*\^)\d+\.\d+\.\d+',
+      multiLine: true,
+    );
+
+    if (dependencyRegex.hasMatch(readme)) {
+      readme = readme.replaceFirstMapped(
+        dependencyRegex,
+        (match) => '${match.group(1)}$newVersion',
+      );
+
+      readmeFile.writeAsStringSync(readme);
+    }
+  }
+
+  // ------------------------------------------------
+  // Done
+  // ------------------------------------------------
+
   // ignore: avoid_print
   print(newVersion);
 }
