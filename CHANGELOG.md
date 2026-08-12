@@ -1,3 +1,13 @@
+## Unreleased
+
+- Added `Mutation` for managing the state of asynchronous operations.
+- Added `MutationGroup` for managing independent mutations by key.
+- Added automatic disposal for keyed mutations in `MutationGroup`.
+- Added configurable `KeepAliveState` support for preserving completed mutation states.
+- Added `MutationState` pattern-matching helpers: `when`, `maybeWhen`, `map`, and `maybeMap`.
+- Added convenience state getters: `isIdle`, `isLoading`, `isSuccess`, and `isError`.
+- Added access to successful mutation results through `Mutation.data`.
+
 ## 0.2.0
 
 - **Breaking:** Renamed `ProviderKit` to `AsyncViewStateNotifier`.
