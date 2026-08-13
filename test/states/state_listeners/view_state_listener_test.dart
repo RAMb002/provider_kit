@@ -15,7 +15,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             child: const SizedBox(key: childKey),
           ),
@@ -29,7 +29,7 @@ void main() {
       final provider = TestViewStateNotifier<String>();
 
       await tester.pumpWidget(
-        ViewStateListener<TestViewStateNotifier<String>, String>(
+        ViewStateListener<String>(
           provider: provider,
         ),
       );
@@ -53,7 +53,7 @@ void main() {
     }) {
       return Directionality(
         textDirection: TextDirection.ltr,
-        child: ViewStateListener<TestViewStateNotifier<String>, String>(
+        child: ViewStateListener<String>(
           provider: provider,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
@@ -370,7 +370,8 @@ void main() {
       expect(dataCount, 1);
     });
 
-    testWidgets('safe to trigger dialogs inside listener (deferred)',
+    testWidgets(
+        'safe to trigger dialogs inside listener (executed after state change)',
         (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       await tester.pumpWidget(
@@ -378,7 +379,7 @@ void main() {
           home: Builder(
             builder: (context) {
               return Scaffold(
-                body: ViewStateListener<TestViewStateNotifier<String>, String>(
+                body: ViewStateListener<String>(
                   provider: provider,
                   dataStateListener: (data) {
                     showDialog(
@@ -400,14 +401,15 @@ void main() {
       expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets('uses explicit provider when provided', (tester) async {
+    testWidgets('calls dataStateListener when explicit provider is passed',
+        (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool dataCalled = false;
 
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             dataStateListener: (_) => dataCalled = true,
             child: const SizedBox(),
@@ -420,7 +422,7 @@ void main() {
       expect(dataCalled, true);
     });
 
-    testWidgets('reads provider from context when not provided',
+    testWidgets('reads provider from context using ViewStateListener.of',
         (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool dataCalled = false;
@@ -430,7 +432,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ChangeNotifierProvider<TestViewStateNotifier<String>>.value(
             value: provider,
-            child: ViewStateListener<TestViewStateNotifier<String>, String>(
+            child: ViewStateListener.of<TestViewStateNotifier<String>, String>(
               // no provider, uses context.read
               dataStateListener: (_) => dataCalled = true,
               child: const SizedBox(),
@@ -450,7 +452,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             dataStateListener: (_) {},
             child: const SizedBox(),
@@ -475,10 +477,10 @@ void main() {
       int dataCount1 = 0;
       int dataCount2 = 0;
 
-      Widget buildFrame(TestViewStateNotifier<String>? provider) {
+      Widget buildFrame(TestViewStateNotifier<String> provider) {
         return Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             dataStateListener: (data) {
               if (provider == provider1) {
@@ -528,7 +530,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             listenWhen: (previous, current) {
               previousList.add(previous);
@@ -564,7 +566,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             errorStateListener: (_, onRetry, __, ___) {
               capturedOnRetry = onRetry;
@@ -598,8 +600,7 @@ void main() {
         await tester.pumpWidget(
           Directionality(
             textDirection: TextDirection.ltr,
-            child:
-                ViewStateListener<MockAsyncViewStateNotifier<String>, String>(
+            child: ViewStateListener<String>(
               provider: provider,
               errorStateListener:
                   (errorMessage, onRetry, exception, stackTrace) {
@@ -628,7 +629,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateListener<TestViewStateNotifier<String>, String>(
+          child: ViewStateListener<String>(
             provider: provider,
             dataStateListener: (_) {},
             child: const SizedBox(),
@@ -647,7 +648,7 @@ void main() {
         (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
-      ViewStateListener<TestViewStateNotifier<String>, String>(
+      ViewStateListener<String>(
         provider: TestViewStateNotifier<String>(),
         dataStateListener: (_) {},
         loadingStateListener: (_, __) {},

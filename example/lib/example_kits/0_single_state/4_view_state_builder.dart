@@ -15,7 +15,7 @@ class ViewStateBuilderExample extends StatelessWidget {
       builder: (context, child) {
         return ScaffoldWithButton(
             title: "View State Builder",
-            child: ViewStateBuilder<ItemsProvider, List<Item>>(
+            child: ViewStateBuilder.of<ItemsProvider, List<Item>>(
               dataBuilder: (data) => Text(data.toString()),
             ));
       },

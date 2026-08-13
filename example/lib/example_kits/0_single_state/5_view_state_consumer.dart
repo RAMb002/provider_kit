@@ -16,7 +16,7 @@ class ViewStateConsumerExample extends StatelessWidget {
       builder: (context, child) {
         return ScaffoldWithButton(
             title: "View State Consumer",
-            child: ViewStateConsumer<ItemsProvider, List<Item>>(
+            child: ViewStateConsumer.of<ItemsProvider, List<Item>>(
               initialStateListener: () => context.showToast('initial'),
               shouldCallListenerOnInit: true,
               dataStateListener: (data) => context.showToast(data.toString()),

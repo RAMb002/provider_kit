@@ -46,7 +46,7 @@ class _TodoListScreenState extends State<_TodoListScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              StateBuilder<Mutation<int>, MutationState<int>>(
+              StateBuilder<MutationState<int>>(
                 provider: notifier.addMutation,
                 builder: (context, state, child) {
                   return state.when(

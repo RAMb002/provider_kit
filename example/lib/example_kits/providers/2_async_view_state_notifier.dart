@@ -18,6 +18,6 @@ typedef ItemsEmptyState = EmptyState<List<Item>>;
 typedef ItemsDataState = DataState<List<Item>>;
 typedef ItemsErrorState = ErrorState<List<Item>>;
 
-typedef ItemsViewStateBuilder = ViewStateBuilder<ItemsProvider, List<Item>>;
-typedef ItemsViewStateListener = ViewStateListener<ItemsProvider, List<Item>>;
-typedef ItemsViewStateConsumer = ViewStateConsumer<ItemsProvider, List<Item>>;
+typedef ItemsViewStateBuilder = ViewStateBuilder<List<Item>>;
+typedef ItemsViewStateListener = ViewStateListener<List<Item>>;
+typedef ItemsViewStateConsumer = ViewStateConsumer<List<Item>>;

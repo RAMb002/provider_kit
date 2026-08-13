@@ -39,7 +39,7 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: StateListener<CounterProvider, int>(
+        body: StateListener<int>(
           provider: _currentProvider,
           listener: (context, state) {
             widget.onListenerCalled?.call(context, state);
@@ -79,10 +79,10 @@ void main() {
     testWidgets('throws AssertionError when child is not specified',
         (tester) async {
       const expectedMessage =
-          'StateListener<CounterProvider, int> used outside of StateListener must specify a child';
+          'StateListener<int> used outside of StateListener must specify a child';
 
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: CounterProvider(),
           listener: (context, state) {},
         ),
@@ -98,7 +98,7 @@ void main() {
     testWidgets('renders child when specified', (tester) async {
       const targetKey = Key('listener_container');
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: CounterProvider(),
           listener: (_, __) {},
           child: const SizedBox(key: targetKey),
@@ -113,7 +113,7 @@ void main() {
       final states = <int>[];
 
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           shouldCallListenerOnInit: true,
           listener: (_, state) => states.add(state),
@@ -131,7 +131,7 @@ void main() {
       final states = <int>[];
       const expectedStates = [1];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
@@ -148,7 +148,7 @@ void main() {
       final states = <int>[];
       const expectedStates = [1, 2];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
@@ -252,7 +252,7 @@ void main() {
       const expectedStates = [1];
 
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (previous, state) {
             listenWhenCallCount++;
@@ -284,7 +284,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (previous, state) {
             listenWhenCallCount++;
@@ -321,7 +321,7 @@ void main() {
       final states = <int>[];
       final provider = CounterProvider();
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (previous, current) {
             if (current % 3 == 0) {
@@ -355,7 +355,7 @@ void main() {
       final provider = CounterProvider();
       const expectedStates = [1, 2];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (previous, state) {
             listenWhenCallCount++;
@@ -385,7 +385,7 @@ void main() {
       final provider = CounterProvider();
       const expectedStates = <int>[];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (_, __) => false,
           listener: (_, state) => states.add(state),
@@ -405,7 +405,7 @@ void main() {
       final provider = CounterProvider();
       const expectedStates = [1];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (_, __) => true,
           listener: (_, state) => states.add(state),
@@ -425,7 +425,7 @@ void main() {
       final provider = CounterProvider();
       const expectedStates = <int>[];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (_, __) => false,
           listener: (_, state) => states.add(state),
@@ -451,7 +451,7 @@ void main() {
       final provider = CounterProvider();
       const expectedStates = [1, 2, 3, 4];
       await tester.pumpWidget(
-        StateListener<CounterProvider, int>(
+        StateListener<int>(
           provider: provider,
           listenWhen: (_, __) => true,
           listener: (_, state) => states.add(state),
@@ -470,8 +470,7 @@ void main() {
       expect(states, expectedStates);
     });
 
-    testWidgets(
-        'infers the provider from the context if the provider parameter is omitted',
+    testWidgets('infers the provider from the context using StateListener.of',
         (tester) async {
       final provider = CounterProvider();
       int? latestPreviousState;
@@ -482,7 +481,7 @@ void main() {
       await tester.pumpWidget(
         ChangeNotifierProvider<CounterProvider>.value(
           value: provider,
-          child: StateListener<CounterProvider, int>(
+          child: StateListener.of<CounterProvider, int>(
             listenWhen: (previous, state) {
               listenWhenCallCount++;
               latestPreviousState = previous;
@@ -510,7 +509,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateListener<CounterProvider, int>(
+            body: StateListener<int>(
               provider: counterProvider,
               listenWhen: (previous, current) => true,
               listener: (context, state) {
@@ -540,7 +539,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: StateListener<CounterProvider, int>(
+              body: StateListener<int>(
                 provider: provider,
                 listener: (context, state) {
                   listenerCallCount++;

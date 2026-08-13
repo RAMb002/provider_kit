@@ -34,7 +34,7 @@ class _MutationDemoState extends State<MutationDemo> {
         title: const Text('Mutation Demo'),
       ),
       body: Center(
-        child: StateBuilder<Mutation<String>, MutationState<String>>(
+        child: StateBuilder<MutationState<String>>(
           provider: mutation,
           builder: (context, state, child) {
             final isLoading = state.isLoading;

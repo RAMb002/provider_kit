@@ -128,9 +128,13 @@ class MyProvider extends StateNotifier<int> {
 
 ### _**State Widgets**_
 
-To listen to state changes from our provider, we use built-in widgets that are designed to interact with the `StateNotifier`. Each widget includes an optional **provider** attribute. By default, state widgets automatically search the widget tree for the corresponding provider type (e.g., `MyProvider`). Alternatively, we can pass a specific provider instance using the **provider** attribute.
+To react to state changes from your provider in your UI, use the built-in widgets below.  
+Each widget offers **two** ways to access the provider:
 
-> **Note:** These widgets are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
+1. **Explicitly** – pass a provider instance directly via the `provider` parameter.  
+2. **From context** – use the static `.of` method to resolve the provider from the widget tree.
+
+> **Note:** For the `.of` method to work, the provider must be registered in the widget tree using `Provider`, `ChangeNotifierProvider`, or similar from the [`provider`](https://pub.dev/packages/provider) package.
 
 - State Widgets include **`StateListener`, `StateBuilder`, `StateConsumer`**.
 
@@ -139,13 +143,22 @@ To listen to state changes from our provider, we use built-in widgets that are d
 A widget that listens for state changes and executes side effects without rebuilding the UI.
 
 ```dart
-StateListener<MyProvider, MyDataType>(
-  provider: provider, // Optional
+// Explicit provider
+StateListener<MyDataType>(
+  provider: provider,
   listenWhen: (previous, current) => previous != current, // Default, optional
   shouldCallListenerOnInit: false, // Default, optional
   listener: (context, state) {
     // Can execute side effects here
   },
+  child: YourWidget(),
+);
+
+```
+```dart
+// Provider from context
+StateListener.of<MyProvider, MyDataType>(
+  listener: (context, state) { /* side effects */ },
   child: YourWidget(),
 );
 ```
@@ -155,13 +168,20 @@ StateListener<MyProvider, MyDataType>(
 A widget in which the builder will be triggered on state change.
 
 ```dart
-StateBuilder<MyProvider, MyDataType>(
-  provider: provider, // Optional
+// Explicit provider
+StateBuilder<MyDataType>(
+  provider: provider,
   rebuildWhen: (previous, current) => previous != current, // Default, optional
   builder: (context, state, child) {
     return Text('Count: $state');
   },
   child: YourStaticWidget(), // Optional, won't be rebuilt
+);
+```
+```dart
+// Provider from context
+StateBuilder.of<MyProvider, MyDataType>(
+  builder: (context, state, child) => Text('$state'),
 );
 ```
 
@@ -170,7 +190,8 @@ StateBuilder<MyProvider, MyDataType>(
 A widget that combines the features of both `StateListener` and `StateBuilder`.
 
 ```dart
-StateConsumer<MyProvider, MyDataType>(
+// Explicit provider
+StateConsumer<MyDataType>(
   provider: provider,
   listenWhen: (previous, current) => previous != current, // Default, optional
   shouldCallListenerOnInit: false, // Default, optional
@@ -184,16 +205,14 @@ StateConsumer<MyProvider, MyDataType>(
   child: YourStaticWidget(), // Optional, won't be rebuilt
 );
 ```
- **💡 Tip:** Passing a `StateValueListenable` instance directly (such as a `StateNotifier`)? Use `NotifierBuilder`, `NotifierListener`, or `NotifierConsumer` instead of `StateBuilder`, `StateListener`, or `StateConsumer` to avoid repeatedly typing `<StateValueListenable<T>, T>`.
-> ```dart
-> // ✅ Clean
-> NotifierBuilder<int>(provider: counterProvider, builder: ...)
->
-> // ❌ Verbose
-> StateBuilder<StateValueListenable<int>, int>(provider: counterProvider, builder: ...)
-> ```
->
-> For automatic provider lookup, use the original widgets instead.
+```dart
+// Provider from context
+StateConsumer.of<MyProvider, MyDataType>(
+  listener: (context, state) { /* side effects */ },
+  builder: (context, state, child) => Text('$state'),
+);
+```
+> **Note:** These `State Widgets` are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
 
 ---
 
@@ -530,6 +549,12 @@ class ProfileScreen extends StatelessWidget {
 
 These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding `ViewState`. They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes.For example `MyViewStateProvider` which we learned above.
 
+Each widget offers **two** ways to access the provider:
+1. **Explicitly** – pass a provider instance directly via the `provider` parameter.
+2. **From context** – use the static `.of` method.
+
+> **Note:** For the `.of` method to work, the provider must be registered in the widget tree using `Provider`, `ChangeNotifierProvider`, or similar
+
 - View State Widgets includes **`ViewStateListener`, `ViewStateBuilder`, `ViewStateConsumer`**.
 
 
@@ -537,15 +562,24 @@ These widgets are similar to [State Widgets](#state-widgets) but are designed to
 This widget provides individual `listener` callbacks for each `ViewState`, allowing customized behavior based on the current state.
 
 ```dart
-ViewStateListener<MyViewStateProvider, MyDataType(
+// Explicit provider
+ViewStateListener<MyDataType(
+  provider: myProvider
   dataStateListener: (data) => context.showToast(data.toString()),
   child: YourWidget(),
 )
 ```
+```dart
+// Provider from context
+ViewStateListener.of<MyViewStateProvider, MyDataType>(
+  dataStateListener: (data) => context.showToast(data.toString()),
+  child: YourWidget(),
+);
+```
 
 | Attribute Name              | Type                                                                                           | Required/Optional | Description |
 |----------------------------|------------------------------------------------------------------------------------------------|------------------|-------------|
-| `provider`                 | `P?`                                                                                           | Optional         | Automatically searches the widget tree for the corresponding provider type (e.g., `MyViewStateProvider`) if not provided. |
+| `provider`                 | `P`                                                                                           | **Required**         | The provider instance to listen to. To resolve the provider from the widget tree, use the `.of` method instead. |
 | `initialStateListener`     | `void Function()?`                                                                            | Optional         | Invoked when the state is `InitialState`. |
 | `loadingStateListener`     | `void Function(String? message, double? progress)?`                                          | Optional         | Invoked when the state is `LoadingState`. |
 | `dataStateListener`        | `void Function(T data)?`                                                                      | **Required**     | Invoked when the state is `DataState`. |
@@ -564,19 +598,27 @@ This widget provides individual `builder` for each `ViewState`, allowing customi
 
 
 ```dart
-ViewStateBuilder<MyViewStateProvider, MyDataType>(
+// Explicit provider
+ViewStateBuilder<MyDataType>(
+  provider: myProvider,
   // Other ViewState builders will be assigned from the `ViewStateWidgetsProvider`.
   // We can override them here in `ViewStateBuilder` if needed.
   // loadingBuilder: (message, progress, isSliver) => ,
   dataBuilder: (data) => Text(data.toString()),
 )
 ```
+```dart
+// Provider from context
+ViewStateBuilder.of<MyViewStateProvider, MyDataType>(
+  dataBuilder: (data) => Text(data.toString()),
+);
+```
 
 The `ViewStateBuilder` allows customization of UI rendering for different `ViewState`s, enabling dynamic UI updates based on the current state.
 
 | Attribute Name     | Type                                                                 | Required/Optional | Description |
 |-------------------|----------------------------------------------------------------------|------------------|-------------|
-| `provider`       | `P?`                                                                 | Optional         | Automatically searches the widget tree for the corresponding provider type if not provided. |
+| `provider`       | `P`                                                                 | **Required**         | The provider instance to listen to. To resolve the provider from the widget tree, use the `.of` method instead. |
 | `rebuildWhen`    | `bool Function(ViewState<T> previous, ViewState<T> next)?`           | Optional         | Determines if the builder should rebuild based on state changes. |
 | `initialBuilder` | `Widget Function(bool isSliver)?`                                    | Optional         | Called when the state is `InitialState`. |
 | `dataBuilder`    | `Widget Function(T data)`                                            | **Required**     | Called when the state is `DataState`, passing the retrieved data. |
@@ -593,7 +635,9 @@ This widget combines features of both `ViewStateListener` and `ViewStateBuilder`
  >**Important Note:** _`initialStateBuilder`, `loadingStateBuilder`, `emptyStateBuilder` and `errorStateBuilder` that we supplied to **`ViewStateWidgetsProvider`** will be used by this widget internally by default_.
 
 ```dart
-ViewStateConsumer<MyViewStateProvider, MyDataType(
+// Explicit provider
+ViewStateConsumer<MyDataType(
+  provider: myProvider
   dataStateListener: (data) {
     print(data);
   },
@@ -601,10 +645,18 @@ ViewStateConsumer<MyViewStateProvider, MyDataType(
 )
 ```
 
+```dart
+// Provider from context
+ViewStateConsumer.of<MyViewStateProvider, MyDataType>(
+  dataStateListener: (data) => print(data),
+  dataBuilder: (data) => Text(data.toString()),
+);
+```
+
 
 | Attribute Name              | Type                                                                                           | Required/Optional | Description |
 |----------------------------|------------------------------------------------------------------------------------------------|------------------|-------------|
-| `provider`                 | `P?`                                                                                           | Optional         | Automatically searches the widget tree for the corresponding provider type. |
+| `provider`                 | `P`                                                                                           | **Required**         | The provider instance to listen to. To resolve the provider from the widget tree, use the `.of` method instead. |
 | `initialStateListener`     | `void Function()?`                                                                            | Optional         | Invoked when the state is `InitialState`. |
 | `loadingStateListener`     | `void Function(String? message, double? progress)?`                                          | Optional         | Invoked when the state is `LoadingState`. |
 | `dataStateListener`        | `void Function(T data)?`                                                                      | Optional         | Invoked when the state is `DataState`. |
@@ -629,7 +681,7 @@ Multi View State Widgets allow us to listen to multiple providers' `ViewState`s 
 
 > **Key Difference:** Unlike `ViewStateListener`, `ViewStateBuilder`, and `ViewStateConsumer`, Multi View State Widgets require a **list of providers** as a mandatory attribute.
 
-- Multi View State Widgets inlcudes **`MultiViewStateListener`, `MultiViewStateBuilder` and `MultiViewStateConsumer`**.
+- Multi View State Widgets includes **`MultiViewStateListener`, `MultiViewStateBuilder` and `MultiViewStateConsumer`**.
 
 
 ### How Multi View State Widgets Work
@@ -864,7 +916,7 @@ final addTodo = Mutation<Todo>();
 Once a mutation is defined, you can listen to its state in the UI using ProviderKit state widgets such as `StateBuilder`, `StateListener`, and `StateConsumer`.
 
 ```dart
-StateBuilder<Mutation<void>, MutationState<void>>(
+StateBuilder<MutationState<void>>(
   provider: deleteTodo,
   builder: (context, state, child) {
     return state.when(
@@ -1069,7 +1121,7 @@ ListView.builder(
     // otherwise, creates and caches a new mutation.
     final mutation = provider.deleteTodo(todo.id);
 
-    return StateBuilder<Mutation<void>, MutationState<void>>(
+    return StateBuilder<MutationState<void>>(
       provider: mutation,
       builder: (context, state, child) {
         return ListTile(

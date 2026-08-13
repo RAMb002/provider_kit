@@ -45,7 +45,7 @@ void main() {
       bool isSliver = false,
       bool withDefaultProvider = false,
     }) {
-      final builder = ViewStateBuilder<TestViewStateNotifier<String>, String>(
+      final builder = ViewStateBuilder<String>(
         provider: provider,
         initialBuilder: initialBuilder,
         loadingBuilder: loadingBuilder,
@@ -255,14 +255,14 @@ void main() {
     });
 
     testWidgets(
-        'throws assertion when state is not DataState and no provider in context',
+        'throws assertion when state is not DataState and no specific builder or ViewStateWidgetProvider is available',
         (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
 
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             // No initialBuilder, no ViewStateWidgetsProvider
             dataBuilder: (_) => const SizedBox(),
@@ -291,7 +291,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<MockAsyncViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -323,7 +323,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<MockAsyncViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -348,7 +348,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             errorBuilder: (_, onRetry, __, ___, ____) {
               capturedOnRetry = onRetry;
@@ -460,7 +460,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             isSliver: true,
             initialBuilder: (isSliver) {
@@ -516,7 +516,7 @@ void main() {
           errorStateBuilder: (_, __, ___, ____, _____) => const SizedBox(),
           child: Directionality(
             textDirection: TextDirection.ltr,
-            child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+            child: ViewStateBuilder<String>(
               provider: provider,
               isSliver: true,
               dataBuilder: (_) => const SizedBox(),
@@ -539,7 +539,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             dataBuilder: (data) {
               capturedData = data;
@@ -552,7 +552,7 @@ void main() {
       expect(capturedData, 'explicit');
     });
 
-    testWidgets('reads provider from context when not provided',
+    testWidgets('reads provider from context using ViewStateBuilder.of',
         (tester) async {
       final provider =
           TestViewStateNotifier<String>(const DataState('context'));
@@ -563,7 +563,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ChangeNotifierProvider<TestViewStateNotifier<String>>.value(
             value: provider,
-            child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+            child: ViewStateBuilder.of<TestViewStateNotifier<String>, String>(
               dataBuilder: (data) {
                 capturedData = data;
                 return const SizedBox();
@@ -585,10 +585,10 @@ void main() {
       final provider2 = TestViewStateNotifier<String>(const DataState('two'));
       String? capturedData;
 
-      Widget buildFrame(TestViewStateNotifier<String>? provider) {
+      Widget buildFrame(TestViewStateNotifier<String> provider) {
         return Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             dataBuilder: (data) {
               capturedData = data;
@@ -618,7 +618,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: ViewStateBuilder<TestViewStateNotifier<String>, String>(
+          child: ViewStateBuilder<String>(
             provider: provider,
             dataBuilder: (_) => const SizedBox(),
           ),
@@ -641,7 +641,7 @@ void main() {
         (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
-      ViewStateBuilder<TestViewStateNotifier<String>, String>(
+      ViewStateBuilder<String>(
         provider: TestViewStateNotifier<String>(),
         dataBuilder: (_) => const SizedBox(),
         initialBuilder: (_) => const SizedBox(),

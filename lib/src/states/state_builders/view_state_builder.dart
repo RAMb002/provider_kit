@@ -7,7 +7,7 @@ import 'package:provider_kit/src/states/states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 import 'package:provider_kit/src/view_state_widgets_provider.dart';
 
-/// {@template providerkit-viewstatebuilder}
+/// {@template provider_kit.viewStateBuilder}
 /// A widget that builds its UI based on the specific [ViewState] of a [ViewStateNotifier].
 ///
 /// The [ViewStateBuilder] is used to build different UI components in response to different view states
@@ -18,49 +18,127 @@ import 'package:provider_kit/src/view_state_widgets_provider.dart';
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
 /// ### Parameters:
+/// - **`provider`** (*Required*) **:** The [ViewStateNotifier] whose state you want to listen to.
 /// - **`initialBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `InitialState`.
 /// - **`loadingBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `LoadingState`.
 /// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
 /// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
 /// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
-/// - **`provider`** (*Optional*) **:** Specify the [provider] if the state provider is not accessible via [Provider] and the current `BuildContext`.
 /// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current state. Defaults to calling the builder when `previous != current`.
 /// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
 /// - **`key`** (*Optional*) **:** An optional key for the widget.
 ///
 /// ### Example Usage:
 /// ```dart
-/// ViewStateBuilder<Provider, DataType>(
-///   provider: provider, // Optional
+/// ViewStateBuilder<DataType>(
+///   provider: provider,
 ///   rebuildWhen: (previous, current) {
 ///     // Return true/false to control rebuilding based on state changes
 ///   },
-///   initialBuilder: (context) {
+///   initialBuilder: () {
 ///     // Build your widget tree for InitialState
 ///     return Container();
 ///   },
-///   loadingBuilder: (context, message, progress) {
+///   loadingBuilder: (message, progress) {
 ///     // Build your widget tree for LoadingState
 ///     return Container();
 ///   },
-///   emptyBuilder: (context, message) {
+///   emptyBuilder: (message) {
 ///     // Build your widget tree for EmptyState
 ///     return Container();
 ///   },
-///   errorBuilder: (context, message, onRetry, exception, stackTrace) {
+///   errorBuilder: (message, onRetry, exception, stackTrace) {
 ///     // Build your widget tree for ErrorState
 ///     return Container();
 ///   },
-///   dataBuilder: (context, data) {
+///   dataBuilder: (data) {
 ///     // Build your widget tree for DataState<DataType>
 ///     return Container();
 ///   },
 ///   isSliver: false, // Optional, default is false
 /// )
 /// ```
+/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
+/// you can use [ViewStateBuilder.of] to resolve it from the widget tree:
+///
+/// ```dart
+/// ViewStateBuilder.of<MyProvider, DataType>(
+///   dataBuilder: (data) {
+///     return ...;
+///   },
+///   loadingBuilder: (message, progress) {
+///     return ...;
+///   },
+/// ```
 /// {@endtemplate}
-class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
-    extends StateBuilder<P, ViewState<T>> {
+class ViewStateBuilder<T>
+    extends ViewStateBuilderBase<ViewStateNotifier<T>, T> {
+  /// {@macro provider_kit.viewStateBuilder}
+  const ViewStateBuilder({
+    super.key,
+    required ViewStateNotifier<T> provider,
+    super.rebuildWhen,
+    required super.dataBuilder,
+    super.initialBuilder,
+    super.errorBuilder,
+    super.loadingBuilder,
+    super.emptyBuilder,
+    super.isSliver = false,
+  }) : super(provider: provider);
+
+  /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
+  ///
+  /// Use this when the provider is available in the widget tree:
+  ///
+  /// ```dart
+  /// ViewStateBuilder.of<MyProvider, DataType>(
+  ///   dataBuilder: (data) {
+  ///     return ...;
+  ///   },
+  ///   loadingBuilder: (message, progress) {
+  ///     return ...;
+  ///   },
+  /// )
+  /// ```
+  static Widget of<P extends ViewStateNotifier<T>, T>({
+    Key? key,
+    required DataStateBuilder<T> dataBuilder,
+    InitialStateBuilder? initialBuilder,
+    ErrorStateBuilder? errorBuilder,
+    LoadingStateBuilder? loadingBuilder,
+    EmptyStateBuilder? emptyBuilder,
+    RebuildWhen<ViewState<T>>? rebuildWhen,
+    bool isSliver = false,
+  }) {
+    return _ViewStateBuilderOf<P, T>(
+      key: key,
+      dataBuilder: dataBuilder,
+      initialBuilder: initialBuilder,
+      errorBuilder: errorBuilder,
+      loadingBuilder: loadingBuilder,
+      emptyBuilder: emptyBuilder,
+      rebuildWhen: rebuildWhen,
+      isSliver: isSliver,
+    );
+  }
+}
+
+class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
+    extends ViewStateBuilderBase<P, T> {
+  const _ViewStateBuilderOf({
+    super.key,
+    required super.dataBuilder,
+    super.initialBuilder,
+    super.errorBuilder,
+    super.loadingBuilder,
+    super.emptyBuilder,
+    super.rebuildWhen,
+    super.isSliver,
+  }) : super(provider: null);
+}
+
+class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
+    extends StateBuilderBase<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;
   final DataStateBuilder<T> dataBuilder;
   final ErrorStateBuilder? errorBuilder;
@@ -68,8 +146,7 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
   final EmptyStateBuilder? emptyBuilder;
   final bool isSliver;
 
-  /// {@macro providerkit-viewstatebuilder}
-  ViewStateBuilder({
+  const ViewStateBuilderBase({
     super.provider,
     super.rebuildWhen,
     required this.dataBuilder,
@@ -79,21 +156,26 @@ class ViewStateBuilder<P extends ViewStateNotifier<T>, T>
     this.emptyBuilder,
     this.isSliver = false,
     super.key,
-  }) : super(
-          builder: (context, state, child) {
-            return buildStateWidget<P, T>(
-              context,
-              provider,
-              state,
-              initialBuilder,
-              dataBuilder,
-              errorBuilder,
-              loadingBuilder,
-              emptyBuilder,
-              isSliver,
-            );
-          },
-        );
+  });
+
+  @override
+  Widget build(
+    BuildContext context,
+    ViewState<T> state,
+    Widget? child,
+  ) {
+    return buildStateWidget<P, T>(
+      context,
+      provider,
+      state,
+      initialBuilder,
+      dataBuilder,
+      errorBuilder,
+      loadingBuilder,
+      emptyBuilder,
+      isSliver,
+    );
+  }
 
   static Widget buildStateWidget<P, T>(
     BuildContext context,
