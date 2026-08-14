@@ -16,6 +16,6 @@ typedef FeedEmptyState = EmptyState<List<Item>>;
 typedef FeedDataState = DataState<List<Item>>;
 typedef FeedErrorState = ErrorState<List<Item>>;
 
-typedef FeedViewStateBuilder = ViewStateBuilder<FeedProvider, List<Item>>;
-typedef FeedViewStateListener = ViewStateListener<FeedProvider, List<Item>>;
-typedef FeedViewStateConsumer = ViewStateConsumer<FeedProvider, List<Item>>;
+typedef FeedViewStateBuilder = ViewStateBuilder<List<Item>>;
+typedef FeedViewStateListener = ViewStateListener<List<Item>>;
+typedef FeedViewStateConsumer = ViewStateConsumer<List<Item>>;

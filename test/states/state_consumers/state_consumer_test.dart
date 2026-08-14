@@ -17,7 +17,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               builder: (context, state, child) {
                 return Text('State: $state');
@@ -43,7 +43,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               builder: (context, state, child) {
                 return Text('State: $state');
@@ -77,7 +77,7 @@ void main() {
           value: counterProvider,
           child: MaterialApp(
             home: Scaffold(
-              body: StateConsumer<CounterProvider, int>(
+              body: StateConsumer.of<CounterProvider, int>(
                 builder: (context, state, child) {
                   return Text('State: $state');
                 },
@@ -95,14 +95,14 @@ void main() {
     });
 
     testWidgets(
-        'accesses the provider via context and passes multiple states to builder',
+        'passes multiple states to builder and listener when provider is passed directly',
         (tester) async {
       final counterProvider = CounterProvider();
       final listenerStates = <int>[];
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               builder: (context, state, child) {
                 return Text('State: $state');
@@ -131,7 +131,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               rebuildWhen: (previous, current) => (previous + current) % 3 == 0,
               builder: (context, state, child) {
@@ -167,8 +167,8 @@ void main() {
     });
 
     testWidgets(
-        'does not trigger rebuilds when '
-        'buildWhen evaluates to false (inferred provider)', (tester) async {
+        'does not trigger rebuilds when rebuildWhen evaluates to false (inferred provider)',
+        (tester) async {
       final counterProvider = CounterProvider();
       final listenerStates = <int>[];
       final builderStates = <int>[];
@@ -177,7 +177,7 @@ void main() {
           home: Scaffold(
             body: ChangeNotifierProvider.value(
               value: counterProvider,
-              child: StateConsumer<CounterProvider, int>(
+              child: StateConsumer.of<CounterProvider, int>(
                 rebuildWhen: (previous, current) =>
                     (previous + current) % 3 == 0,
                 builder: (context, state, child) {
@@ -221,7 +221,7 @@ void main() {
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
-                return StateConsumer<CounterProvider, int>(
+                return StateConsumer<int>(
                   provider: counterProvider,
                   builder: (context, state, child) {
                     builderStates.add(state);
@@ -269,7 +269,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               builder: (context, state, child) {
                 builderStates.add(state);
@@ -314,7 +314,7 @@ void main() {
       final listenStates = <int>[];
       final counterProvider = CounterProvider();
       await tester.pumpWidget(
-        StateConsumer<CounterProvider, int>(
+        StateConsumer<int>(
           provider: counterProvider,
           listenWhen: (previous, current) {
             if (current % 3 == 0) {
@@ -366,7 +366,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               shouldCallListenerOnInit: true,
               builder: (context, state, child) => const SizedBox(),
@@ -393,7 +393,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: StateConsumer<CounterProvider, int>(
+          child: StateConsumer<int>(
             provider: counterProvider,
             child: StatefulBuilder(
               builder: (context, setChildState) {
@@ -439,7 +439,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: StateConsumer<CounterProvider, int>(
+            body: StateConsumer<int>(
               provider: counterProvider,
               rebuildWhen: (previous, current) => true,
               listenWhen: (previous, current) => true,
@@ -472,7 +472,7 @@ void main() {
         (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
-      StateConsumer<CounterProvider, int>(
+      StateConsumer<int>(
         provider: CounterProvider(),
         shouldCallListenerOnInit: true,
         listenWhen: (previous, current) => previous != current,

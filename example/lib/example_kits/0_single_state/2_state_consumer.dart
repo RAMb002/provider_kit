@@ -26,7 +26,7 @@ class _StateConsumerExampleState extends State<StateConsumerExample> {
                 setState(() {});
               });
             },
-            child: StateConsumer<ExampleProvider, int>(
+            child: StateConsumer.of<ExampleProvider, int>(
               listener: (context, state) {
                 context.showToast(state.toString());
               },

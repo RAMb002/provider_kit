@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
 import 'package:provider_kit/src/states/view_states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
-/// {@template providerkit-viewstatelistener}
+/// {@template provider_kit.viewStateListener}
 /// A widget that listens to changes in a [ViewStateNotifier] and triggers callbacks
 /// based on the specific [ViewState].
 ///
@@ -13,20 +14,20 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// It ensures that the appropriate callback is called based on the current view state.
 ///
 /// ### Parameters:
+/// - **`provider`** (*Required*) **:** The [ViewStateNotifier] whose state you want to listen to.
 /// - **`initialStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `InitialState`.
 /// - **`loadingStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `LoadingState`.
 /// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
 /// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`provider`** (*Optional*) **:** Specify the [provider] if the state provider is not accessible via [Provider] and the current `BuildContext`.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current state. Defaults to calling the listener when `previous != current`.
 /// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`child`** (*Required*) **:** Your child widget goes here.
 ///
 /// ### Example Usage:
 /// ```dart
-/// ViewStateListener<Provider, DataType                    >(
-///   provider: provider, // Optional
+/// ViewStateListener<Provider, DataType>(
+///   provider: provider,
 ///   shouldCallListenerOnInit: false, // Optional, default is false
 ///   initialStateListener: () {
 ///     // Handle initial state
@@ -43,20 +44,106 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 ///   dataStateListener: (data) {
 ///     // Handle data state
 ///   },
-///   child: SomeWidget(), // Optional
+///   child: SomeWidget(),
+/// )
+/// ```
+///
+/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
+/// you can use [ViewStateListener.of] to resolve it from the widget tree:
+///
+/// ```dart
+/// ViewStateListener.of<MyProvider, DataType>(
+///   loadingStateListener: (message, progress) {
+///     // Handle loading state.
+///   },
+///   dataStateListener: (data) {
+///     // Handle data state.
+///   },
+///   child: SomeWidget(),
 /// )
 /// ```
 /// {@endtemplate}
-class ViewStateListener<P extends ViewStateNotifier<T>, T>
-    extends StateListener<P, ViewState<T>> {
+///
+class ViewStateListener<T>
+    extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
+  /// {@macro provider_kit.viewStateListener}
+  ViewStateListener({
+    super.key,
+    required ViewStateNotifier<T> provider,
+    super.initialStateListener,
+    super.loadingStateListener,
+    super.emptyStateListener,
+    super.errorStateListener,
+    super.dataStateListener,
+    super.listenWhen,
+    super.shouldCallListenerOnInit,
+    super.child,
+  }) : super(provider: provider);
+
+  /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
+  ///
+  /// Use this when the provider is available in the widget tree:
+  ///
+  /// ```dart
+  /// ViewStateListener.of<MyProvider, DataType>(
+  ///   loadingStateListener: (message, progress) {
+  ///     // Handle loading state.
+  ///   },
+  ///   dataStateListener: (data) {
+  ///     // Handle data state.
+  ///   },
+  ///   child: SomeWidget(),
+  /// )
+  /// ```
+  static Widget of<P extends ViewStateNotifier<T>, T>({
+    Key? key,
+    InitialStateListener? initialStateListener,
+    LoadingStateListener? loadingStateListener,
+    EmptyStateListener? emptyStateListener,
+    ErrorStateListener? errorStateListener,
+    DataStateListener<T>? dataStateListener,
+    ListenWhen<ViewState<T>>? listenWhen,
+    bool shouldCallListenerOnInit = false,
+    Widget? child,
+  }) {
+    return _ViewStateListenerOf<P, T>(
+      key: key,
+      initialStateListener: initialStateListener,
+      loadingStateListener: loadingStateListener,
+      emptyStateListener: emptyStateListener,
+      errorStateListener: errorStateListener,
+      dataStateListener: dataStateListener,
+      listenWhen: listenWhen,
+      shouldCallListenerOnInit: shouldCallListenerOnInit,
+      child: child,
+    );
+  }
+}
+
+class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
+    extends ViewStateListenerBase<P, T> {
+  _ViewStateListenerOf({
+    super.key,
+    super.initialStateListener,
+    super.loadingStateListener,
+    super.emptyStateListener,
+    super.errorStateListener,
+    super.dataStateListener,
+    super.listenWhen,
+    super.shouldCallListenerOnInit,
+    super.child,
+  }) : super(provider: null);
+}
+
+abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
+    extends StateListenerBase<P, ViewState<T>> {
   final InitialStateListener? initialStateListener;
   final LoadingStateListener? loadingStateListener;
   final EmptyStateListener? emptyStateListener;
   final ErrorStateListener? errorStateListener;
   final DataStateListener<T>? dataStateListener;
 
-  /// {@macro providerkit-viewstatelistener}
-  ViewStateListener({
+  ViewStateListenerBase({
     super.key,
     super.provider,
     this.initialStateListener,
@@ -68,18 +155,13 @@ class ViewStateListener<P extends ViewStateNotifier<T>, T>
     super.shouldCallListenerOnInit,
     super.child,
   }) : super(
-          listener: (context, state) {
-            state.when(
-              initialState: () => initialStateListener?.call(),
-              loadingState: (message, progress) =>
-                  loadingStateListener?.call(message, progress),
-              dataState: (data) => dataStateListener?.call(data),
-              emptyState: (message) => emptyStateListener?.call(message),
-              errorState: (errorMessage, onRetry, exception, stackTrace) =>
-                  errorStateListener?.call(
-                      errorMessage, onRetry, exception, stackTrace),
-            );
-          },
+          listener: _createViewStateListener<T>(
+            initialStateListener: initialStateListener,
+            loadingStateListener: loadingStateListener,
+            emptyStateListener: emptyStateListener,
+            errorStateListener: errorStateListener,
+            dataStateListener: dataStateListener,
+          ),
         );
 
   @override
@@ -97,4 +179,29 @@ class ViewStateListener<P extends ViewStateNotifier<T>, T>
       ..add(ObjectFlagProperty<DataStateListener<T>?>.has(
           'dataStateListener', dataStateListener));
   }
+}
+
+ListenerCallback<ViewState<T>> _createViewStateListener<T>({
+  InitialStateListener? initialStateListener,
+  LoadingStateListener? loadingStateListener,
+  EmptyStateListener? emptyStateListener,
+  ErrorStateListener? errorStateListener,
+  DataStateListener<T>? dataStateListener,
+}) {
+  return (context, state) {
+    state.when(
+      initialState: () => initialStateListener?.call(),
+      loadingState: (message, progress) =>
+          loadingStateListener?.call(message, progress),
+      dataState: (data) => dataStateListener?.call(data),
+      emptyState: (message) => emptyStateListener?.call(message),
+      errorState: (errorMessage, onRetry, exception, stackTrace) =>
+          errorStateListener?.call(
+        errorMessage,
+        onRetry,
+        exception,
+        stackTrace,
+      ),
+    );
+  };
 }

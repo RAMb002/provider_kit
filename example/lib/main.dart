@@ -11,6 +11,8 @@ import 'package:example/example_kits/1_multi_state/6_multi_state_listener.dart';
 import 'package:example/example_kits/1_multi_state/7_multi_state_builder.dart';
 import 'package:example/example_kits/1_multi_state/8_multi_state_consumer.dart';
 import 'package:example/example_kits/1_multi_state/9_multi_view_state_listener.dart';
+import 'package:example/example_kits/mutations/mutation.dart';
+import 'package:example/example_kits/mutations/mutation_group.dart';
 import 'package:example/example_kits/observer/notifier_observer.dart';
 import 'package:example/states_widget/empty_state_widget.dart';
 import 'package:example/states_widget/error_state_widget.dart';
@@ -134,6 +136,18 @@ class ExamplePickerScreen extends StatelessWidget {
       category: 'Multi State',
       widget: MultiViewStateConsumerExample(),
     ),
+
+    const ExampleItem(
+      title: 'Mutation',
+      category: '',
+      widget: MutationExample(),
+    ),
+
+    const ExampleItem(
+      title: 'Mutation Group',
+      category: '',
+      widget: MutationGroupExample(),
+    ),
   ];
 
   @override
@@ -153,7 +167,7 @@ class ExamplePickerScreen extends StatelessWidget {
               example.title,
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
-            subtitle: Text(example.category),
+            subtitle: example.category.isEmpty ? null : Text(example.category),
             trailing: const Icon(Icons.arrow_forward_ios, size: 16),
             onTap: () {
               Navigator.push(
