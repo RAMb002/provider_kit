@@ -34,6 +34,10 @@ jobs:
     permissions:
       contents: write   # Required to push commits and tags
 
+    defaults:
+      run:
+        working-directory: packages/provider_kit
+
     steps:
       # -------- Setup --------
       - name: 📚 Checkout repository
@@ -74,7 +78,7 @@ jobs:
       - name: 📝 Verify CHANGELOG.md has Unreleased entries
         run: |
           git fetch origin dev
-          if ! git show origin/dev:CHANGELOG.md | grep -q "^## Unreleased"; then
+          if ! git show origin/dev:packages/provider_kit/CHANGELOG.md | grep -q "^## Unreleased"; then
             echo "❌ ERROR: '## Unreleased' section not found in CHANGELOG.md on dev branch."
             echo "Please add your release notes under '## Unreleased' before releasing."
             exit 1
@@ -126,13 +130,13 @@ jobs:
       - name: 🏷️ Create Git tag (dry‑run preview)
         if: ${{ github.event.inputs.dry_run == 'true' }}
         run: |
-          echo "🚨 DRY RUN: Would create and push tag v${{ steps.bump.outputs.new_version }}"
+          echo "🚨 DRY RUN: Would create and push tag provider_kit-v${{ steps.bump.outputs.new_version }}"
 
       - name: 🏷️ Create Git tag (real)
         if: ${{ github.event.inputs.dry_run == 'false' }}
         run: |
-          git tag v${{ steps.bump.outputs.new_version }}
-          git push origin v${{ steps.bump.outputs.new_version }}
+          git tag provider_kit-v${{ steps.bump.outputs.new_version }}
+          git push origin provider_kit-v${{ steps.bump.outputs.new_version }}
 
       - name: 📦 Publish to pub.dev (dry‑run preview)
         if: ${{ github.event.inputs.dry_run == 'true' }}
