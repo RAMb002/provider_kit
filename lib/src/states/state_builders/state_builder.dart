@@ -5,16 +5,15 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
-/// {@template providerkit-statebuilder}
+/// {@template provider_kit.stateBuilder}
 /// A widget that rebuilds its UI based on the state of a [StateValueListenable].
 ///
 /// The [StateBuilder] listens to a [StateValueListenable] and **rebuilds the builder function**.
 /// It ensures that the `builder` is called only once per state change.
 ///
 /// ### Parameters:
+/// - **`provider`** (*Required*) **:** The [StateValueListenable] whose state you want to listen to.
 /// - **`builder`** (*Required*) **:** A function that constructs the widget tree based on the current state.
-/// - **`provider`** (*Optional*) **:** A provider that supplies the state. If not specified,
-///   the provider will be read from the context.
 /// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder
 ///   should be called based on changes between the previous and current state. By default,
 ///   the builder is triggered when `previous != current`.
@@ -23,8 +22,8 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 ///
 /// ### Example Usage:
 /// ```dart
-/// StateBuilder<Provider, State>(
-///   provider: provider, // Optional
+/// StateBuilder<MyState>(
+///   provider: provider,
 ///   rebuildWhen: (previous, current) {
 ///     // Return true/false to control rebuilding based on state changes
 ///   },
@@ -35,21 +34,83 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 ///   child: SomeStaticWidget(), // Preserved across rebuilds
 /// )
 /// ```
+///
+/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
+/// you can use [StateBuilder.of] to resolve it from the widget tree:
+///
+/// ```dart
+/// StateBuilder.of<MyProvider, MyState>(
+///   builder: (context, state, child) {
+///     // Build your widget tree based on the state
+///     return Container();
+///   },
+///   child: SomeStaticWidget(), // Preserved across rebuilds
+/// )
+/// ```
 /// This ensures optimal performance by rebuilding only when necessary and
 /// preserving static UI elements passed as `child`.
 /// {@endtemplate}
-class StateBuilder<P extends StateValueListenable<T>, T>
-    extends StateBuilderBase<P, T> {
-  /// {@macro providerkit-statebuilder}
+class StateBuilder<T> extends StateBuilderBase<StateValueListenable<T>, T> {
+  /// {@macro provider_kit.stateBuilder}
   const StateBuilder({
     super.key,
-    super.provider,
+    required StateValueListenable<T> provider,
     required this.builder,
     super.rebuildWhen,
     super.child,
-  });
+  }) : super(provider: provider);
+
+  /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
+  ///
+  /// Use this when the provider is available in the widget tree:
+  ///
+  /// ```dart
+  /// StateBuilder.of<MyProvider, MyState>(
+  ///   builder: (context, state, child) {
+  ///     return ...;
+  ///   },
+  ///   child: SomeWidget(),
+  /// )
+  /// ```
+  static Widget of<P extends StateValueListenable<T>, T>({
+    Key? key,
+    required StateWidgetBuilder<T> builder,
+    RebuildWhen<T>? rebuildWhen,
+    Widget? child,
+  }) {
+    return _StateBuilderOf<P, T>(
+      key: key,
+      builder: builder,
+      rebuildWhen: rebuildWhen,
+      child: child,
+    );
+  }
 
   /// The function that builds the widget tree based on the current state.
+  final StateWidgetBuilder<T> builder;
+
+  @override
+  Widget build(BuildContext context, T state, Widget? child) =>
+      builder(context, state, child);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder),
+    );
+  }
+}
+
+class _StateBuilderOf<P extends StateValueListenable<T>, T>
+    extends StateBuilderBase<P, T> {
+  const _StateBuilderOf({
+    super.key,
+    required this.builder,
+    super.rebuildWhen,
+    super.child,
+  }) : super(provider: null);
+
   final StateWidgetBuilder<T> builder;
 
   @override
@@ -75,7 +136,9 @@ abstract class StateBuilderBase<P extends StateValueListenable<T>, T>
     this.child,
   });
 
-  /// The state source to listen to. If null, it is resolved from the current BuildContext using Provider.
+  /// The provider whose state should be listened to.
+  ///
+  /// When null, the provider is resolved from the current [BuildContext].
   final P? provider;
 
   /// A function that determines whether the builder should be called based on
@@ -144,7 +207,7 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
   T get _currentState => _provider.state;
 
   @override
-  Widget build(BuildContext context) => StateListener<P, T>(
+  Widget build(BuildContext context) => StateListener<T>(
         provider: _provider,
         listenWhen: widget.rebuildWhen,
         listener: (context, state) => setState(() => _state = state),

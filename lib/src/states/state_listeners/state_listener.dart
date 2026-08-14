@@ -6,7 +6,7 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
-/// {@template providerkit-statelistener}
+/// {@template provider_kit.stateListener}
 /// A widget that listens to a [StateValueListenable] and invokes a callback
 /// whenever its state changes.
 ///
@@ -15,16 +15,16 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// It ensures that the `listener` callback is called only once per state change.
 ///
 /// ### Parameters:
+/// - **`provider`** (*Required*) **:** The [StateValueListenable] whose state you want to listen to.
 /// - **`listener`** (*Required*) **:** A callback function that is invoked when the state changes.
-/// - **`provider`** (*Optional*) **:** Specify the [provider] if the state provider is not accessible via [Provider] and the current `BuildContext`.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the `listener` should be triggered based on the previous and current state. By default, the listener is called when `previous != current`.
 /// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Determines whether the `listener` should be called when the widget is first initialized.
 /// - **`child`** (*Required*) **:** The child widget that remains in the widget tree and is not affected by state changes.
 ///
 /// ### Example Usage:
 /// ```dart
-/// StateListener<Provider, State>(
-///   provider: provider, // Optional
+/// StateListener<MyState>(
+///   provider: provider,
 ///   shouldCallListenerOnInit: false, // Default is false
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
@@ -36,20 +36,71 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// )
 /// ```
 ///
-/// This widget helps separate **state-dependent side effects** from the UI, ensuring that actions
-/// such as navigation and notifications are triggered appropriately without unnecessary UI rebuilds.
+/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
+/// you can use [StateListener.of] to resolve it from the widget tree:
+///
+/// ```dart
+/// StateListener.of<MyProvider, MyState>(
+///   listener: (context, state) {
+///     // Perform side effects based on the provider's state.
+///   },
+///   child: SomeWidget(),
+/// )
+/// ```
+///
+/// This widget helps separate **state-dependent side effects** from the UI
+/// ensuring that actions such as navigation and notifications are triggered
+/// appropriately without unnecessary UI rebuilds.
 /// {@endtemplate}
-class StateListener<P extends StateValueListenable<T>, T>
-    extends StateListenerBase<P, T> {
-  /// {@macro providerkit-statelistener}
+class StateListener<T> extends StateListenerBase<StateValueListenable<T>, T> {
+  /// {@macro provider_kit.stateListener}
   const StateListener({
     super.key,
     required super.listener,
+    required StateValueListenable<T> provider,
     super.listenWhen,
-    super.provider,
     super.shouldCallListenerOnInit,
     super.child,
-  });
+  }) : super(provider: provider);
+
+  /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
+  ///
+  /// Use this when the provider is available in the widget tree:
+  ///
+  /// ```dart
+  /// StateListener.of<MyProvider, MyState>(
+  ///   listener: (context, state) {
+  ///     // React to state changes.
+  ///   },
+  ///   child: SomeWidget(),
+  /// )
+  /// ```
+  static Widget of<P extends StateValueListenable<T>, T>({
+    Key? key,
+    required ListenerCallback<T> listener,
+    ListenWhen<T>? listenWhen,
+    bool shouldCallListenerOnInit = false,
+    Widget? child,
+  }) {
+    return _StateListenerOf<P, T>(
+      key: key,
+      listener: listener,
+      listenWhen: listenWhen,
+      shouldCallListenerOnInit: shouldCallListenerOnInit,
+      child: child,
+    );
+  }
+}
+
+class _StateListenerOf<P extends StateValueListenable<T>, T>
+    extends StateListenerBase<P, T> {
+  const _StateListenerOf({
+    super.key,
+    required super.listener,
+    super.listenWhen,
+    super.shouldCallListenerOnInit,
+    super.child,
+  }) : super(provider: null);
 }
 
 /// An abstract base class for [StateListener] that provides common functionality.
@@ -64,7 +115,9 @@ abstract class StateListenerBase<P extends StateValueListenable<T>, T>
     bool? shouldCallListenerOnInit,
   }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
 
-  /// The state source to listen to. If null, it is resolved from the current BuildContext using Provider.
+  /// The provider whose state should be listened to.
+  ///
+  /// When null, the provider is resolved from the current [BuildContext].
   final P? provider;
 
   /// The listener function that is called when the state changes.

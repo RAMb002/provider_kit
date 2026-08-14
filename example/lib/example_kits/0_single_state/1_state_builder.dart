@@ -16,7 +16,7 @@ class StateBuilderExample extends StatelessWidget {
         return ScaffoldWithButton(
             title: "State Builder",
             onTap: () => provider.increment(),
-            child: StateBuilder<ExampleProvider, int>(
+            child: StateBuilder<int>(
               provider: provider,
               builder: (context, state, child) {
                 return Text(state.toString());

@@ -41,7 +41,7 @@ class _MyThemeAppState extends State<MyThemeApp> {
 
   @override
   Widget build(BuildContext context) {
-    return StateBuilder<StateNotifier<ThemeData>, ThemeData>(
+    return StateBuilder<ThemeData>(
       provider: _themeProvider,
       builder: (context, theme, child) {
         widget.onBuild();
@@ -90,7 +90,7 @@ class _MyCounterAppState extends State<MyCounterApp> {
         key: myCounterAppKey,
         body: Column(
           children: <Widget>[
-            StateBuilder<CounterProvider, int>(
+            StateBuilder<int>(
               provider: _provider,
               rebuildWhen: (previousState, state) {
                 return (previousState + state) % 3 == 0;
@@ -102,7 +102,7 @@ class _MyCounterAppState extends State<MyCounterApp> {
                 );
               },
             ),
-            StateBuilder<CounterProvider, int>(
+            StateBuilder<int>(
               provider: _provider,
               builder: (context, count, child) {
                 return Text(
@@ -166,7 +166,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: StateBuilder<CounterProvider, int>(
+          child: StateBuilder<int>(
             provider: counterProvider,
             child: StatefulBuilder(
               builder: (context, setChildState) {
@@ -203,15 +203,14 @@ void main() {
       expect(childBuildCount, 1);
     });
 
-    testWidgets(
-        'infers the provider from the context if the provider is not provided',
+    testWidgets('infers the provider from the context using StateBuilder.of',
         (tester) async {
       final themeProvider = ThemeProvider();
       var numBuilds = 0;
       await tester.pumpWidget(
         ChangeNotifierProvider<ThemeProvider>.value(
           value: themeProvider,
-          child: StateBuilder<ThemeProvider, ThemeData>(
+          child: StateBuilder.of<ThemeProvider, ThemeData>(
             builder: (context, theme, child) {
               numBuilds++;
               return MaterialApp(
@@ -249,7 +248,7 @@ void main() {
           builder: (context, setState) =>
               ChangeNotifierProvider<ThemeProvider>.value(
             value: themeProvider,
-            child: StateBuilder<ThemeProvider, ThemeData>(
+            child: StateBuilder.of<ThemeProvider, ThemeData>(
               builder: (context, theme, child) {
                 numBuilds++;
                 return MaterialApp(
@@ -408,7 +407,7 @@ void main() {
       final states = <int>[];
       final counterProvider = CounterProvider();
       await tester.pumpWidget(
-        StateBuilder<CounterProvider, int>(
+        StateBuilder<int>(
           provider: counterProvider,
           rebuildWhen: (previous, state) {
             if (state.isEven) {
@@ -446,7 +445,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StatefulBuilder(
-            builder: (context, setState) => StateBuilder<CounterProvider, int>(
+            builder: (context, setState) => StateBuilder<int>(
               provider: counterProvider,
               rebuildWhen: (previous, state) => state.isEven,
               builder: (_, state, __) {
@@ -477,7 +476,7 @@ void main() {
     testWidgets('overrides debugFillProperties', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
-      StateBuilder<CounterProvider, int>(
+      StateBuilder<int>(
         provider: CounterProvider(),
         builder: (context, state, child) => const SizedBox(),
         rebuildWhen: (previous, current) => previous != current,

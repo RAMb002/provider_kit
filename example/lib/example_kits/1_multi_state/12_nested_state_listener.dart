@@ -14,17 +14,17 @@ class ProviderMultiStateListenerExample extends StatelessWidget {
       title: 'nested state listener',
       child: NestedStateListener(
         listeners: [
-          StateListener<ExampleProvider, int>(
+          StateListener<int>(
               provider: ExampleProvider(1),
               listener: (context, state) {
                 context.showToast(state.toString());
               }),
-          StateListener<ExampleProvider, int>(
+          StateListener<int>(
               provider: ExampleProvider(2),
               listener: (context, state) {
                 context.showToast(state.toString());
               }),
-          StateListener<ExampleProvider, int>(
+          StateListener<int>(
               provider: ExampleProvider(3),
               listener: (context, state) {
                 context.showToast(state.toString());

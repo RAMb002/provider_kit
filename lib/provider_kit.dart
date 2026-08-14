@@ -6,5 +6,4 @@ export 'src/notifiers/notifiers.dart';
 export 'src/states/states.dart';
 export 'src/utils/utils.dart';
 export 'src/view_state_widgets_provider.dart';
-export 'src/aliases/aliases.dart';
 export 'src/mutation/index.dart';

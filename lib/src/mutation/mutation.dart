@@ -52,7 +52,7 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 /// state.
 ///
 /// ```dart
-/// StateBuilder<Mutation<void>, MutationState<void>>(
+/// StateBuilder<MutationState<void>>(
 ///   provider: provider.deleteTodo,
 ///   builder: (context, state, child) {
 ///     return state.when(
