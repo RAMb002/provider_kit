@@ -1,8 +1,8 @@
 # ProviderKit Snippets
 
-[![VS Code Version](https://img.shields.io/badge/VS%20Code-1.74.0+-blue.svg)](https://code.visualstudio.com/)
-[![Dart](https://img.shields.io/badge/Dart-3.0+-blue.svg)](https://dart.dev/)
-[![Flutter](https://img.shields.io/badge/Flutter-3.10.0+-blue.svg)](https://flutter.dev/)
+[![VS Code](https://img.shields.io/badge/VS%20Code-1.125.0+-blue.svg)](https://code.visualstudio.com/)
+[![Dart](https://img.shields.io/badge/Dart-3.3+-blue.svg)](https://dart.dev/)
+[![Flutter](https://img.shields.io/badge/Flutter-1.17.0+-blue.svg)](https://flutter.dev/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <p>
