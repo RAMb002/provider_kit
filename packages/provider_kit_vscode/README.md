@@ -3,7 +3,7 @@
 [![VS Code](https://img.shields.io/badge/VS%20Code-1.125.0+-blue.svg)](https://code.visualstudio.com/)
 [![Dart](https://img.shields.io/badge/Dart-3.3+-blue.svg)](https://dart.dev/)
 [![Flutter](https://img.shields.io/badge/Flutter-1.17.0+-blue.svg)](https://flutter.dev/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/license/bsd-2-clause/)
 
 <p>
   <img
@@ -141,4 +141,4 @@ Please open an issue or submit a pull request on the [ProviderKit GitHub reposit
 
 ## 📄 License
 
-Distributed under the MIT License. See the [LICENSE](https://github.com/RAMb002/provider_kit/blob/main/LICENSE) file for more details.
+Distributed under the **BSD 2-Clause License**. See the [LICENSE](LICENSE) file for more details.
