@@ -1,0 +1,43 @@
+{
+    "MultiStateBuilder": {
+        "prefix": "pkMultiStateBuilder",
+        "description": "Create a MultiStateBuilder for multiple ProviderKit providers.",
+        "body": [
+            "MultiStateBuilder(",
+            "  providers: [${1:provider1}, ${2:provider2}],",
+            "  builder: (context, states, child) {",
+            "    return ${3:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "MultiStateListener": {
+        "prefix": "pkMultiStateListener",
+        "description": "Create a MultiStateListener for multiple ProviderKit providers.",
+        "body": [
+            "MultiStateListener(",
+            "  providers: [${1:provider1}, ${2:provider2}],",
+            "  listener: (context, states) {",
+            "    ${3:code}",
+            "  },",
+            "  child: ${4:child},",
+            ")$0"
+        ]
+    },
+    "MultiStateConsumer": {
+        "prefix": "pkMultiStateConsumer",
+        "description": "Create a MultiStateConsumer for multiple ProviderKit providers.",
+        "body": [
+            "MultiStateConsumer(",
+            "  providers: [${1:provider1}, ${2:provider2}],",
+            "  listener: (context, states) {",
+            "    ${3:code}",
+            "  },",
+            "  builder: (context, states, child) {",
+            "    return ${4:widget};",
+            "  },",
+            "  child: ${5:child},",
+            ")$0"
+        ]
+    }
+}

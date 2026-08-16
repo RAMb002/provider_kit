@@ -1,0 +1,63 @@
+{
+    "ViewStateBuilder": {
+        "prefix": "pkViewStateBuilder",
+        "description": "Create a ViewStateBuilder with an explicitly provided provider.",
+        "body": [
+            "ViewStateBuilder(",
+            "  provider: ${1:provider},",
+            "  dataBuilder: (data) => ${2:widget},",
+            ")$0"
+        ]
+    },
+    "ViewStateBuilder.of": {
+        "prefix": "pkViewStateBuilderOf",
+        "description": "Create a ViewStateBuilder with provider resolved from the widget tree.",
+        "body": [
+            "ViewStateBuilder.of<${1:ProviderType}, ${2:DataType}>(",
+            "  dataBuilder: (data) => ${3:widget},",
+            ")$0"
+        ]
+    },
+    "ViewStateListener": {
+        "prefix": "pkViewStateListener",
+        "description": "Create a ViewStateListener with an explicitly provided provider.",
+        "body": [
+            "ViewStateListener(",
+            "  provider: ${1:provider},",
+            "  dataStateListener: (data) => ${2:code},",
+            "  child: ${3:child},",
+            ")$0"
+        ]
+    },
+    "ViewStateListener.of": {
+        "prefix": "pkViewStateListenerOf",
+        "description": "Create a ViewStateListener with provider resolved from the widget tree.",
+        "body": [
+            "ViewStateListener.of<${1:ProviderType}, ${2:DataType}>(",
+            "  dataStateListener: (data) => ${3:code},",
+            "  child: ${4:child},",
+            ")$0"
+        ]
+    },
+    "ViewStateConsumer": {
+        "prefix": "pkViewStateConsumer",
+        "description": "Create a ViewStateConsumer with an explicitly provided provider.",
+        "body": [
+            "ViewStateConsumer(",
+            "  provider: ${1:provider},",
+            "  dataStateListener: (data) => ${2:code},",
+            "  dataBuilder: (data) => ${3:widget},",
+            ")$0"
+        ]
+    },
+    "ViewStateConsumer.of": {
+        "prefix": "pkViewStateConsumerOf",
+        "description": "Create a ViewStateConsumer with provider resolved from the widget tree.",
+        "body": [
+            "ViewStateConsumer.of<${1:ProviderType}, ${2:DataType}>(",
+            "  dataStateListener: (data) => ${3:code},",
+            "  dataBuilder: (data) => ${4:widget},",
+            ")$0"
+        ]
+    }
+}
