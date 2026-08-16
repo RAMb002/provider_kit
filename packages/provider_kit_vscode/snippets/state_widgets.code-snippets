@@ -1,0 +1,79 @@
+{
+    "StateBuilder": {
+        "prefix": "pkStateBuilder",
+        "description": "Create a StateBuilder with an explicitly provided provider.",
+        "body": [
+            "StateBuilder(",
+            "  provider: ${1:provider},",
+            "  builder: (context, state, child) {",
+            "    return ${2:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateBuilder.of": {
+        "prefix": "pkStateBuilderOf",
+        "description": "Create a StateBuilder with provider resolved from the widget tree.",
+        "body": [
+            "StateBuilder.of<${1:ProviderType}, ${2:StateType}>(",
+            "  builder: (context, state, child) {",
+            "    return ${3:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateListener": {
+        "prefix": "pkStateListener",
+        "description": "Create a StateListener with an explicitly provided provider.",
+        "body": [
+            "StateListener(",
+            "  provider: ${1:provider},",
+            "  listener: (context, state) {",
+            "    ${2:code}",
+            "  },",
+            "  child: ${3:child},",
+            ")$0"
+        ]
+    },
+    "StateListener.of": {
+        "prefix": "pkStateListenerOf",
+        "description": "Create a StateListener with provider resolved from the widget tree.",
+        "body": [
+            "StateListener.of<${1:ProviderType}, ${2:StateType}>(",
+            "  listener: (context, state) {",
+            "    ${3:code}",
+            "  },",
+            "  child: ${4:child},",
+            ")$0"
+        ]
+    },
+    "StateConsumer": {
+        "prefix": "pkStateConsumer",
+        "description": "Create a StateConsumer with an explicitly provided provider.",
+        "body": [
+            "StateConsumer(",
+            "  provider: ${1:provider},",
+            "  listener: (context, state) {",
+            "    ${2:code}",
+            "  },",
+            "  builder: (context, state, child) {",
+            "    return ${3:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateConsumer.of": {
+        "prefix": "pkStateConsumerOf",
+        "description": "Create a StateConsumer with provider resolved from the widget tree.",
+        "body": [
+            "StateConsumer.of<${1:ProviderType}, ${2:StateType}>(",
+            "  listener: (context, state) {",
+            "    ${3:code}",
+            "  },",
+            "  builder: (context, state, child) {",
+            "    return ${4:widget};",
+            "  },",
+            ")$0"
+        ]
+    }
+}

@@ -1,0 +1,60 @@
+{
+  "name": "providerkit-snippets",
+  "displayName": "ProviderKit Snippets",
+  "description": "Dart snippets for ProviderKit to quickly insert common ProviderKit boilerplate.",
+  "version": "0.0.1",
+  "publisher": "Ram-Prasanth",
+  "icon": "images/icon.png",
+  "homepage": "https://github.com/RAMb002/provider_kit",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RAMb002/provider_kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RAMb002/provider_kit/issues"
+  },
+  "engines": {
+    "vscode": "^1.125.0"
+  },
+  "categories": [
+    "Snippets"
+  ],
+  "keywords": [
+    "ProviderKit",
+    "provider_kit",
+    "Dart",
+    "Flutter",
+    "snippets",
+    "state management",
+    "VS Code",
+    "Visual Studio Code"
+  ],
+  "contributes": {
+    "snippets": [
+      {
+        "language": "dart",
+        "path": "./snippets/providers.code-snippets"
+      },
+      {
+        "language": "dart",
+        "path": "./snippets/state_widgets.code-snippets"
+      },
+      {
+        "language": "dart",
+        "path": "./snippets/multi_state_widgets.code-snippets"
+      },
+      {
+        "language": "dart",
+        "path": "./snippets/view_state_widgets.code-snippets"
+      },
+      {
+        "language": "dart",
+        "path": "./snippets/multi_view_state_widgets.code-snippets"
+      },
+      {
+        "language": "dart",
+        "path": "./snippets/view_state_widget_provider.code-snippets"
+      }
+    ]
+  }
+}
