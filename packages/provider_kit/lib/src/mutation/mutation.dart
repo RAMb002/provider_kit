@@ -215,6 +215,7 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
       if (!mounted || generation != _runGeneration) rethrow;
 
       _setState(MutationError<T>._(error, stackTrace));
+      onError(error, stackTrace);
       rethrow;
     }
   }
@@ -659,7 +660,6 @@ class _AutoDisposeController<T, K> {
     mutation._setOnFirstListenerAdded(_onFirstListener);
     mutation._setOnLastListenerRemoved(_onLastListener);
     mutation._setOnStateChanged(_onStateChanged);
-    mutation._setOnDisposed(_onDisposed);
   }
 
   bool _queued = false;
@@ -680,8 +680,6 @@ class _AutoDisposeController<T, K> {
       _scheduleDispose();
     }
   }
-
-  void _onDisposed() {}
 
   void _scheduleDispose() {
     if (_queued) return;
