@@ -307,7 +307,186 @@ void main() {
       ]);
     });
 
-    testWidgets('onRetry calls refresh on all AsyncViewStateNotifier providers',
+    testWidgets(
+      'onRetry does nothing when no provider is in ErrorState',
+      (tester) async {
+        final provider1 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data1',
+        );
+        final provider2 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data2',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildBuilder(
+            providers: [provider1, provider2],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedOnRetry = onRetry;
+              return const SizedBox();
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        // There is no ErrorState, so the errorBuilder should not be used.
+        expect(capturedOnRetry, isNull);
+
+        expect(provider1.refreshCalls, 0);
+        expect(provider2.refreshCalls, 0);
+      },
+    );
+
+    testWidgets(
+      'onRetry refreshes only providers in ErrorState',
+      (tester) async {
+        final provider1 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data1',
+        );
+
+        final provider2 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data2',
+        );
+
+        await tester.pumpAndSettle();
+
+        provider1.state = const ErrorState<String>('Error');
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildBuilder(
+            providers: [provider1, provider2],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedOnRetry = onRetry;
+              return const SizedBox();
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider1.refreshCalls, 1);
+        expect(provider2.refreshCalls, 0);
+
+        expect(provider1.state, isA<LoadingState<String>>());
+        expect(provider2.state, const DataState<String>('data2'));
+      },
+    );
+
+    testWidgets(
+      'onRetry refreshes all providers in ErrorState',
+      (tester) async {
+        final provider1 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data1',
+        );
+        final provider2 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data2',
+        );
+
+        await tester.pumpAndSettle();
+
+        provider1.state = const ErrorState<String>('Error 1');
+        provider2.state = const ErrorState<String>('Error 2');
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildBuilder(
+            providers: [provider1, provider2],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedOnRetry = onRetry;
+              return const SizedBox();
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider1.refreshCalls, 1);
+        expect(provider2.refreshCalls, 1);
+      },
+    );
+
+    testWidgets(
+      'onRetry prefers ErrorState callback over provider refresh',
+      (tester) async {
+        var retryCalls = 0;
+
+        final provider = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data',
+        );
+
+        await tester.pumpAndSettle();
+
+        provider.state = ErrorState<String>(
+          'Error',
+          null,
+          null,
+          () => retryCalls++,
+        );
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildBuilder(
+            providers: [provider],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedOnRetry = onRetry;
+              return const SizedBox();
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(retryCalls, 1);
+        expect(provider.refreshCalls, 0);
+      },
+    );
+
+    testWidgets(
+      'onRetry does nothing for non-async ErrorState without callback',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const ErrorState<String>('Error'),
+        );
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildBuilder(
+            providers: [provider],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedOnRetry = onRetry;
+              return const SizedBox();
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider.state, isA<ErrorState<String>>());
+      },
+    );
+
+    testWidgets(
+        'onRetry refreshes AsyncViewStateNotifier providers in ErrorState',
         (tester) async {
       final provider1 = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => 'data1',
@@ -334,6 +513,9 @@ void main() {
       await tester.pump();
 
       expect(capturedOnRetry, isA<VoidCallback>());
+      capturedOnRetry!();
+      expect(provider1.refreshCalls, 1);
+      expect(provider2.refreshCalls, 0);
     });
 
     // -----------------------------------------------------------------------

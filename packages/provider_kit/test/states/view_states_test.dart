@@ -227,6 +227,18 @@ void main() {
         );
         expect(result, 'fallback');
       });
+
+      test(
+          'falls back to orElse for ErrorState when errorState callback is absent',
+          () {
+        const ViewState<String> state = ErrorState<String>('error');
+
+        final result = state.maybeWhen(
+          orElse: () => 'fallback',
+        );
+
+        expect(result, 'fallback');
+      });
     });
 
     // -------------------------------------------------------------------------
@@ -248,6 +260,28 @@ void main() {
           orElse: () => 'fallback',
           dataState: (_) => 'data',
         );
+        expect(result, 'fallback');
+      });
+      test('uses initialState mapper when provided', () {
+        const ViewState<String> state = InitialState();
+
+        final result = state.maybeMap(
+          orElse: () => 'fallback',
+          initialState: (state) => 'initial',
+        );
+
+        expect(result, 'initial');
+      });
+
+      test(
+          'falls back to orElse for ErrorState when errorState mapper is absent',
+          () {
+        const ViewState<String> state = ErrorState<String>('error');
+
+        final result = state.maybeMap(
+          orElse: () => 'fallback',
+        );
+
         expect(result, 'fallback');
       });
     });

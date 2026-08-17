@@ -39,6 +39,21 @@ void main() {
       } catch (_) {}
     });
 
+    test('caches InitialState when transitioning away from InitialState',
+        () async {
+      provider = TestExCachedProvider(
+        initialState: const InitialState<List<String>>(),
+        dataToReturn: ['Apple'],
+      );
+
+      await pumpEventQueue();
+
+      expect(
+        provider.exInitialState,
+        isA<InitialState<List<String>>>(),
+      );
+    });
+
     test('caches LoadingState when transitioning away to DataState', () async {
       provider = TestExCachedProvider(dataToReturn: ['Apple']);
 

@@ -246,4 +246,116 @@ void main() {
       NotifierBase.observer = original;
     });
   });
+  group('Change', () {
+    test('stores current and next states', () {
+      const change = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+
+      expect(change.currentState, 1);
+      expect(change.nextState, 2);
+    });
+
+    test('same instance is equal to itself', () {
+      const change = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+
+      expect(change == change, isTrue);
+    });
+
+    test('changes with equal states are equal', () {
+      const first = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+      const second = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+
+      expect(first, equals(second));
+      expect(first.hashCode, second.hashCode);
+    });
+
+    test('changes with different current states are not equal', () {
+      const first = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+      const second = Change<int>(
+        currentState: 3,
+        nextState: 2,
+      );
+
+      expect(first, isNot(equals(second)));
+    });
+
+    test('changes with different next states are not equal', () {
+      const first = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+      const second = Change<int>(
+        currentState: 1,
+        nextState: 3,
+      );
+
+      expect(first, isNot(equals(second)));
+    });
+
+    test('changes with different generic types are not equal', () {
+      const intChange = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+      const stringChange = Change<String>(
+        currentState: '1',
+        nextState: '2',
+      );
+
+      expect(intChange, isNot(equals(stringChange)));
+    });
+
+    test('hashCode changes when state values change', () {
+      const first = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+      const second = Change<int>(
+        currentState: 1,
+        nextState: 3,
+      );
+
+      expect(first.hashCode, isNot(second.hashCode));
+    });
+
+    test('toString returns the expected representation', () {
+      const change = Change<int>(
+        currentState: 1,
+        nextState: 2,
+      );
+
+      expect(
+        change.toString(),
+        'Change { currentState: 1, nextState: 2 }',
+      );
+    });
+
+    test('supports complex state values', () {
+      const change = Change<List<int>>(
+        currentState: [1, 2],
+        nextState: [3, 4],
+      );
+
+      expect(change.currentState, [1, 2]);
+      expect(change.nextState, [3, 4]);
+      expect(
+        change.toString(),
+        'Change { currentState: [1, 2], nextState: [3, 4] }',
+      );
+    });
+  });
 }

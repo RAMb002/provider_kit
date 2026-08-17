@@ -510,5 +510,27 @@ void main() {
         isTrue,
       );
     });
+    test('StateBuilder.of overrides debugFillProperties', () {
+      final builder = DiagnosticPropertiesBuilder();
+
+      StateBuilder.of<ThemeProvider, ThemeData>(
+        builder: (context, state, child) => const SizedBox(),
+      ).debugFillProperties(builder);
+
+      final description = builder.properties
+          .where((node) => !node.isFiltered(DiagnosticLevel.info))
+          .map((node) => node.toString())
+          .toList();
+
+      expect(
+        description.any((e) => e.startsWith('provider: null')),
+        isTrue,
+      );
+
+      expect(
+        description,
+        contains('has builder'),
+      );
+    });
   });
 }

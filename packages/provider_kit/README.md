@@ -1373,7 +1373,7 @@ state.maybeMap(
 ```dart
 NestedStateListener(
       listeners: [
-        StateListener<MyProvider,DataType>(
+        StateListener.of<MyProvider,DataType>(
           listener: (context, state) {
             // Handle state changes
           },
@@ -1384,7 +1384,8 @@ NestedStateListener(
             // Handle state changes
           },
         ),
-        ViewStateListener<MyProvider,DataType(
+        ViewStateListener<DataType(
+          provider: MyProvider()
           dataStateListener: (data) {
             // Handle view state changes
           },
@@ -1394,7 +1395,6 @@ NestedStateListener(
           dataStateListener: (states) {
             // Handle state changes
           },
-          
         ),
       ],
       child: MyChildWidget(),

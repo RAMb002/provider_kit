@@ -11,7 +11,8 @@ import 'package:nested/nested.dart';
 /// ```dart
 /// NestedStateListener(
 ///   listeners: [
-///     StateListener<ExampleProvider, int>(
+///     StateListener<int>(
+///       provider: CounterProvider(1)
 ///       listener: (context, state) {
 ///         // Handle state changes
 ///       },
@@ -22,7 +23,7 @@ import 'package:nested/nested.dart';
 ///         // Handle state changes
 ///       },
 ///     ),
-///     ViewStateListener<FeedProvider, List<Item>>(
+///     ViewStateListener.of<FeedProvider, List<Item>>(
 ///       dataStateListener: (data) {
 ///         // Handle view state changes
 ///       },

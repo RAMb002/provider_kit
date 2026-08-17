@@ -1915,6 +1915,28 @@ void main() {
 
         group.dispose();
       });
+
+      test(
+        'disposing a mutation directly removes it from the group cache',
+        () {
+          final group = MutationGroup<int>();
+
+          final first = group('key');
+
+          expect(first.mounted, isTrue);
+
+          first.dispose();
+
+          expect(first.mounted, isFalse);
+
+          final second = group('key');
+
+          expect(identical(first, second), isFalse);
+          expect(second.mounted, isTrue);
+
+          group.dispose();
+        },
+      );
     });
 
     group('dispose', () {
@@ -2190,6 +2212,9 @@ void main() {
             observer.changes[1].nextState,
             isA<MutationError<int>>(),
           );
+
+          expect(observer.errors, hasLength(1));
+          expect(observer.errors.single, same(exception));
 
           mutation.dispose();
 

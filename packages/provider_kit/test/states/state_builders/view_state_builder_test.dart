@@ -303,6 +303,8 @@ void main() {
       );
 
       expect(capturedOnRetry, provider.refresh);
+      capturedOnRetry!();
+      expect(provider.refreshCalls, 1);
     });
 
     testWidgets(
@@ -312,9 +314,12 @@ void main() {
         fetchDataImpl: () => throw Exception('Test'),
       );
       await tester.pumpAndSettle();
+      var retryCalls = 0;
 
       VoidCallback? capturedOnRetry;
-      void explicitOnRetry() {}
+      void explicitOnRetry() {
+        retryCalls++;
+      }
 
       // Emit a new ErrorState with explicit onRetry
       provider.state =
@@ -335,6 +340,9 @@ void main() {
       );
 
       expect(capturedOnRetry, explicitOnRetry);
+      capturedOnRetry!();
+
+      expect(retryCalls, 1);
     });
 
     testWidgets(
@@ -362,6 +370,48 @@ void main() {
       // Since provider is not AsyncViewStateNotifier, onRetry should be null.
       expect(capturedOnRetry, isNull);
     });
+
+    testWidgets(
+      'invokes explicit ErrorState onRetry callback',
+      (tester) async {
+        final provider = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => throw Exception('Test'),
+        );
+
+        await tester.pumpAndSettle();
+
+        var retryCalls = 0;
+
+        provider.state = ErrorState<String>(
+          'Error',
+          null,
+          null,
+          () => retryCalls++,
+        );
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateBuilder<String>(
+              provider: provider,
+              errorBuilder: (_, onRetry, __, ___, ____) {
+                capturedOnRetry = onRetry;
+                return const SizedBox();
+              },
+              dataBuilder: (_) => const SizedBox(),
+            ),
+          ),
+        );
+
+        expect(capturedOnRetry, isNotNull);
+
+        capturedOnRetry!();
+
+        expect(retryCalls, 1);
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 4. rebuildWhen filtering
