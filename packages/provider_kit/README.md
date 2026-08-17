@@ -981,7 +981,10 @@ When the operation completes:
 
 The successful result is available through `MutationSuccess`, while `MutationError` contains the original error and its stack trace.
 
-> **Note:** Mutations allow multiple `run()` calls to execute concurrently. Calling `run()` while another execution is in progress does not cancel, queue, or prevent the previous execution. All executions update the same mutation state. If concurrent executions are not intended, add an appropriate guard before calling `run()`.
+> **Note:** Mutations allow multiple `run()` calls to execute concurrently. Only the most
+> recently started execution can update the mutation state. Earlier executions
+> still complete normally but cannot overwrite a newer state or a state set by
+> `reset()`.
 
 ## Using the Result
 
@@ -1016,7 +1019,7 @@ Once an operation is completed, you can reset the mutation back to `MutationIdle
 addTodo.reset();
 ```
 
-This clears the current success or error state and returns the mutation to its `idle` state.
+This clears the current success or error state, returns the mutation to its `idle` state, and invalidates any in-flight execution so that it cannot update the mutation state when it completes.
 
 ## Disposing
 
@@ -1167,9 +1170,9 @@ Keyed mutations are automatically removed from the group's cache when they have 
 By default:
 
 ```text
-No listeners + Idle     → Auto-dispose
-No listeners + Success  → Auto-dispose
-No listeners + Error    → Auto-dispose
+No listeners + Idle     → Eligible for auto-dispose
+No listeners + Success  → Eligible for auto-dispose
+No listeners + Error    → Eligible for auto-dispose
 No listeners + Loading  → Keep alive
 Has listeners           → Keep alive
 ```
@@ -1198,10 +1201,10 @@ final deleteTodo = MutationGroup<void>(
 In this example:
 
 ```text
-Idle     → Auto-dispose
+Idle     → Eligible for auto-dispose
 Loading  → Keep alive
 Success  → Keep alive
-Error    → Auto-dispose
+Error    → Eligible for auto-dispose
 ```
 
 To keep both success and error states alive:
