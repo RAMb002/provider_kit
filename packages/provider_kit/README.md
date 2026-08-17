@@ -1,4 +1,5 @@
-[![Build](https://github.com/RAMb002/provider_kit/actions/workflows/ci.yml/badge.svg)](https://github.com/RAMb002/provider_kit/actions/workflows/ci.yml)
+[![Build](https://github.com/RAMb002/provider_kit/actions/workflows/build.yml/badge.svg)](https://github.com/RAMb002/provider_kit/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/RAMb002/provider_kit/graph/badge.svg)](https://codecov.io/gh/RAMb002/provider_kit)
 [![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/license/bsd-2-clause/)
 
 **provider_kit** is a toolkit for Flutter that works seamlessly alongside the [`provider`](https://pub.dev/packages/provider) package. While `provider` handles dependency injection and makes objects available throughout the widget tree, ProviderKit adds reusable building blocks—notifiers, state objects, widgets, mutations, caching, observation, and utilities—to simplify common development patterns.
