@@ -614,9 +614,10 @@ void main() {
             ),
           ),
         );
-
+        capturedOnRetry!();
         expect(capturedErrorMessage, exception.toString());
         expect(capturedOnRetry, provider.refresh);
+        expect(provider.refreshCalls, 1);
         expect(capturedStackTrace, isNotNull);
         expect(capturedException, isNotNull);
       },

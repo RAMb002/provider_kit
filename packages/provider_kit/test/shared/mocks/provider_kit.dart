@@ -4,7 +4,7 @@ import 'package:provider_kit/provider_kit.dart';
 
 class MockAsyncViewStateNotifier<T> extends AsyncViewStateNotifier<T> {
   final FutureOr<T> Function() fetchDataImpl;
-
+  int refreshCalls = 0;
   MockAsyncViewStateNotifier({
     required this.fetchDataImpl,
     super.disableEmptyState,
@@ -12,4 +12,10 @@ class MockAsyncViewStateNotifier<T> extends AsyncViewStateNotifier<T> {
 
   @override
   FutureOr<T> fetchData() => fetchDataImpl();
+
+  @override
+  Future<void> refresh() async {
+    refreshCalls++;
+    super.refresh();
+  }
 }

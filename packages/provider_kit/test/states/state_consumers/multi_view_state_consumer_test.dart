@@ -442,33 +442,160 @@ void main() {
       ]);
     });
 
-    testWidgets('onRetry calls refresh on all AsyncViewStateNotifier providers',
-        (tester) async {
-      final provider1 = MockAsyncViewStateNotifier<String>(
-        fetchDataImpl: () => 'data1',
-      );
-      final provider2 = MockAsyncViewStateNotifier<String>(
-        fetchDataImpl: () => 'data2',
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'does not provide onRetry when no provider is in ErrorState',
+      (tester) async {
+        final provider1 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data1',
+        );
+        final provider2 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data2',
+        );
 
-      VoidCallback? capturedOnRetry;
+        await tester.pumpAndSettle();
 
-      await tester.pumpWidget(
-        buildConsumer(
-          providers: [provider1, provider2],
-          errorStateListener: (_, onRetry, __, ___) {
-            capturedOnRetry = onRetry;
-          },
-          dataBuilder: (_) => const SizedBox(),
-        ),
-      );
+        VoidCallback? capturedBuilderRetry;
+        VoidCallback? capturedListenerRetry;
 
-      provider1.state = const ErrorState<String>('Error');
-      await tester.pump();
+        await tester.pumpWidget(
+          buildConsumer(
+            providers: [provider1, provider2],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedBuilderRetry = onRetry;
+              return const SizedBox();
+            },
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedListenerRetry = onRetry;
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
 
-      expect(capturedOnRetry, isA<VoidCallback>());
-    });
+        expect(capturedBuilderRetry, isNull);
+        expect(capturedListenerRetry, isNull);
+
+        expect(provider1.refreshCalls, 0);
+        expect(provider2.refreshCalls, 0);
+      },
+    );
+
+    testWidgets(
+      'builder onRetry refreshes providers in ErrorState',
+      (tester) async {
+        final provider = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildConsumer(
+            providers: [provider],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedOnRetry = onRetry;
+              return const SizedBox();
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        provider.state = const ErrorState<String>('Error');
+        await tester.pump();
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider.refreshCalls, 1);
+      },
+    );
+
+    testWidgets(
+      'listener onRetry refreshes providers in ErrorState',
+      (tester) async {
+        final provider = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildConsumer(
+            providers: [provider],
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedOnRetry = onRetry;
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        provider.state = const ErrorState<String>('Error');
+        await tester.pump();
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider.refreshCalls, 1);
+      },
+    );
+
+    testWidgets(
+      'onRetry prefers explicit ErrorState callback over provider refresh',
+      (tester) async {
+        var retryCalls = 0;
+
+        final provider = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedBuilderRetry;
+        VoidCallback? capturedListenerRetry;
+
+        await tester.pumpWidget(
+          buildConsumer(
+            providers: [provider],
+            errorBuilder: (_, onRetry, __, ___, ____) {
+              capturedBuilderRetry = onRetry;
+              return const SizedBox();
+            },
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedListenerRetry = onRetry;
+            },
+            dataBuilder: (_) => const SizedBox(),
+          ),
+        );
+
+        provider.state = ErrorState<String>(
+          'Error',
+          null,
+          null,
+          () => retryCalls++,
+        );
+
+        await tester.pump();
+
+        expect(capturedBuilderRetry, isA<VoidCallback>());
+        expect(capturedListenerRetry, isA<VoidCallback>());
+
+        capturedBuilderRetry!();
+
+        expect(retryCalls, 1);
+        expect(provider.refreshCalls, 0);
+
+        capturedListenerRetry!();
+
+        expect(retryCalls, 2);
+        expect(provider.refreshCalls, 0);
+      },
+    );
+
 
     // -----------------------------------------------------------------------
     // 5. rebuildWhen and listenWhen

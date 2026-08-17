@@ -420,7 +420,36 @@ void main() {
       ]);
     });
 
-    testWidgets('onRetry calls refresh on all AsyncViewStateNotifier providers',
+    testWidgets(
+      'does not provide onRetry when no provider is in ErrorState',
+      (tester) async {
+        final provider1 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data1',
+        );
+        final provider2 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data2',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildListener(
+            providers: [provider1, provider2],
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedOnRetry = onRetry;
+            },
+          ),
+        );
+
+        expect(capturedOnRetry, isNull);
+        expect(provider1.refreshCalls, 0);
+        expect(provider2.refreshCalls, 0);
+      },
+    );
+
+    testWidgets('onRetry refreshes only providers in ErrorState',
         (tester) async {
       final provider1 = MockAsyncViewStateNotifier<String>(
         fetchDataImpl: () => 'data1',
@@ -446,7 +475,115 @@ void main() {
       await tester.pump();
 
       expect(capturedOnRetry, isA<VoidCallback>());
+      expect(provider1.state, const ErrorState<String>('Error'));
+      capturedOnRetry!();
+      expect(provider1.refreshCalls, 1);
     });
+
+    testWidgets(
+      'onRetry refreshes all providers in ErrorState',
+      (tester) async {
+        final provider1 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data1',
+        );
+
+        final provider2 = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data2',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildListener(
+            providers: [provider1, provider2],
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedOnRetry = onRetry;
+            },
+          ),
+        );
+
+        provider1.state = const ErrorState<String>('Error 1');
+        provider2.state = const ErrorState<String>('Error 2');
+
+        await tester.pump();
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider1.refreshCalls, 1);
+        expect(provider2.refreshCalls, 1);
+      },
+    );
+
+    testWidgets(
+      'onRetry prefers ErrorState callback over provider refresh',
+      (tester) async {
+        var retryCalls = 0;
+
+        final provider = MockAsyncViewStateNotifier<String>(
+          fetchDataImpl: () => 'data',
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildListener(
+            providers: [provider],
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedOnRetry = onRetry;
+            },
+          ),
+        );
+
+        provider.state = ErrorState<String>(
+          'Error',
+          null,
+          null,
+          () => retryCalls++,
+        );
+
+        await tester.pump();
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(retryCalls, 1);
+        expect(provider.refreshCalls, 0);
+      },
+    );
+
+    testWidgets(
+      'onRetry does nothing for non-async ErrorState without callback',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const ErrorState<String>('Error'),
+        );
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          buildListener(
+            providers: [provider],
+            shouldCallListenerOnInit: true,
+            errorStateListener: (_, onRetry, __, ___) {
+              capturedOnRetry = onRetry;
+            },
+          ),
+        );
+
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        capturedOnRetry!();
+
+        expect(provider.state, isA<ErrorState<String>>());
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 4. listenWhen (default and custom)
