@@ -91,6 +91,16 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 /// Instead, keep the mutation outside the widget's [build] method and provide
 /// the same instance to the widget that needs to observe it.
 ///
+/// ## Concurrent executions
+///
+/// Multiple executions may run at the same time. Only the most recently
+/// started execution is allowed to publish a final mutation state.
+///
+/// Earlier executions continue running and still return their own results or
+/// rethrow their own errors, but their results cannot overwrite a newer
+/// mutation state or a state established by [reset].
+///
+///
 /// ## Mutations for multiple items
 ///
 /// When an operation needs an independent state for multiple items, use
@@ -144,6 +154,8 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   @override
   MutationState<T> get state => _state;
 
+  int _runGeneration = 0;
+
   /// Executes [executor] and updates the mutation state according to
   /// the result.
   ///
@@ -171,26 +183,36 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   /// The executor is supplied when [run] is called, so the same mutation
   /// can be reused for different executions.
   ///
-  /// Multiple [run] calls may execute concurrently. Calling [run] while
-  /// another execution is in progress does not cancel, queue, or prevent
-  /// the previous execution. All executions update the same mutation state.
+  /// Multiple [run] calls may execute concurrently. Each execution is assigned
+  /// a generation, and only the most recently started execution can update the
+  /// mutation state.
+  ///
+  /// Earlier executions are not cancelled and still complete normally. However,
+  /// if a newer [run] call is started or [reset] is called before an earlier
+  /// execution completes, that earlier execution becomes stale and can no longer
+  /// update the mutation state.
+  ///
+  /// This ensures that stale asynchronous results cannot overwrite the state
+  /// produced by a newer execution.
   ///
   /// If concurrent executions are not intended, add an appropriate guard
   /// before calling [run].
   Future<T> run(Future<T> Function() executor) async {
     assert(NotifierBase.debugAssertNotDisposed(this, 'run'));
 
+    final generation = ++_runGeneration;
+
     _setState(MutationLoading<T>._());
 
     try {
       final result = await executor();
 
-      if (!mounted) return result;
+      if (!mounted || generation != _runGeneration) return result;
 
       _setState(MutationSuccess<T>._(result));
       return result;
     } catch (error, stackTrace) {
-      if (!mounted) rethrow;
+      if (!mounted || generation != _runGeneration) rethrow;
 
       _setState(MutationError<T>._(error, stackTrace));
       rethrow;
@@ -199,9 +221,12 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
 
   /// Resets the mutation to [MutationIdle].
   ///
-  /// This clears the current success or error state.
+  /// This clears the current success or error state and invalidates any
+  /// in-flight execution, preventing that execution from updating the mutation
+  /// state when it completes.
   void reset() {
     assert(NotifierBase.debugAssertNotDisposed(this, 'reset'));
+    ++_runGeneration;
     _setState(MutationIdle<T>._());
   }
 
@@ -380,10 +405,10 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
 ///
 /// By default:
 ///
-/// - [MutationIdle] is automatically disposed.
+/// - [MutationIdle] is eligible for automatic disposal when unobserved.
 /// - [MutationLoading] is always kept alive until the operation completes.
-/// - [MutationSuccess] is automatically disposed.
-/// - [MutationError] is automatically disposed.
+/// - [MutationSuccess] is eligible for automatic disposal when unobserved.
+/// - [MutationError] is eligible for automatic disposal when unobserved.
 ///
 /// This prevents the group from retaining every mutation ever created in
 /// memory, which is especially important for large or continuously scrolling
@@ -412,8 +437,8 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
 /// ```
 ///
 /// In this example, successful mutations remain cached after their listeners
-/// are removed, while idle and error mutations are still automatically
-/// disposed.
+/// are removed, while idle and error mutations remain eligible for automatic
+/// disposal when unobserved.
 ///
 /// To keep both success and error states alive:
 ///
@@ -487,7 +512,7 @@ class MutationGroup<T> {
   /// Creates a group that manages keyed mutations with automatic disposal.
   ///
   /// By default, unobserved [MutationIdle], [MutationSuccess], and
-  /// [MutationError] states are automatically disposed.
+  /// [MutationError] states are eligible for automatic disposal.
   ///
   /// [MutationLoading] is always kept alive until the operation completes.
   ///
@@ -607,12 +632,6 @@ class MutationGroup<T> {
     // Respect policy only for auto dispose
     if (!force && !_shouldDispose(mutation)) return;
 
-    if (force) {
-      _log('🔥 Force disposing mutation for key: $key');
-    } else {
-      _log('🧹 Auto disposing mutation for key: $key');
-    }
-
     _cache.remove(key);
     _controllers[key]?.dispose();
     _controllers.remove(key);
@@ -641,10 +660,6 @@ class _AutoDisposeController<T, K> {
     mutation._setOnLastListenerRemoved(_onLastListener);
     mutation._setOnStateChanged(_onStateChanged);
     mutation._setOnDisposed(_onDisposed);
-
-    if (shouldDispose(mutation)) {
-      _scheduleDispose();
-    }
   }
 
   bool _queued = false;
@@ -685,10 +700,6 @@ class _AutoDisposeController<T, K> {
     mutation._setOnStateChanged(null);
     mutation._setOnDisposed(null);
   }
-}
-
-void _log(String message) {
-  debugPrint(message);
 }
 
 enum KeepAliveState {
