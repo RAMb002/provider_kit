@@ -1,4 +1,4 @@
-name: CI
+name: Build
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -8,7 +8,7 @@ on:
   push:
     branches: [ dev, main ]
   pull_request:
-    branches: [ main ]
+    branches: [ dev, main ]
 
 jobs:
   validate:
@@ -39,9 +39,9 @@ jobs:
       - name: 🧪 Run tests with coverage
         run: flutter test --coverage
 
-      - name: 📤 Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
-          name: coverage-report
-          path: packages/provider_kit/coverage/lcov.info
+          files: packages/provider_kit/coverage/lcov.info
