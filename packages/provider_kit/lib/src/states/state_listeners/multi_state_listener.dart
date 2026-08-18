@@ -127,14 +127,6 @@ class _StateListenerState<T>
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_areProviderListsEqual(_providers, widget.providers)) {
-      _update();
-    }
-  }
-
   void _update() {
     _detachListeners(_providers);
     _providers = List<StateValueListenable<T>>.from(widget.providers);

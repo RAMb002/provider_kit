@@ -501,6 +501,102 @@ void main() {
     });
 
     testWidgets(
+      'updates subscription when the context provider is changed',
+      (tester) async {
+        final firstProvider = CounterProvider();
+        final secondProvider = CounterProvider(100);
+
+        final states = <int>[];
+        const expectedStates = [1, 101];
+
+        var currentProvider = firstProvider;
+        late StateSetter rebuild;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+
+                return ChangeNotifierProvider<CounterProvider>.value(
+                  value: currentProvider,
+                  child: StateListener.of<CounterProvider, int>(
+                    listener: (_, state) => states.add(state),
+                    child: const SizedBox(),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        firstProvider.increment();
+        await tester.pump();
+
+        expect(states, [1]);
+
+        rebuild(() {
+          currentProvider = secondProvider;
+        });
+
+        await tester.pump();
+
+        secondProvider.increment();
+        await tester.pump();
+
+        firstProvider.increment();
+        await tester.pump();
+
+        expect(states, expectedStates);
+      },
+    );
+    testWidgets(
+      'does not update listener when the context provider remains the same',
+      (tester) async {
+        final provider = CounterProvider();
+
+        final states = <int>[];
+        const expectedStates = [1, 2];
+
+        var rebuild = false;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                return ChangeNotifierProvider<CounterProvider>.value(
+                  value: provider,
+                  child: StateListener.of<CounterProvider, int>(
+                    listener: (_, state) => states.add(state),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        rebuild = !rebuild;
+                        setState(() {});
+                      },
+                      child: Text('$rebuild'),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        provider.increment();
+        await tester.pump();
+
+        await tester.tap(find.byType(ElevatedButton));
+        await tester.pump();
+
+        provider.increment();
+        await tester.pump();
+
+        expect(states, expectedStates);
+      },
+    );
+    testWidgets(
         'Does not trigger a framework crash (markNeedsBuild error) when a side-effect listener '
         'runs inside the state builder loop and successfully executes the side-effect',
         (tester) async {

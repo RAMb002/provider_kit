@@ -468,6 +468,111 @@ void main() {
       expect(find.text('Popup Dialog'), findsOneWidget);
     });
 
+    testWidgets(
+      'updates when the context provider is changed',
+      (tester) async {
+        final firstProvider = CounterProvider();
+        final secondProvider = CounterProvider(100);
+
+        final states = <int>[];
+        var currentProvider = firstProvider;
+        late StateSetter rebuild;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+
+                return ChangeNotifierProvider<CounterProvider>.value(
+                  value: currentProvider,
+                  child: StateConsumer.of<CounterProvider, int>(
+                    listener: (_, state) => states.add(state),
+                    builder: (_, state, __) => Text('$state'),
+                    child: const SizedBox(),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(find.text('0'), findsOneWidget);
+
+        firstProvider.increment();
+        await tester.pump();
+
+        expect(find.text('1'), findsOneWidget);
+        expect(states, [1]);
+
+        rebuild(() {
+          currentProvider = secondProvider;
+        });
+
+        await tester.pump();
+
+        expect(find.text('100'), findsOneWidget);
+
+        secondProvider.increment();
+        await tester.pump();
+
+        expect(find.text('101'), findsOneWidget);
+        expect(states, [1, 101]);
+
+        firstProvider.increment();
+        await tester.pump();
+
+        expect(find.text('101'), findsOneWidget);
+        expect(states, [1, 101]);
+      },
+    );
+
+    testWidgets(
+      'keeps using the same context provider when the widget rebuilds',
+      (tester) async {
+        final provider = CounterProvider();
+        late StateSetter rebuild;
+
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+
+                return ChangeNotifierProvider<CounterProvider>.value(
+                  value: provider,
+                  child: StateConsumer.of<CounterProvider, int>(
+                    listener: (_, state) => states.add(state),
+                    builder: (_, state, __) => Text('$state'),
+                    child: const SizedBox(),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        provider.increment();
+        await tester.pump();
+
+        expect(find.text('1'), findsOneWidget);
+        expect(states, [1]);
+
+        rebuild(() {});
+        await tester.pump();
+
+        provider.increment();
+        await tester.pump();
+
+        expect(find.text('2'), findsOneWidget);
+        expect(states, [1, 2]);
+      },
+    );
+
     testWidgets('overrides debugFillProperties with all properties populated',
         (tester) async {
       final builder = DiagnosticPropertiesBuilder();

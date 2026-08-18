@@ -244,6 +244,13 @@ class _StateListenerState<P extends StateValueListenable<T>, T>
       child != null,
       '''${widget.runtimeType} used outside of StateListener must specify a child''',
     );
+
+    if (widget.provider == null) {
+      context.select<P, bool>(
+        (provider) => identical(_provider, provider),
+      );
+    }
+
     return child!;
   }
 }

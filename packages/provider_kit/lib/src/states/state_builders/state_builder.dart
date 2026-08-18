@@ -197,7 +197,10 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final provider = widget.provider ?? _readProvider;
-    if (_provider != provider) _provider = provider;
+    if (_provider != provider) {
+      _provider = provider;
+      _state = _currentState;
+    }
   }
 
   /// Gets the provider from the context.
@@ -207,10 +210,17 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
   T get _currentState => _provider.state;
 
   @override
-  Widget build(BuildContext context) => StateListener<T>(
-        provider: _provider,
-        listenWhen: widget.rebuildWhen,
-        listener: (context, state) => setState(() => _state = state),
-        child: widget.build(context, _state, widget.child),
+  Widget build(BuildContext context) {
+    if (widget.provider == null) {
+      context.select<P, bool>(
+        (provider) => identical(_provider, provider),
       );
+    }
+    return StateListener<T>(
+      provider: _provider,
+      listenWhen: widget.rebuildWhen,
+      listener: (context, state) => setState(() => _state = state),
+      child: widget.build(context, _state, widget.child),
+    );
+  }
 }
