@@ -19,3 +19,23 @@ class MockAsyncViewStateNotifier<T> extends AsyncViewStateNotifier<T> {
     super.refresh();
   }
 }
+
+class MockAsyncViewStateNotifierWithoutRetry
+    extends MockAsyncViewStateNotifier<String> {
+  MockAsyncViewStateNotifierWithoutRetry({
+    required super.fetchDataImpl,
+  });
+
+  @override
+  ErrorState<String> errorStateObject(
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    return ErrorState<String>(
+      error.toString(),
+      error,
+      stackTrace,
+      null,
+    );
+  }
+}
