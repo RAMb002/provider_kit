@@ -124,14 +124,6 @@ class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
     }
   }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    if (!_areProviderListsEqual(_providers, widget.providers)) {
-      _update();
-    }
-  }
-
   void _update() {
     _providers = List<StateValueListenable<T>>.from(widget.providers);
     _states = _currentStates;

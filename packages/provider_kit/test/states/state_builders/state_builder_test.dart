@@ -337,6 +337,104 @@ void main() {
       expect(numBuilds, 3);
     });
 
+    testWidgets(
+      'updates subscription when the context provider changes',
+      (tester) async {
+        final firstProvider = CounterProvider();
+        final secondProvider = CounterProvider(100);
+
+        var currentProvider = firstProvider;
+        late StateSetter rebuild;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+
+                return ChangeNotifierProvider<CounterProvider>.value(
+                  value: currentProvider,
+                  child: StateBuilder.of<CounterProvider, int>(
+                    builder: (_, state, __) => Text('$state'),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(find.text('0'), findsOneWidget);
+
+        firstProvider.increment();
+        await tester.pump();
+
+        expect(find.text('1'), findsOneWidget);
+
+        rebuild(() {
+          currentProvider = secondProvider;
+        });
+
+        await tester.pump();
+
+        expect(find.text('100'), findsOneWidget);
+        expect(find.text('1'), findsNothing);
+
+        secondProvider.increment();
+        await tester.pump();
+
+        expect(find.text('101'), findsOneWidget);
+
+        firstProvider.increment();
+        await tester.pump();
+
+        expect(find.text('101'), findsOneWidget);
+        expect(find.text('2'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'keeps using the same context provider when the widget rebuilds',
+      (tester) async {
+        final provider = CounterProvider();
+        late StateSetter rebuild;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+
+                return ChangeNotifierProvider<CounterProvider>.value(
+                  value: provider,
+                  child: StateBuilder.of<CounterProvider, int>(
+                    builder: (_, state, __) => Text('$state'),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(find.text('0'), findsOneWidget);
+
+        provider.increment();
+        await tester.pump();
+
+        expect(find.text('1'), findsOneWidget);
+
+        rebuild(() {});
+
+        await tester.pump();
+
+        provider.increment();
+        await tester.pump();
+
+        expect(find.text('2'), findsOneWidget);
+      },
+    );
+
     testWidgets('shows latest state instead of initial state', (tester) async {
       final themeProvider = ThemeProvider()..setDarkTheme();
 

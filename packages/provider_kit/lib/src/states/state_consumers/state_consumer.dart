@@ -239,6 +239,11 @@ class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.provider == null) {
+      context.select<P, bool>(
+        (provider) => identical(_provider, provider),
+      );
+    }
     return StateBuilder<T>(
       provider: _provider,
       builder: widget.builder,
