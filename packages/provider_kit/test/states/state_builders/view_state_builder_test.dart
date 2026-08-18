@@ -413,6 +413,43 @@ void main() {
       },
     );
 
+    testWidgets(
+      'uses context provider refresh when ErrorState has no onRetry callback',
+      (tester) async {
+        final provider = MockAsyncViewStateNotifierWithoutRetry(
+          fetchDataImpl: () => throw Exception('Test'),
+        );
+
+        await tester.pumpAndSettle();
+
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ChangeNotifierProvider<
+                MockAsyncViewStateNotifierWithoutRetry>.value(
+              value: provider,
+              child: ViewStateBuilder.of<MockAsyncViewStateNotifierWithoutRetry,
+                  String>(
+                errorBuilder: (_, onRetry, __, ___, ____) {
+                  capturedOnRetry = onRetry;
+                  return const SizedBox();
+                },
+                dataBuilder: (_) => const SizedBox(),
+              ),
+            ),
+          ),
+        );
+
+        expect(capturedOnRetry, provider.refresh);
+
+        capturedOnRetry!();
+
+        expect(provider.refreshCalls, 1);
+      },
+    );
+
     // -----------------------------------------------------------------------
     // 4. rebuildWhen filtering
     // -----------------------------------------------------------------------

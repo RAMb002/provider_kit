@@ -2223,6 +2223,46 @@ void main() {
           NotifierBase.observer = previous;
         }
       });
+      test(
+        'reports errors thrown while publishing mutation state',
+        () async {
+          final observer = _TestNotifierObserver();
+          final previous = NotifierBase.observer;
+
+          NotifierBase.observer = observer;
+
+          try {
+            final mutation = Mutation<int>();
+
+            observer.throwOnChange = true;
+
+            await expectLater(
+              mutation.run(() async => 42),
+              throwsA(
+                isA<StateError>().having(
+                  (error) => error.message,
+                  'message',
+                  'observer onChange failed',
+                ),
+              ),
+            );
+
+            expect(observer.errors, hasLength(1));
+            expect(
+              observer.errors.single,
+              isA<StateError>().having(
+                (error) => error.message,
+                'message',
+                'observer onChange failed',
+              ),
+            );
+
+            mutation.dispose();
+          } finally {
+            NotifierBase.observer = previous;
+          }
+        },
+      );
     });
   });
 }
@@ -2232,6 +2272,7 @@ class _TestNotifierObserver extends NotifierObserver {
   final changes = <Change<dynamic>>[];
   final errors = <Object>[];
   final disposed = <NotifierBase>[];
+  bool throwOnChange = false;
 
   @override
   void onCreate(NotifierBase notifier) {
@@ -2245,6 +2286,9 @@ class _TestNotifierObserver extends NotifierObserver {
     Change<dynamic> change,
   ) {
     super.onChange(notifier, change);
+    if (throwOnChange) {
+      throw StateError('observer onChange failed');
+    }
     changes.add(change);
   }
 
