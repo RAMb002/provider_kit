@@ -42,7 +42,7 @@ void main() {
       DataStateListener<List<DataState<String>>>? dataStateListener,
       RebuildWhen<List<ViewState<String>>>? rebuildWhen,
       ListenWhen<List<ViewState<String>>>? listenWhen,
-      bool shouldCallListenerOnInit = false,
+      bool callListenerOnInit = false,
       bool isSliver = false,
       bool withDefaultProvider = true,
     }) {
@@ -60,7 +60,7 @@ void main() {
         dataStateListener: dataStateListener,
         rebuildWhen: rebuildWhen,
         listenWhen: listenWhen,
-        shouldCallListenerOnInit: shouldCallListenerOnInit,
+        callListenerOnInit: callListenerOnInit,
         isSliver: isSliver,
       );
 
@@ -596,7 +596,6 @@ void main() {
       },
     );
 
-
     // -----------------------------------------------------------------------
     // 5. rebuildWhen and listenWhen
     // -----------------------------------------------------------------------
@@ -632,10 +631,9 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // 6. shouldCallListenerOnInit
+    // 6. callListenerOnInit
     // -----------------------------------------------------------------------
-    testWidgets(
-        'shouldCallListenerOnInit calls listener with combined initial state',
+    testWidgets('callListenerOnInit calls listener with combined initial state',
         (tester) async {
       final provider1 = TestViewStateNotifier<String>(const DataState('init1'));
       final provider2 =
@@ -649,7 +647,7 @@ void main() {
           dataBuilder: (_) => const SizedBox(),
           dataStateListener: (_) => dataCalled = true,
           loadingStateListener: (_, __) => loadingCalled = true,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
         ),
       );
 
@@ -657,7 +655,7 @@ void main() {
       expect(dataCalled, false);
     });
 
-    testWidgets('shouldCallListenerOnInit false does not call on init',
+    testWidgets('callListenerOnInit false does not call on init',
         (tester) async {
       final provider1 = TestViewStateNotifier<String>(const DataState('init1'));
       final provider2 = TestViewStateNotifier<String>(const DataState('init2'));
@@ -668,7 +666,7 @@ void main() {
           providers: [provider1, provider2],
           dataBuilder: (_) => const SizedBox(),
           dataStateListener: (_) => dataCalled = true,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -1039,7 +1037,7 @@ void main() {
         dataStateListener: (_) {},
         rebuildWhen: (_, __) => true,
         listenWhen: (_, __) => true,
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         isSliver: true,
       ).debugFillProperties(builder);
 

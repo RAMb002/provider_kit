@@ -27,6 +27,8 @@
 
  - **Breaking:**
 
+    - Renamed `shouldCallListenerOnInit` to `callListenerOnInit`.
+
     - All `State Widgets` and `ViewState Widgets` now use ONE generic (T) instead of two.
   provider parameter is now REQUIRED in the main constructor.  
 
@@ -51,6 +53,7 @@
        ```
     - Removed the `NotifierBuilder`, `NotifierListener`, and `NotifierConsumer` aliases that were introduced in `0.1.0`.
         - Use `StateBuilder`, `StateListener`, and `StateConsumer` instead.
+
 
 ## 0.2.0
 

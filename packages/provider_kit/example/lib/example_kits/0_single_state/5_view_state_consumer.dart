@@ -18,7 +18,7 @@ class ViewStateConsumerExample extends StatelessWidget {
             title: "View State Consumer",
             child: ViewStateConsumer.of<ItemsProvider, List<Item>>(
               initialStateListener: () => context.showToast('initial'),
-              shouldCallListenerOnInit: true,
+              callListenerOnInit: true,
               dataStateListener: (data) => context.showToast(data.toString()),
               dataBuilder: (data) => Text(data.toString()),
             ));

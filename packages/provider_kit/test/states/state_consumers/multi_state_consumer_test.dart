@@ -21,7 +21,7 @@ class MultiConsumerTestApp extends StatefulWidget {
     required this.listener,
     this.listenWhen,
     this.rebuildWhen,
-    this.shouldCallListenerOnInit = false,
+    this.callListenerOnInit = false,
   });
 
   final List<CounterProvider> initialProviders;
@@ -31,7 +31,7 @@ class MultiConsumerTestApp extends StatefulWidget {
   final void Function(BuildContext context, List<int> states) listener;
   final bool Function(List<int> previous, List<int> current)? listenWhen;
   final bool Function(List<int> previous, List<int> current)? rebuildWhen;
-  final bool shouldCallListenerOnInit;
+  final bool callListenerOnInit;
 
   @override
   State<MultiConsumerTestApp> createState() => _MultiConsumerTestAppState();
@@ -58,7 +58,7 @@ class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
               listener: widget.listener,
               listenWhen: widget.listenWhen,
               rebuildWhen: widget.rebuildWhen,
-              shouldCallListenerOnInit: widget.shouldCallListenerOnInit,
+              callListenerOnInit: widget.callListenerOnInit,
               child: const SizedBox(key: Key('multi_consumer_child')),
             ),
             TextButton(
@@ -196,7 +196,7 @@ void main() {
     });
 
     // =========================================================================
-    // SECTION 2: INITIALIZATION (shouldCallListenerOnInit)
+    // SECTION 2: INITIALIZATION (callListenerOnInit)
     // =========================================================================
 
     testWidgets(
@@ -214,7 +214,7 @@ void main() {
             return const SizedBox();
           },
           listener: (_, states) => listenerLog.add(states),
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -227,7 +227,7 @@ void main() {
     });
 
     testWidgets(
-        'calls listener on initialization when shouldCallListenerOnInit is true',
+        'calls listener on initialization when callListenerOnInit is true',
         (tester) async {
       final listenerLog = <List<int>>[];
       final buildLog = <List<int>>[];
@@ -241,7 +241,7 @@ void main() {
             return const SizedBox();
           },
           listener: (_, states) => listenerLog.add(states),
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
         ),
       );
 
@@ -266,7 +266,7 @@ void main() {
           providers: [provider1, provider2],
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, states) => initListenerStates = states,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
         ),
       );
 
@@ -964,7 +964,7 @@ void main() {
         listener: (_, __) {},
         listenWhen: (prev, curr) => prev != curr,
         rebuildWhen: (prev, curr) => prev != curr,
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         child: const SizedBox(),
       ).debugFillProperties(builder);
 
@@ -983,8 +983,8 @@ void main() {
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(description.any((e) => e.contains('rebuildWhen')), isTrue);
       expect(
-          description.any((e) =>
-              e.contains('shouldCallListenerOnInit') && e.contains('true')),
+          description.any(
+              (e) => e.contains('callListenerOnInit') && e.contains('true')),
           isTrue);
       expect(description.any((e) => e.contains('child')), isTrue);
     });

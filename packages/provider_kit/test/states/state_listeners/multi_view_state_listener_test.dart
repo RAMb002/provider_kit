@@ -19,7 +19,7 @@ void main() {
       ErrorStateListener? errorStateListener,
       MultiDataStateListener<List<DataState<String>>>? dataStateListener,
       ListenWhen<List<ViewState<String>>>? listenWhen,
-      bool shouldCallListenerOnInit = false,
+      bool callListenerOnInit = false,
       Widget? child,
     }) {
       return Directionality(
@@ -32,7 +32,7 @@ void main() {
           errorStateListener: errorStateListener,
           dataStateListener: dataStateListener,
           listenWhen: listenWhen,
-          shouldCallListenerOnInit: shouldCallListenerOnInit,
+          callListenerOnInit: callListenerOnInit,
           child: child ?? const SizedBox(),
         ),
       );
@@ -570,7 +570,7 @@ void main() {
         await tester.pumpWidget(
           buildListener(
             providers: [provider],
-            shouldCallListenerOnInit: true,
+            callListenerOnInit: true,
             errorStateListener: (_, onRetry, __, ___) {
               capturedOnRetry = onRetry;
             },
@@ -660,11 +660,10 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    // 5. shouldCallListenerOnInit
+    // 5. callListenerOnInit
     // -----------------------------------------------------------------------
 
-    testWidgets(
-        'shouldCallListenerOnInit calls listener with combined initial state',
+    testWidgets('callListenerOnInit calls listener with combined initial state',
         (tester) async {
       final provider1 = TestViewStateNotifier<String>(const DataState('init1'));
       final provider2 =
@@ -677,7 +676,7 @@ void main() {
           providers: [provider1, provider2],
           dataStateListener: (_) => dataCalled = true,
           loadingStateListener: (_, __) => loadingCalled = true,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
         ),
       );
 
@@ -685,7 +684,7 @@ void main() {
       expect(dataCalled, false);
     });
 
-    testWidgets('shouldCallListenerOnInit false does not call on init',
+    testWidgets('callListenerOnInit false does not call on init',
         (tester) async {
       final provider1 = TestViewStateNotifier<String>(const DataState('init1'));
       final provider2 = TestViewStateNotifier<String>(const DataState('init2'));
@@ -695,7 +694,7 @@ void main() {
         buildListener(
           providers: [provider1, provider2],
           dataStateListener: (_) => dataCalled = true,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -867,7 +866,7 @@ void main() {
         emptyStateListener: (_) {},
         errorStateListener: (_, __, ___, ____) {},
         listenWhen: (_, __) => true,
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         child: const SizedBox(),
       ).debugFillProperties(builder);
 
@@ -880,8 +879,8 @@ void main() {
       expect(description.any((e) => e.contains('listener')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
-        description.any((e) =>
-            e.contains('shouldCallListenerOnInit') && e.contains('true')),
+        description
+            .any((e) => e.contains('callListenerOnInit') && e.contains('true')),
         isTrue,
       );
     });

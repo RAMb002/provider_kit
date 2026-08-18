@@ -358,7 +358,7 @@ void main() {
     });
 
     testWidgets(
-        'triggers listener immediately on initialization when shouldCallListenerOnInit is true',
+        'triggers listener immediately on initialization when callListenerOnInit is true',
         (tester) async {
       final counterProvider = CounterProvider();
       final listenerStates = <int>[];
@@ -368,7 +368,7 @@ void main() {
           home: Scaffold(
             body: StateConsumer<int>(
               provider: counterProvider,
-              shouldCallListenerOnInit: true,
+              callListenerOnInit: true,
               builder: (context, state, child) => const SizedBox(),
               listener: (_, state) {
                 listenerStates.add(state);
@@ -579,7 +579,7 @@ void main() {
 
       StateConsumer<int>(
         provider: CounterProvider(),
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         listenWhen: (previous, current) => previous != current,
         listener: (context, state) {},
         rebuildWhen: (previous, current) => previous != current,
@@ -602,7 +602,7 @@ void main() {
       expect(description, contains('has rebuildWhen'));
       expect(description, contains('has listenWhen'));
 
-      expect(description, contains('shouldCallListenerOnInit: true'));
+      expect(description, contains('callListenerOnInit: true'));
 
       expect(
         description.any((e) => e.startsWith('child: Text')),

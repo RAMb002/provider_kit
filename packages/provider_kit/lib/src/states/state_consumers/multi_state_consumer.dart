@@ -19,7 +19,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// - **`listener`** (*Required*) **:** A callback function that is invoked when the states change.
 /// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current states. Defaults to calling the builder when `previous != current`.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current states. Defaults to calling the listener when `previous != current`.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`child`** (*Optional*) **:** A widget that is part of the widget tree.
 ///
 /// ### Example Usage:
@@ -43,7 +43,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
-///   shouldCallListenerOnInit: true, // Optional, default is false
+///   callListenerOnInit: true, // Optional, default is false
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
@@ -58,7 +58,7 @@ class MultiStateConsumer<T> extends StatefulWidget {
     required this.listener,
     this.listenWhen,
     required this.providers,
-    this.shouldCallListenerOnInit = false,
+    this.callListenerOnInit = false,
     this.child,
   });
 
@@ -68,7 +68,7 @@ class MultiStateConsumer<T> extends StatefulWidget {
   final ListenWhen<List<T>>? listenWhen;
   final MultiListenerCallback<List<T>> listener;
   final Widget? child;
-  final bool shouldCallListenerOnInit;
+  final bool callListenerOnInit;
 
   @override
   State<MultiStateConsumer<T>> createState() => _MultiStateConsumerState<T>();
@@ -96,8 +96,8 @@ class MultiStateConsumer<T> extends StatefulWidget {
         ),
       )
       ..add(DiagnosticsProperty<bool>(
-        'shouldCallListenerOnInit',
-        shouldCallListenerOnInit,
+        'callListenerOnInit',
+        callListenerOnInit,
         defaultValue: false,
       ))
       ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
@@ -111,7 +111,7 @@ class _MultiStateConsumerState<T> extends State<MultiStateConsumer<T>> {
   void initState() {
     super.initState();
     _providers = List<StateValueListenable<T>>.from(widget.providers);
-    if (widget.shouldCallListenerOnInit) {
+    if (widget.callListenerOnInit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         widget.listener(

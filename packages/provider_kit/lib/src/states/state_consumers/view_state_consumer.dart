@@ -35,7 +35,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
 /// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current state. Defaults to calling the builder when `previous != current`.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current state. Defaults to calling the listener when `previous != current`.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
 ///
 /// ### Example Usage:
@@ -87,7 +87,7 @@ class ViewStateConsumer<T>
     super.errorStateListener,
     super.dataStateListener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
   }) : super(provider: provider);
 
   /// Resolves the provider from the current [BuildContext].
@@ -118,7 +118,7 @@ class ViewStateConsumer<T>
     DataStateListener<T>? dataStateListener,
     RebuildWhen<ViewState<T>>? rebuildWhen,
     ListenWhen<ViewState<T>>? listenWhen,
-    bool shouldCallListenerOnInit = false,
+    bool callListenerOnInit = false,
     bool isSliver = false,
   }) {
     return _ViewStateConsumerOf<P, T>(
@@ -135,7 +135,7 @@ class ViewStateConsumer<T>
       dataStateListener: dataStateListener,
       rebuildWhen: rebuildWhen,
       listenWhen: listenWhen,
-      shouldCallListenerOnInit: shouldCallListenerOnInit,
+      callListenerOnInit: callListenerOnInit,
       isSliver: isSliver,
     );
   }
@@ -157,7 +157,7 @@ class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
     super.dataStateListener,
     super.rebuildWhen,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.isSliver,
   }) : super(provider: null);
 }
@@ -193,7 +193,7 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     this.errorStateListener,
     this.dataStateListener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
   }) : super(
           builder: (context, state, child) {
             return ViewStateBuilderBase.buildStateWidget<P, T>(

@@ -18,14 +18,14 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// - **`provider`** (*Required*) **:** The [StateValueListenable] whose state you want to listen to.
 /// - **`listener`** (*Required*) **:** A callback function that is invoked when the state changes.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the `listener` should be triggered based on the previous and current state. By default, the listener is called when `previous != current`.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Determines whether the `listener` should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Determines whether the `listener` should be called when the widget is first initialized.
 /// - **`child`** (*Required*) **:** The child widget that remains in the widget tree and is not affected by state changes.
 ///
 /// ### Example Usage:
 /// ```dart
 /// StateListener<MyState>(
 ///   provider: provider,
-///   shouldCallListenerOnInit: false, // Default is false
+///   callListenerOnInit: false, // Default is false
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
@@ -59,7 +59,7 @@ class StateListener<T> extends StateListenerBase<StateValueListenable<T>, T> {
     required super.listener,
     required StateValueListenable<T> provider,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(provider: provider);
 
@@ -79,14 +79,14 @@ class StateListener<T> extends StateListenerBase<StateValueListenable<T>, T> {
     Key? key,
     required ListenerCallback<T> listener,
     ListenWhen<T>? listenWhen,
-    bool shouldCallListenerOnInit = false,
+    bool callListenerOnInit = false,
     Widget? child,
   }) {
     return _StateListenerOf<P, T>(
       key: key,
       listener: listener,
       listenWhen: listenWhen,
-      shouldCallListenerOnInit: shouldCallListenerOnInit,
+      callListenerOnInit: callListenerOnInit,
       child: child,
     );
   }
@@ -98,7 +98,7 @@ class _StateListenerOf<P extends StateValueListenable<T>, T>
     super.key,
     required super.listener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(provider: null);
 }
@@ -112,8 +112,8 @@ abstract class StateListenerBase<P extends StateValueListenable<T>, T>
     required this.listener,
     this.listenWhen,
     super.child,
-    bool? shouldCallListenerOnInit,
-  }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
+    bool? callListenerOnInit,
+  }) : callListenerOnInit = callListenerOnInit ?? false;
 
   /// The provider whose state should be listened to.
   ///
@@ -128,7 +128,7 @@ abstract class StateListenerBase<P extends StateValueListenable<T>, T>
   final ListenWhen<T>? listenWhen;
 
   /// Whether the listener should be called when the widget is first initialized.
-  final bool shouldCallListenerOnInit;
+  final bool callListenerOnInit;
 
   @override
   State<StatefulWidget> createState() => _StateListenerState<P, T>();
@@ -146,8 +146,8 @@ abstract class StateListenerBase<P extends StateValueListenable<T>, T>
         ),
       )
       ..add(DiagnosticsProperty<bool>(
-        'shouldCallListenerOnInit',
-        shouldCallListenerOnInit,
+        'callListenerOnInit',
+        callListenerOnInit,
         defaultValue: false,
       ));
   }
@@ -165,7 +165,7 @@ class _StateListenerState<P extends StateValueListenable<T>, T>
     _provider = widget.provider ?? _readProvider;
     _previousState = _currentState;
     _attachListener();
-    if (widget.shouldCallListenerOnInit) {
+    if (widget.callListenerOnInit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         widget.listener(
