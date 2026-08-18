@@ -69,8 +69,8 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
         - [Automatic Disposal](#automatic-disposal)
         - [Keeping Completed States Alive](#keeping-completed-states-alive)
         - [Manual Disposal](#manual-disposal)
-        - [Why Use MutationGroup?](#why-use-mutationgroup)
-        - [Mutation vs MutationGroup](#mutation-vs-mutationgroup)
+     - [Why Use MutationGroup?](#why-use-mutationgroup)
+     - [Mutation vs MutationGroup](#mutation-vs-mutationgroup)
     - [MutationState](#mutationstate)
 - [Nested State Listener](#nestedstatelistener)
 - [Notifier Observer](#notifierobserver)
@@ -899,8 +899,7 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<String>> with Data
 ---
 <br>
 
-
-# Mutations
+## Mutations
 
 A `Mutation` manages the state of an asynchronous operation such as creating, updating, deleting, or submitting data.
 When an operation is running, you may want the UI to show a loading indicator, display the result when it succeeds, or show an error when it fails.
@@ -920,7 +919,7 @@ A mutation progresses through four states:
 
 `MutationIdle` → `MutationLoading` → `MutationSuccess` or `MutationError`
 
-## Defining a Mutation
+### Defining a Mutation
 
 Create a mutation with the generic type representing the return type of the operation:
 
@@ -931,7 +930,7 @@ final addTodo = Mutation<Todo>();
 
 > **Note:** Typically, a mutation is kept inside a provider/notifier/controller/view model that owns the operation.
 
-## Listening to a Mutation
+### Listening to a Mutation
 
 Once a mutation is defined, you can listen to its state in the UI using ProviderKit state widgets such as `StateBuilder`, `StateListener`, and `StateConsumer`.
 
@@ -950,7 +949,7 @@ StateBuilder(
 ```
 >**Note:** You can perform side effects for mutations with `StateListener`
 
-## Triggering a Mutation
+### Triggering a Mutation
 
 Once a mutation is defined and being observed, execute it by passing an asynchronous operation to `run()`:
 
@@ -986,7 +985,7 @@ The successful result is available through `MutationSuccess`, while `MutationErr
 > still complete normally but cannot overwrite a newer state or a state set by
 > `reset()`.
 
-## Using the Result
+### Using the Result
 
 `run()` returns the result produced by the asynchronous operation, so you can store it in a variable and use it for subsequent application logic:
 
@@ -1011,7 +1010,7 @@ if (addTodo.isSuccess) {
 
 Use the returned value from `run()` when you need the result immediately after the operation. Use `data` when you want to access the result from the current successful mutation state.
 
-## Resetting
+### Resetting
 
 Once an operation is completed, you can reset the mutation back to `MutationIdle` by calling `reset()` if needed.
 
@@ -1021,7 +1020,7 @@ addTodo.reset();
 
 This clears the current success or error state, returns the mutation to its `idle` state, and invalidates any in-flight execution so that it cannot update the mutation state when it completes.
 
-## Disposing
+### Disposing
 
 Dispose a mutation when it is no longer needed, typically when the provider, notifier, controller, or view model that owns it is disposed:
 
@@ -1038,7 +1037,7 @@ See [MutationState](#mutationstate) for state handling and pattern matching.
 
 ---
 
-# MutationGroup
+## MutationGroup
 
 A `MutationGroup` manages multiple independent `Mutation` instances using unique keys.
 
@@ -1078,7 +1077,7 @@ This is particularly useful for lists, where the same operation may need to run 
 
 `MutationGroup` also automatically disposes keyed mutations that are no longer needed. This prevents a large or continuously scrolling list from retaining a mutation for every item the user has ever viewed.
 
-## Defining a MutationGroup
+### Defining a MutationGroup
 
 Create a `MutationGroup` with the generic type representing the return type of the operation:
 
@@ -1106,7 +1105,7 @@ class TodoProvider {
 
 The group should be disposed when its owner is disposed.
 
-## Getting a Mutation by Key
+### Getting a Mutation by Key
 
 Call the group with a key to get the mutation associated with that key:
 
@@ -1130,7 +1129,7 @@ This is particularly useful for lists. A list item can be removed from the widge
 
 When the item appears again, requesting the same key from the same group returns the existing mutation if it is still cached.
 
-## Using MutationGroup in a List
+### Using MutationGroup in a List
 
 A list item can observe the mutation associated with its own key:
 
@@ -1163,7 +1162,7 @@ ListView.builder(
   },
 );
 ```
-## Automatic Disposal
+### Automatic Disposal
 
 Keyed mutations are automatically removed from the group's cache when they have no listeners, based on their current state.
 
@@ -1183,7 +1182,7 @@ A mutation that is currently loading is always kept alive, even when it has no l
 
 Once the loading operation finishes, the mutation becomes eligible for automatic disposal again if it has no listeners.
 
-## Keeping Completed States Alive
+### Keeping Completed States Alive
 
 By default, successful and failed mutations are automatically disposed when they have no listeners.
 
@@ -1222,7 +1221,7 @@ This can be useful when a completed state should remain available after its widg
 
 **Caution:** Be careful when keeping states alive in large or long-lived groups, as cached mutations remain in memory until they are automatically disposed, manually disposed, or the group itself is disposed.
 
-## Manual Disposal
+### Manual Disposal
 
 Dispose a single keyed mutation with `disposeKey()`:
 
@@ -1298,7 +1297,7 @@ deleteTodo(todo3.id);
 
 ---
 
-# MutationState
+## MutationState
 
 `MutationState` represents the different states of a mutation operation, including `Idle`, `Loading`, `Success`, and `Error`.
 
