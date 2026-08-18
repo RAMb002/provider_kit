@@ -155,7 +155,7 @@ void main() {
       await tester.pumpWidget(
         MultiStateListener<int>(
           providers: providers,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -166,7 +166,7 @@ void main() {
     });
 
     testWidgets(
-        'calls listener on initialization when shouldCallListenerOnInit is true',
+        'calls listener on initialization when callListenerOnInit is true',
         (tester) async {
       final states = <List<int>>[];
       final expectedStates = [
@@ -177,7 +177,7 @@ void main() {
       await tester.pumpWidget(
         MultiStateListener<int>(
           providers: providers,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -196,7 +196,7 @@ void main() {
       await tester.pumpWidget(
         MultiStateListener<int>(
           providers: [provider1, provider2],
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
           listener: (_, states) => initStates = states,
           child: const SizedBox(),
         ),
@@ -922,7 +922,7 @@ void main() {
     });
 
     testWidgets(
-        '3. does not fire listener on runtime list swap even if shouldCallListenerOnInit is true',
+        '3. does not fire listener on runtime list swap even if callListenerOnInit is true',
         (tester) async {
       final states = <List<int>>[];
       final providerA = CounterProvider(1);
@@ -943,8 +943,7 @@ void main() {
                     height: 100,
                     child: MultiStateListener<int>(
                       providers: currentProviders,
-                      shouldCallListenerOnInit:
-                          true, // Only applies to initState!
+                      callListenerOnInit: true, // Only applies to initState!
                       listener: (_, current) => states.add(current),
                       child: const SizedBox(),
                     ),
@@ -1066,7 +1065,7 @@ void main() {
         providers: [CounterProvider(), CounterProvider(5)],
         listener: (_, __) {},
         listenWhen: (prev, curr) => prev != curr,
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         child: const SizedBox(),
       ).debugFillProperties(builder);
 
@@ -1085,8 +1084,8 @@ void main() {
       expect(description.any((e) => e.contains('listener')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
-          description.any((e) =>
-              e.contains('shouldCallListenerOnInit') && e.contains('true')),
+          description.any(
+              (e) => e.contains('callListenerOnInit') && e.contains('true')),
           isTrue);
     });
   });

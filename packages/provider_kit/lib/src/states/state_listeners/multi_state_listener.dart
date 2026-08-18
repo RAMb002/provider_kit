@@ -16,7 +16,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// - **`providers`** (*Required*) **:** A list of [StateValueListenable]s that supply the states.
 /// - **`listener`** (*Required*) **:** A callback function that is invoked when the states change.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current states. Defaults to calling the listener when `previous != current`.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`child`** (*Optional*) **:** A widget that is part of the widget tree.
 ///
 /// ### Example Usage:
@@ -31,7 +31,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
-///   shouldCallListenerOnInit: true, // Optional, default is false
+///   callListenerOnInit: true, // Optional, default is false
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
@@ -43,7 +43,7 @@ class MultiStateListener<T> extends MultiStateListenerBase<T> {
     required super.providers,
     required super.listener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   });
 }
@@ -55,8 +55,8 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
     required this.listener,
     this.listenWhen,
     super.child,
-    bool? shouldCallListenerOnInit,
-  }) : shouldCallListenerOnInit = shouldCallListenerOnInit ?? false;
+    bool? callListenerOnInit,
+  }) : callListenerOnInit = callListenerOnInit ?? false;
 
   /// A list of [StateValueListenable]s that supply the states.
   final List<StateValueListenable<T>> providers;
@@ -69,7 +69,7 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
   final ListenWhen<List<T>>? listenWhen;
 
   /// Whether the listener should be called when the widget is first initialized.
-  final bool shouldCallListenerOnInit;
+  final bool callListenerOnInit;
 
   @override
   State<StatefulWidget> createState() => _StateListenerState<T>();
@@ -90,8 +90,8 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
         ),
       )
       ..add(DiagnosticsProperty<bool>(
-        'shouldCallListenerOnInit',
-        shouldCallListenerOnInit,
+        'callListenerOnInit',
+        callListenerOnInit,
         defaultValue: false,
       ));
   }
@@ -108,7 +108,7 @@ class _StateListenerState<T>
     _providers = List<StateValueListenable<T>>.from(widget.providers);
     _previousStates = _currentStates;
     _attachListeners(_providers);
-    if (widget.shouldCallListenerOnInit) {
+    if (widget.callListenerOnInit) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         widget.listener(

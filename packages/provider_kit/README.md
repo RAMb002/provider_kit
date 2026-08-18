@@ -145,7 +145,7 @@ A widget that listens for state changes and executes side effects without rebuil
 StateListener<MyDataType>(
   provider: provider,
   listenWhen: (previous, current) => previous != current, // Default, optional
-  shouldCallListenerOnInit: false, // Default, optional
+  callListenerOnInit: false, // Default, optional
   listener: (context, state) {
     // Can execute side effects here
   },
@@ -192,7 +192,7 @@ A widget that combines the features of both `StateListener` and `StateBuilder`.
 StateConsumer<MyDataType>(
   provider: provider,
   listenWhen: (previous, current) => previous != current, // Default, optional
-  shouldCallListenerOnInit: false, // Default, optional
+  callListenerOnInit: false, // Default, optional
   listener: (context, state) {
     // Can execute side effects here
   },
@@ -230,7 +230,7 @@ A widget that listens to the state of multiple providers, and a state change in 
 MultiStateListener<MyDataType>(
   providers: [provider1, provider2, provider3],
   listenWhen: (previous, current) => previous != current, // Default, optional
-  shouldCallListenerOnInit: false, // Default, optional
+  callListenerOnInit: false, // Default, optional
   listener: (context, states) {
     // Can execute side effects here
   },
@@ -259,7 +259,7 @@ A widget that combines both the features of `MultiStateListener` and `MultiState
 MultiStateConsumer<MyDataType>(
   providers: [provider1, provider2, provider3],
   listenWhen: (previous, current) => previous != current, // Default, optional
-  shouldCallListenerOnInit: false, // Default, optional
+  callListenerOnInit: false, // Default, optional
   listener: (context, states) {
     // Can execute side effects here
   },
@@ -641,7 +641,7 @@ ViewStateListener.of<MyViewStateProvider, MyDataType>(
 | `emptyStateListener`       | `void Function(String? message)?`                                                             | Optional         | Invoked when the state is `EmptyState`. |
 | `errorStateListener`       | `void Function(String? message, VoidCallback? onRetry, dynamic exception, StackTrace? stackTrace)?` | Optional | Invoked when the state is `ErrorState`. |
 | `listenWhen`               | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                   | Optional         | Determines whether to listen for state changes based on previous and next state comparisons. |
-| `shouldCallListenerOnInit` | `bool`                                                                                        | Optional         | Determines whether the state listener should be called immediately upon initialization. Defaults to `false`. |
+| `callListenerOnInit` | `bool`                                                                                        | Optional         | Determines whether the state listener should be called immediately upon initialization. Defaults to `false`. |
 | `child`                    | `Widget?`                                                                                    | **Required**     | The child widget wrapped by `ViewStateListener`. |
 
 

@@ -23,7 +23,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// - `listenWhen`: **(Optional)** A function that determines whether the `listener`
 ///   should be triggered based on the previous and current state. Defaults to
 ///   listening when `previous != current`.
-/// - `shouldCallListenerOnInit`: **(Optional, default: `false`)** Determines whether
+/// - `callListenerOnInit`: **(Optional, default: `false`)** Determines whether
 ///   the `listener` should be called when the widget is first initialized.
 /// - `child`: **(Optional)** A widget that does not depend on the state. It will
 ///   be preserved across rebuilds, preventing unnecessary re-renders.
@@ -32,7 +32,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// ```dart
 /// StateConsumer<MyState>(
 ///   provider: provider,
-///   shouldCallListenerOnInit: false, // Default is false
+///   callListenerOnInit: false, // Default is false
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
@@ -76,7 +76,7 @@ class StateConsumer<T> extends StateConsumerBase<StateValueListenable<T>, T> {
     super.rebuildWhen,
     required super.listener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(provider: provider);
 
@@ -101,7 +101,7 @@ class StateConsumer<T> extends StateConsumerBase<StateValueListenable<T>, T> {
     RebuildWhen<T>? rebuildWhen,
     required ListenerCallback<T> listener,
     ListenWhen<T>? listenWhen,
-    bool shouldCallListenerOnInit = false,
+    bool callListenerOnInit = false,
     Widget? child,
   }) {
     return _StateConsumerOf<P, T>(
@@ -110,7 +110,7 @@ class StateConsumer<T> extends StateConsumerBase<StateValueListenable<T>, T> {
       rebuildWhen: rebuildWhen,
       listener: listener,
       listenWhen: listenWhen,
-      shouldCallListenerOnInit: shouldCallListenerOnInit,
+      callListenerOnInit: callListenerOnInit,
       child: child,
     );
   }
@@ -124,7 +124,7 @@ class _StateConsumerOf<P extends StateValueListenable<T>, T>
     super.rebuildWhen,
     required super.listener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(provider: null);
 }
@@ -138,7 +138,7 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
     required this.listener,
     this.listenWhen,
     this.provider,
-    this.shouldCallListenerOnInit = false,
+    this.callListenerOnInit = false,
     this.child,
   });
 
@@ -162,7 +162,7 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
   final ListenerCallback<T> listener;
 
   /// Whether the listener should be called when the widget is first initialized.
-  final bool shouldCallListenerOnInit;
+  final bool callListenerOnInit;
 
   /// An optional child widget that does not depend on the state and will not be rebuilt.
   final Widget? child;
@@ -191,8 +191,8 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
         ),
       )
       ..add(DiagnosticsProperty<bool>(
-        'shouldCallListenerOnInit',
-        shouldCallListenerOnInit,
+        'callListenerOnInit',
+        callListenerOnInit,
         defaultValue: false,
       ))
       ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
@@ -208,7 +208,7 @@ class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
     super.initState();
     _provider = widget.provider ?? _readProvider;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.shouldCallListenerOnInit) {
+      if (widget.callListenerOnInit) {
         widget.listener(
           context,
           _provider.state,

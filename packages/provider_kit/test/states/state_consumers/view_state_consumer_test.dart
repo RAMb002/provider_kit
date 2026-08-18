@@ -46,7 +46,7 @@ void main() {
       DataStateListener<String>? dataStateListener,
       RebuildWhen<ViewState<String>>? rebuildWhen,
       ListenWhen<ViewState<String>>? listenWhen,
-      bool shouldCallListenerOnInit = false,
+      bool callListenerOnInit = false,
       bool isSliver = false,
       bool withDefaultWidgetProvider = true,
     }) {
@@ -64,7 +64,7 @@ void main() {
         dataStateListener: dataStateListener,
         rebuildWhen: rebuildWhen,
         listenWhen: listenWhen,
-        shouldCallListenerOnInit: shouldCallListenerOnInit,
+        callListenerOnInit: callListenerOnInit,
         isSliver: isSliver,
       );
 
@@ -537,7 +537,7 @@ void main() {
           provider: provider,
           dataBuilder: (_) => const SizedBox(),
           initialStateListener: () => initialCalled = true,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
         ),
       );
 
@@ -554,7 +554,7 @@ void main() {
     });
 
     testWidgets(
-      'does not call listener on init when shouldCallListenerOnInit is false, but calls on state change',
+      'does not call listener on init when callListenerOnInit is false, but calls on state change',
       (tester) async {
         final provider =
             TestViewStateNotifier<String>(const DataState('initial'));
@@ -565,7 +565,7 @@ void main() {
             provider: provider,
             dataBuilder: (_) => const SizedBox(),
             initialStateListener: () => initialCalled = true,
-            shouldCallListenerOnInit: false,
+            callListenerOnInit: false,
           ),
         );
 
@@ -731,7 +731,7 @@ void main() {
                   capturedException = exception;
                   capturedStackTrace = stackTrace;
                 },
-                shouldCallListenerOnInit: true,
+                callListenerOnInit: true,
               ),
             ),
           ),
@@ -759,7 +759,7 @@ void main() {
             return const SizedBox();
           },
           dataStateListener: (_) => dataListenerCount++,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -823,7 +823,7 @@ void main() {
           dataStateListener: (_) => dataListenerCount++,
           emptyStateListener: (_) => emptyListenerCount++,
           errorStateListener: (_, __, ___, ____) => errorListenerCount++,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -894,7 +894,7 @@ void main() {
       expect(loadingBuilt, true);
     });
 
-    testWidgets('shouldCallListenerOnInit calls matching listener on init',
+    testWidgets('callListenerOnInit calls matching listener on init',
         (tester) async {
       final provider =
           TestViewStateNotifier<String>(const DataState('initial'));
@@ -905,7 +905,7 @@ void main() {
           provider: provider,
           dataBuilder: (_) => const SizedBox(),
           dataStateListener: (_) => dataCount++,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
         ),
       );
 
@@ -916,7 +916,7 @@ void main() {
       expect(dataCount, 2);
     });
 
-    testWidgets('shouldCallListenerOnInit false does not call on init',
+    testWidgets('callListenerOnInit false does not call on init',
         (tester) async {
       final provider =
           TestViewStateNotifier<String>(const DataState('initial'));
@@ -927,7 +927,7 @@ void main() {
           provider: provider,
           dataBuilder: (_) => const SizedBox(),
           dataStateListener: (_) => dataCount++,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -956,7 +956,7 @@ void main() {
           dataBuilder: (_) => const SizedBox(),
           dataStateListener: (_) => dataCount++,
           listenWhen: listenWhen,
-          shouldCallListenerOnInit: false,
+          callListenerOnInit: false,
         ),
       );
 
@@ -1218,7 +1218,7 @@ void main() {
         dataStateListener: (_) {},
         rebuildWhen: (_, __) => true,
         listenWhen: (_, __) => true,
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         isSliver: true,
       ).debugFillProperties(builder);
 
@@ -1232,8 +1232,8 @@ void main() {
       expect(description.any((e) => e.contains('rebuildWhen')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
-        description.any((e) =>
-            e.contains('shouldCallListenerOnInit') && e.contains('true')),
+        description
+            .any((e) => e.contains('callListenerOnInit') && e.contains('true')),
         isTrue,
       );
 

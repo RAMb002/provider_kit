@@ -21,14 +21,14 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
 /// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current state. Defaults to calling the listener when `previous != current`.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`child`** (*Required*) **:** Your child widget goes here.
 ///
 /// ### Example Usage:
 /// ```dart
 /// ViewStateListener<Provider, DataType>(
 ///   provider: provider,
-///   shouldCallListenerOnInit: false, // Optional, default is false
+///   callListenerOnInit: false, // Optional, default is false
 ///   initialStateListener: () {
 ///     // Handle initial state
 ///   },
@@ -76,7 +76,7 @@ class ViewStateListener<T>
     super.errorStateListener,
     super.dataStateListener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(provider: provider);
 
@@ -103,7 +103,7 @@ class ViewStateListener<T>
     ErrorStateListener? errorStateListener,
     DataStateListener<T>? dataStateListener,
     ListenWhen<ViewState<T>>? listenWhen,
-    bool shouldCallListenerOnInit = false,
+    bool callListenerOnInit = false,
     Widget? child,
   }) {
     return _ViewStateListenerOf<P, T>(
@@ -114,7 +114,7 @@ class ViewStateListener<T>
       errorStateListener: errorStateListener,
       dataStateListener: dataStateListener,
       listenWhen: listenWhen,
-      shouldCallListenerOnInit: shouldCallListenerOnInit,
+      callListenerOnInit: callListenerOnInit,
       child: child,
     );
   }
@@ -130,7 +130,7 @@ class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
     super.errorStateListener,
     super.dataStateListener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(provider: null);
 }
@@ -152,7 +152,7 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     this.errorStateListener,
     this.dataStateListener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(
           listener: _createViewStateListener<T>(

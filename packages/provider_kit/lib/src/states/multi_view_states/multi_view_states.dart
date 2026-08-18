@@ -39,7 +39,7 @@ import 'package:provider_kit/src/view_state_widgets_provider.dart';
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
 /// - **`rebuildWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering builder whenever any provider's state changes.
 /// - **`listenWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering listener whenever any provider's state changes.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
 ///
 /// ### Example Usage:
@@ -87,7 +87,7 @@ import 'package:provider_kit/src/view_state_widgets_provider.dart';
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
-///   shouldCallListenerOnInit: true, // Optional, default is false
+///   callListenerOnInit: true, // Optional, default is false
 ///   isSliver: false, // Optional, default is false
 /// )
 /// ```
@@ -123,7 +123,7 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
       this.errorStateListener,
       this.dataStateListener,
       super.listenWhen,
-      super.shouldCallListenerOnInit,
+      super.callListenerOnInit,
       this.isSliver = false})
       : super(
           providers: providers,
@@ -204,7 +204,7 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
 /// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
 /// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
 /// - **`listenWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering listener whenever any provider's state changes.
-/// - **`shouldCallListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
+/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
 /// - **`child`** (*Optional*) **:** A widget that is part of the widget tree.
 ///
 /// ### Example Usage:
@@ -229,7 +229,7 @@ class MultiViewStateConsumer<T> extends MultiStateConsumer<ViewState<T>> {
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
-///   shouldCallListenerOnInit: true, // Optional, default is false
+///   callListenerOnInit: true, // Optional, default is false
 ///   child: SomeWidget(), // Optional
 /// )
 /// ```
@@ -252,7 +252,7 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
     this.errorStateListener,
     this.dataStateListener,
     super.listenWhen,
-    super.shouldCallListenerOnInit,
+    super.callListenerOnInit,
     super.child,
   }) : super(
           providers: providers,

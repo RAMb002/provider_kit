@@ -19,7 +19,7 @@ class ViewStateListenerExample extends StatelessWidget {
             icon: Icons.refresh,
             onTap: () => context.read<ItemsProvider>().refresh(),
             child: ViewStateListener.of<ItemsProvider, List<Item>>(
-              shouldCallListenerOnInit: true,
+              callListenerOnInit: true,
               initialStateListener: () => context.showToast("initial state"),
               loadingStateListener: (message, progress) =>
                   context.showToast("loading state"),

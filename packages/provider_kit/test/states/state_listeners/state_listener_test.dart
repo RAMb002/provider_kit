@@ -115,7 +115,7 @@ void main() {
       await tester.pumpWidget(
         StateListener<int>(
           provider: provider,
-          shouldCallListenerOnInit: true,
+          callListenerOnInit: true,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -668,7 +668,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateListener(
-        shouldCallListenerOnInit: true,
+        callListenerOnInit: true,
         provider: CounterProvider(),
         listener: (context, state) {},
         listenWhen: (previous, current) => previous != current,
@@ -700,7 +700,7 @@ void main() {
       expect(
         description,
         contains(
-          'shouldCallListenerOnInit: true',
+          'callListenerOnInit: true',
         ),
       );
     });
