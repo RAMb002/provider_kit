@@ -7,11 +7,11 @@
 - Added configurable `KeepAliveState` support for preserving completed mutation states.
 - Added `MutationState` pattern-matching helpers: `when`, `maybeWhen`, `map`, and `maybeMap`.
 - Added convenience state getters: `isIdle`, `isLoading`, `isSuccess`, and `isError`.
-- Added access to successful mutation results through `Mutation.data`.  
+- Added access to successful mutation results through `Mutation.data`.
 <br>
 
 **State Widgets and ViewState Widgets**
-- Added `.of` constructors to 
+- Added `.of` constructors to:
   - `StateBuilder`
   - `StateListener`
   - `StateConsumer`
@@ -19,41 +19,57 @@
   - `ViewStateListener`
   - `ViewStateConsumer`
 
-  .of resolves the provider from the widget tree (uses P and T generics).
+  `.of` resolves the provider from the widget tree using `P` and `T` generics.
 
   ```dart
   StateBuilder.of<MyProvider, MyState>(builder: ...)
   ```
 
- - **Breaking:**
+- **Breaking:**
+  - Renamed `shouldCallListenerOnInit` to `callListenerOnInit`.
+  - All `State Widgets` and `ViewState Widgets` now use one generic (`T`) instead of two.
+  - The `provider` parameter is now required in the main constructor.
 
-    - Renamed `shouldCallListenerOnInit` to `callListenerOnInit`.
+    Before:
+    ```dart
+    StateBuilder<MyProvider, MyState>(
+      provider: myProvider,
+      ...
+    )
+    ```
 
-    - All `State Widgets` and `ViewState Widgets` now use ONE generic (T) instead of two.
-  provider parameter is now REQUIRED in the main constructor.  
+    After:
+    ```dart
+    StateBuilder<MyState>(
+      provider: myProvider,
+      ...
+    )
+    ```
 
-       Before:
-       ```dart
-       StateBuilder<MyProvider, MyState>(provider: myProvider, ...)
-       ```
-       After: 
-       ```dart
-       StateBuilder<MyState>(provider: myProvider, ...)
-       ```
+  - Context-based lookup is now available through `.of`.
 
-    - Context-based lookup: use .of instead.
+    Before:
+    ```dart
+    StateBuilder<MyProvider, MyState>(builder: ...)
+    ```
 
-       Before: 
-       ```dart
-       StateBuilder<MyProvider, MyState>(builder: ...)
-       ```
-       After:  
-       ```dart
-       StateBuilder.of<MyProvider, MyState>(builder: ...)
-       ```
-    - Removed the `NotifierBuilder`, `NotifierListener`, and `NotifierConsumer` aliases that were introduced in `0.1.0`.
-        - Use `StateBuilder`, `StateListener`, and `StateConsumer` instead.
+    After:
+    ```dart
+    StateBuilder.of<MyProvider, MyState>(builder: ...)
+    ```
 
+  - Removed the `NotifierBuilder`, `NotifierListener`, and `NotifierConsumer` aliases introduced in `0.1.0`.
+    - Use `StateBuilder`, `StateListener`, and `StateConsumer` instead.
+<br>
+
+**Testing**
+- Added test coverage for `Mutation`.
+- Updated existing test cases for state and widget functionality.
+<br>
+
+**Documentation**
+- Updated documentation and examples for the latest API changes.
+- Published the new **ProviderKit Snippets** VS Code extension for common ProviderKit templates.
 
 ## 0.2.0
 
