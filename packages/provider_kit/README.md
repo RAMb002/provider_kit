@@ -4,7 +4,7 @@
 
 
 <p align="center">
-  <img src="https://github.com/user-attachments/assets/da8a63f5-0543-4614-b904-7d3e35a6ef1b"
+  <img src="https://github.com/user-attachments/assets/76d037a7-16b0-4d77-92f0-18fa7d815ba9"
    width="100%"
    alt="ProviderKit" />
 </p>
@@ -132,7 +132,7 @@ class MyProvider extends StateNotifier<int> {
 
 State Widgets help you react to state changes from your provider (e.g., `StateNotifier`) in the UI.
 
-<p align=center>
+<p>
   <img
     src="https://github.com/user-attachments/assets/e5a1b3d2-6e95-4bcf-aa31-b88a5dd10046"
     width="354"
@@ -237,7 +237,7 @@ With Multi State Widgets, we can listen to the states of multiple providers usin
 > **Note:** The providers' states can be of the same type or different types (`dynamic`).  
 > The providers themselves are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
 
-<p align=center>
+<p>
   <img
     src="https://github.com/user-attachments/assets/f67ebb34-9435-4c43-9ed1-6c2e93df631a"
     width="338"
@@ -307,7 +307,7 @@ MultiStateConsumer<MyDataType>(
 
 It is particularly useful for managing data displayed by a view, such as data loaded from a server or local storage, where the UI needs to represent different stages of the data lifecycle.
 
-<p align=center>
+<p>
   <img
     src="https://github.com/user-attachments/assets/0a8736e6-56c3-4c8d-9774-5a67a9954396"
      width="325.5"
@@ -772,7 +772,7 @@ Multi View State Widgets allow us to listen to multiple providers `ViewState`'s 
 
 > **Key Difference:** Unlike `ViewStateListener`, `ViewStateBuilder`, and `ViewStateConsumer`, Multi View State Widgets require a **list of providers** as a mandatory attribute.
 
-<p align=center>
+<p>
   <img
     src="https://github.com/user-attachments/assets/2cdc892c-190c-4c7d-b61f-2d181ee63b63"
      width="630"
