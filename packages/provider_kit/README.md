@@ -31,7 +31,7 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
 | **State Caching** | Mixins for storing and restoring state when needed. |
 | **Provider Observation** | Observe provider lifecycle and state changes for better visibility and debugging. |
 | **Immutable State** | Provides immutable state objects for predictable state handling. |
-| **VS Code Snippets** | [ProviderKit Snippets](https://marketplace.visualstudio.com/) provides ready-to-use Dart snippets for common ProviderKit boilerplate. |
+| **VS Code Snippets** | [ProviderKit Snippets](https://marketplace.visualstudio.com/items?itemName=Ram-Prasanth.providerkit-snippets) provides ready-to-use Dart snippets for common ProviderKit boilerplate. |
 
 
 ---
@@ -1527,7 +1527,7 @@ Speed up ProviderKit development with **ProviderKit Snippets**, a VS Code extens
 
 Type `pk` in a Dart file to discover the available snippets.
 
-[Install VS Code Extension — ProviderKit Snippets](https://marketplace.visualstudio.com/)
+[Install VS Code Extension — ProviderKit Snippets](https://marketplace.visualstudio.com/items?itemName=Ram-Prasanth.providerkit-snippets)
 
 ---
 ### 🛠 Features & Bug Reports  
