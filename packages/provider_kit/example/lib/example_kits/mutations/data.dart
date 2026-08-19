@@ -1,4 +1,3 @@
-
 class Api {
   static Future<void> deleteTodo(int id) async {
     await Future.delayed(const Duration(seconds: 12));

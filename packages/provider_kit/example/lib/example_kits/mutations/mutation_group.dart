@@ -17,7 +17,7 @@ class _MutationGroupExampleState extends State<MutationGroupExample> {
 
   final deleteTodoGroup = MutationGroup<void>(
       // keepAliveStates: {KeepAliveState.success, KeepAliveState.error}
-    );
+      );
 
   @override
   void dispose() {
