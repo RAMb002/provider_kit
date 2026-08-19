@@ -2,13 +2,21 @@
 [![codecov](https://codecov.io/gh/RAMb002/provider_kit/graph/badge.svg)](https://codecov.io/gh/RAMb002/provider_kit)
 [![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/license/bsd-2-clause/)
 
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/da8a63f5-0543-4614-b904-7d3e35a6ef1b"
+   width="100%"
+   alt="ProviderKit" />
+</p>
+
+---
+
 **provider_kit** is a toolkit for Flutter that works seamlessly alongside the [`provider`](https://pub.dev/packages/provider) package. While `provider` handles dependency injection and makes objects available throughout the widget tree, ProviderKit adds reusable building blocks—notifiers, state objects, widgets, mutations, caching, observation, and utilities—to simplify common development patterns.
 
 Instead of repeatedly implementing state-management logic around `ChangeNotifier`, ProviderKit gives you ready-to-use components that reduce boilerplate, save time, and keep your code cleaner and more consistent.
 
 ---
-
-### Features
+<br>
 
 | 🎯 **Feature** | 📌 **Description** |
 |---|---|
@@ -109,7 +117,7 @@ ProviderKit's state management is based on Flutter's `ChangeNotifier` and `Liste
 
 ### StateNotifier
 
-`StateNotifier` is the core notifier provided by this library, similar to Flutter`s `ValueNotifier` but with enhanced capabilities. By extending `StateNotifier`, our providers become observable, allowing widgets to listen and react to state changes.
+`StateNotifier` is the core notifier provided by this library, similar to Flutter's `ValueNotifier` but with enhanced capabilities. By extending `StateNotifier`, our providers become observable, allowing widgets to listen and react to state changes.
 
 ```dart
 class MyProvider extends StateNotifier<int> {
@@ -123,6 +131,15 @@ class MyProvider extends StateNotifier<int> {
 ### _**State Widgets**_
 
 State Widgets help you react to state changes from your provider (e.g., `StateNotifier`) in the UI.
+
+<p align=center>
+  <img
+    src="https://github.com/user-attachments/assets/e5a1b3d2-6e95-4bcf-aa31-b88a5dd10046"
+    width="354"
+    height="240"
+    alt="State Widgets Demo"
+  />
+</p>
 
 The following widgets are available:
 
@@ -220,6 +237,15 @@ With Multi State Widgets, we can listen to the states of multiple providers usin
 > **Note:** The providers' states can be of the same type or different types (`dynamic`).  
 > The providers themselves are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
 
+<p align=center>
+  <img
+    src="https://github.com/user-attachments/assets/f67ebb34-9435-4c43-9ed1-6c2e93df631a"
+    width="338"
+    height="270"
+    alt="Multi State Widgets Demo"
+  />
+</p>
+
 - Multi State Widgets include **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
 
 ### MultiStateListener
@@ -280,6 +306,16 @@ MultiStateConsumer<MyDataType>(
 `ViewState` represents the different states a view can have, including `Initial`, `Loading`, `Data`, `Empty`, and `Error`.
 
 It is particularly useful for managing data displayed by a view, such as data loaded from a server or local storage, where the UI needs to represent different stages of the data lifecycle.
+
+<p align=center>
+  <img
+    src="https://github.com/user-attachments/assets/0a8736e6-56c3-4c8d-9774-5a67a9954396"
+     width="325.5"
+     height="262.5"
+    alt="View State Widgets Demo"
+  />
+</p>
+
 
 | State            | Description                                                       | Properties |
 |-----------------|-------------------------------------------------------------------|------------|
@@ -602,7 +638,7 @@ With `ViewStateWidgetsProvider`, we can significantly reduce the amount of UI bo
 
 ### View State Widgets
 
-These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding `ViewState`. They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes.For example `MyViewStateProvider` which we learned above.
+These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding [ViewState](#viewstate). They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes.For example `MyViewStateProvider` which we learned above.
 
 Each widget offers **two** ways to access the provider:
 1. **Explicitly** – pass a provider instance directly via the `provider` parameter.
@@ -731,10 +767,20 @@ ViewStateConsumer.of<MyViewStateProvider, MyDataType>(
 
 ## Multi View State Widgets
 
-Multi View State Widgets allow us to listen to multiple providers' `ViewState`s with a single widget. However, **these widgets do not read the provider**. 
+Multi View State Widgets allow us to listen to multiple providers `ViewState`'s with a single widget. However, **these widgets do not read the provider**. 
 >**Note:**  Our providers states can either be of the same types or dynamic.
 
 > **Key Difference:** Unlike `ViewStateListener`, `ViewStateBuilder`, and `ViewStateConsumer`, Multi View State Widgets require a **list of providers** as a mandatory attribute.
+
+<p align=center>
+  <img
+    src="https://github.com/user-attachments/assets/2cdc892c-190c-4c7d-b61f-2d181ee63b63"
+     width="630"
+     height="240"
+    alt="Multi View State Widgets Demo"
+  />
+</p>
+
 
 - Multi View State Widgets includes **`MultiViewStateListener`, `MultiViewStateBuilder` and `MultiViewStateConsumer`**.
 
@@ -788,7 +834,7 @@ The `MultiViewStateListener` allows listening to multiple `ViewState` providers 
 ```dart
 MultiViewStateListener<MyDataType>(
   providers: [viewStateProviderOne, viewStateProviderTwo, viewStateProviderThree],
-  dataStateListener: (dataStates) { //dataStates - list of data from providers `DataState`
+  dataStateListener: (dataStates) {
     print(dataStates);
   },
   child: YourChild(),
@@ -905,7 +951,6 @@ A `Mutation` manages the state of an asynchronous operation such as creating, up
 When an operation is running, you may want the UI to show a loading indicator, display the result when it succeeds, or show an error when it fails.
 
 `Mutation` handles these states for you, making it simple for the UI to react to the progress and result of an operation.
-
 
 <p>
   <img
@@ -1074,6 +1119,14 @@ Todo 3 → Error
 The key identifies the mutation within a specific `MutationGroup` instance. The group owns the cache and lifecycle of all mutations created through it.
 
 This is particularly useful for lists, where the same operation may need to run independently for many items.
+
+<p>
+  <img
+    src="https://github.com/user-attachments/assets/06c6d0d3-e764-4b2c-b546-4ed0460cc8fa"
+    width="290" height="355"
+    alt="Mutation Demo"
+  />
+</p>
 
 `MutationGroup` also automatically disposes keyed mutations that are no longer needed. This prevents a large or continuously scrolling list from retaining a mutation for every item the user has ever viewed.
 
