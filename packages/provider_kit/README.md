@@ -1,5 +1,5 @@
 [![Build](https://github.com/RAMb002/provider_kit/actions/workflows/build.yml/badge.svg)](https://github.com/RAMb002/provider_kit/actions/workflows/build.yml)
-[![codecov](https://codecov.io/gh/RAMb002/provider_kit/graph/badge.svg)](https://codecov.io/gh/RAMb002/provider_kit)
+<a href="https://codecov.io/gh/RAMb002/provider_kit"><img src="https://codecov.io/gh/RAMb002/provider_kit/branch/main/graph/badge.svg" alt="codecov">
 [![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/license/bsd-2-clause/)
 
 
@@ -1519,8 +1519,6 @@ class MyNotifierObserver extends NotifierObserver {
 
 ---
 
-> Few features of this package were inspired by `flutter_bloc`.
-
 ## VS Code Extension
 
 Speed up ProviderKit development with **ProviderKit Snippets**, a VS Code extension with ready-to-use Dart snippets for common ProviderKit boilerplate.
@@ -1530,6 +1528,10 @@ Type `pk` in a Dart file to discover the available snippets.
 [Install VS Code Extension — ProviderKit Snippets](https://marketplace.visualstudio.com/items?itemName=Ram-Prasanth.providerkit-snippets)
 
 ---
+### Acknowledgements
+
+Some features of this package were inspired by `flutter_bloc` and `riverpod`.
+
 ### 🛠 Features & Bug Reports  
 Have a feature request or found a bug? Feel free to open an issue on the [GitHub Issue Tracker](https://github.com/RAMb002/provider_kit/issues). Your feedback helps improve **ProviderKit**!  
 
