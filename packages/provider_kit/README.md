@@ -6,7 +6,9 @@
 <p align="center">
   <img src="https://github.com/user-attachments/assets/76d037a7-16b0-4d77-92f0-18fa7d815ba9"
    width="100%"
-   alt="ProviderKit" />
+   alt="ProviderKit"
+   style="border-radius: 16px;"
+   />
 </p>
 
 ---
@@ -109,7 +111,7 @@ ChangeNotifierProvider(
 ```
 For more information and details about registering your provider, see the documentation of [provider](https://pub.dev/packages/provider) package.
 
-Alright, now lets dive in !
+Alright, now let's dive in!
 
 ## State
 
@@ -121,7 +123,7 @@ ProviderKit's state management is based on Flutter's `ChangeNotifier` and `Liste
 
 ```dart
 class MyProvider extends StateNotifier<int> {
-  CounterProvider() : super(0);
+  MyProvider() : super(0);
 
   void increment() => state++;
   void decrement() => state--;
@@ -180,7 +182,7 @@ StateListener.of<MyProvider, MyDataType>(
 
 ### StateBuilder
 
-A widget in which the builder will be triggered on state change.
+A widget that rebuilds when the state changes.
 
 ```dart
 // Explicit provider
@@ -407,7 +409,7 @@ With `AsyncViewStateNotifier`, much of the boilerplate required for asynchronous
 
 ### **How does it work?**
 
-Instead of writing the entire `MyViewStateProvider` which we seen above, we can simply extend `AsyncViewStateNotifier` like this:
+Instead of writing the entire `MyViewStateProvider` that we saw above, we can simply extend `AsyncViewStateNotifier` like this:
 
 ```dart
 class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
@@ -423,7 +425,7 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
 ### **What does `AsyncViewStateNotifier` handle for us?**
 ✅ Automatically fetches data upon initialization.  
 ✅ Transitions to `LoadingState` before fetching.  
-✅ If the data is `Iterable` and if its empty, it switches to `EmptyState`.  
+✅ If the data is `Iterable` and if it's empty, it switches to `EmptyState`.  
 ✅ Catches exceptions and converts them into `ErrorState`.  
 ✅ Includes a built-in `onRefresh` function, which rebuilds the initialization logic.  
 ✅ Passes the `onRefresh` function, exception, and stack trace to `ErrorState`.  
@@ -441,11 +443,11 @@ With `AsyncViewStateNotifier`, state management becomes **cleaner, more efficien
 | **Property**               |                                          |                |
 | `state`                     | `ViewState<T>`                           | The current state of the provider, which can be `LoadingState`, `DataState`, `EmptyState`, or `ErrorState`. |
 | **Methods**                  |                                          |                |
-| `init()`                     | `FutureOr<void>`                         | Runs on initialization, setting up states and **Guarded with Try catch**. It won't execute again if already initialized unless `refresh` is called. |
+| `init()`                     | `FutureOr<void>`                         | Runs on initialization, setting up states and **Guarded with try-catch block**. It won't execute again if already initialized unless `refresh` is called. |
 | `fetchData()`                | `FutureOr<T>`                            | Fetches data from an API or database. Must be implemented in subclasses. |
-| `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize default `ErrorState` Object |
-| `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize default `LoadingState` Object  |
-| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize default `EmptyState` Object  instance. |
+| `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize the default `ErrorState` Object |
+| `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize the default `LoadingState` Object  |
+| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize the default `EmptyState` Object  instance. |
 | `refresh()`                  | `Future<void>`                           | Refreshes the provider which will call `init` with `fetchData()` again. |
 
 
@@ -638,7 +640,7 @@ With `ViewStateWidgetsProvider`, we can significantly reduce the amount of UI bo
 
 ### View State Widgets
 
-These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding [ViewState](#viewstate). They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes.For example `MyViewStateProvider` which we learned above.
+These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding [ViewState](#viewstate). They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes. For example `MyViewStateProvider` which we learned above.
 
 Each widget offers **two** ways to access the provider:
 1. **Explicitly** – pass a provider instance directly via the `provider` parameter.
@@ -646,7 +648,7 @@ Each widget offers **two** ways to access the provider:
 
 > **Note:** For the `.of` method to work, the provider must be registered in the widget tree using `Provider`, `ChangeNotifierProvider`, or a similar widget from the [`provider`](https://pub.dev/packages/provider) package.
 
-- View State Widgets includes **`ViewStateListener`, `ViewStateBuilder`, `ViewStateConsumer`**.
+- View State Widgets include **`ViewStateListener`, `ViewStateBuilder`, `ViewStateConsumer`**.
 
 
 ### ViewStateListener
@@ -654,8 +656,8 @@ This widget provides individual `listener` callbacks for each `ViewState`, allow
 
 ```dart
 // Explicit provider
-ViewStateListener<MyDataType(
-  provider: myProvider
+ViewStateListener<MyDataType>(
+  provider: myProvider,
   dataStateListener: (data) => context.showToast(data.toString()),
   child: YourWidget(),
 )
@@ -727,8 +729,8 @@ This widget combines features of both `ViewStateListener` and `ViewStateBuilder`
 
 ```dart
 // Explicit provider
-ViewStateConsumer<MyDataType(
-  provider: myProvider
+ViewStateConsumer<MyDataType>(
+  provider: myProvider,
   dataStateListener: (data) {
     print(data);
   },
@@ -782,7 +784,7 @@ Multi View State Widgets allow us to listen to multiple providers `ViewState`'s 
 </p>
 
 
-- Multi View State Widgets includes **`MultiViewStateListener`, `MultiViewStateBuilder` and `MultiViewStateConsumer`**.
+- Multi View State Widgets include **`MultiViewStateListener`, `MultiViewStateBuilder` and `MultiViewStateConsumer`**.
 
 
 ### How Multi View State Widgets Work
@@ -814,7 +816,7 @@ The behavior of **`MultiViewStateBuilder`**, **`MultiViewStateListener`**, and *
 ### Additional Notes
 - **First encountered state** applies to all states **except** `DataState`.
 - **`LoadingState` progress** is **aggregated** from all active `LoadingState`s into a **single combined value**.
-- **Modifying `listenWhen` or `rebuildWhen`**  **overrides** the default priority logic which will results in triggering `listener` or `builder` **whenever any provider's state changes**.
+- **Modifying `listenWhen` or `rebuildWhen`**  **overrides** the default priority logic which will result in triggering `listener` or `builder` **whenever any provider's state changes**.
 
 ### Handling `EmptyState` in MultiViewState Widgets  
 
@@ -885,7 +887,7 @@ Some mixins to help with `ViewState` caching and data caching that will come han
 
 ### ExViewStateCacheMixin
 
-This mixin can be used on provider with `ViewState` support like `ViewStateNotifier` or `AsyncViewStateNotifier`. It provides caching capabilities for different view states. It keeps track of the most recent state of each type and allows easy retrieval of cached states.
+This mixin can be used on a provider with `ViewState` support like `ViewStateNotifier` or `AsyncViewStateNotifier`. It provides caching capabilities for different view states. It keeps track of the most recent state of each type and allows easy retrieval of cached states.
 
 #### Features
 - Stores the last known state for each `ViewState` type.
@@ -948,7 +950,7 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<String>> with Data
 ## Mutations
 
 A `Mutation` manages the state of an asynchronous operation such as creating, updating, deleting, or submitting data.
-When an operation is running, you may want the UI to show a loading indicator, display the result when it succeeds, or show an error when it fails.
+When an operation is running, the UI may need to show a loading indicator, display the result when it succeeds, or show an error when it fails.
 
 `Mutation` handles these states for you, making it simple for the UI to react to the progress and result of an operation.
 
@@ -1036,7 +1038,7 @@ The successful result is available through `MutationSuccess`, while `MutationErr
 
 ```dart
 final todo = await addTodo.run(
-  () => Api.addTodo(todo),
+  () => Api.addTodo(todoId),
 );
 
 // Add the created todo to the local list.
@@ -1436,8 +1438,8 @@ NestedStateListener(
             // Handle state changes
           },
         ),
-        ViewStateListener<DataType(
-          provider: MyProvider()
+        ViewStateListener<DataType>(
+          provider: MyProvider(),
           dataStateListener: (data) {
             // Handle view state changes
           },
@@ -1466,7 +1468,7 @@ NestedStateListener(
 ## NotifierObserver  
 
 The `NotifierObserver` helps you monitor the lifecycle of all notifiers in your application.  
-It can be used for debugging, logging, analytics, or any other cross‑cutting concern – it receives callbacks whenever a notifier is created, changes state, throws an error, or is disposed.
+It can be used for debugging, logging, analytics, or any other cross‑cutting concern – it receives callbacks whenever a notifier is created, changes state, reports an error, or is disposed.
 
 ### Setting up a global observer
 
