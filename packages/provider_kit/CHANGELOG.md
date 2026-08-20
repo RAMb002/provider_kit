@@ -1,4 +1,4 @@
-## Unreleased
+## 0.3.0
 
 **Mutations**
 - Added `Mutation` for managing the state of asynchronous operations.
