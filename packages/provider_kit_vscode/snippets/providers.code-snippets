@@ -1,0 +1,71 @@
+{
+    "StateNotifier": {
+        "prefix": "pkStateNotifier",
+        "description": "Create a StateNotifier.",
+        "body": [
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:ProviderName}Provider extends StateNotifier<${2:StateType}> {",
+            "",
+            "  ${1:ProviderName}Provider(super.state);",
+            "",
+            "  $0",
+            "}"
+        ]
+    },
+    "ViewStateNotifier": {
+        "prefix": "pkViewStateNotifier",
+        "description": "Create a ViewStateNotifier with ProviderKit state typedefs and widget aliases.",
+        "body": [
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:ProviderName}Provider extends ViewStateNotifier<${2:DataType}> {",
+            "",
+            "  ${1:ProviderName}Provider() : super(const LoadingState());",
+            "",
+            "  $0",
+            "}",
+            "",
+            "typedef ${1:ProviderName}ViewState = ViewState<${2:DataType}>;",
+            "",
+            "typedef ${1:ProviderName}InitialState = InitialState<${2:DataType}>;",
+            "typedef ${1:ProviderName}LoadingState = LoadingState<${2:DataType}>;",
+            "typedef ${1:ProviderName}EmptyState = EmptyState<${2:DataType}>;",
+            "typedef ${1:ProviderName}DataState = DataState<${2:DataType}>;",
+            "typedef ${1:ProviderName}ErrorState = ErrorState<${2:DataType}>;",
+            "",
+            "typedef ${1:ProviderName}ViewStateBuilder = ViewStateBuilder<${2:DataType}>;",
+            "typedef ${1:ProviderName}ViewStateListener = ViewStateListener<${2:DataType}>;",
+            "typedef ${1:ProviderName}ViewStateConsumer = ViewStateConsumer<${2:DataType}>;"
+        ]
+    },
+    "AsyncViewStateNotifier": {
+        "prefix": "pkAsyncViewStateNotifier",
+        "description": "Create an AsyncViewStateNotifier with ProviderKit state typedefs and widget aliases.",
+        "body": [
+            "import 'dart:async';",
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:ProviderName}Provider extends AsyncViewStateNotifier<${2:DataType}> {",
+            "",
+            "  @override",
+            "  FutureOr<${2:DataType}> fetchData() async {",
+            "    return $0;",
+            "  }",
+            "",
+            "}",
+            "",
+            "typedef ${1:ProviderName}ViewState = ViewState<${2:DataType}>;",
+            "",
+            "typedef ${1:ProviderName}InitialState = InitialState<${2:DataType}>;",
+            "typedef ${1:ProviderName}LoadingState = LoadingState<${2:DataType}>;",
+            "typedef ${1:ProviderName}EmptyState = EmptyState<${2:DataType}>;",
+            "typedef ${1:ProviderName}DataState = DataState<${2:DataType}>;",
+            "typedef ${1:ProviderName}ErrorState = ErrorState<${2:DataType}>;",
+            "",
+            "typedef ${1:ProviderName}ViewStateBuilder = ViewStateBuilder<${2:DataType}>;",
+            "typedef ${1:ProviderName}ViewStateListener = ViewStateListener<${2:DataType}>;",
+            "typedef ${1:ProviderName}ViewStateConsumer = ViewStateConsumer<${2:DataType}>;",
+        ]
+    },
+}
