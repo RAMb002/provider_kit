@@ -161,6 +161,16 @@ void main() {
       expect(dataState.data, []);
     });
 
+    test('fetchData supports synchronous results', () async {
+      final provider = TestProvider<String>(
+        fetchDataImpl: () => 'sync data',
+      );
+
+      await Future.microtask(() {});
+
+      expect(provider.state, const DataState('sync data'));
+    });
+
     // -----------------------------------------------------------------------
     // 5. refresh() method
     // -----------------------------------------------------------------------
@@ -197,6 +207,187 @@ void main() {
       expect(provider.state, isA<ErrorState<String>>());
       final errorState = provider.state as ErrorState<String>;
       expect(errorState.message, 'Exception: Refresh error');
+    });
+
+    test('concurrent refresh calls reuse the current build operation',
+        () async {
+      final completer = Completer<String>();
+      int fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+          return completer.future;
+        },
+      );
+
+      final firstRefresh = provider.refresh();
+      final secondRefresh = provider.refresh();
+      final thirdRefresh = provider.refresh();
+
+      expect(fetchCount, 1);
+      expect(provider.state, isA<LoadingState<String>>());
+
+      completer.complete('data');
+
+      await Future.wait([
+        firstRefresh,
+        secondRefresh,
+        thirdRefresh,
+      ]);
+
+      expect(fetchCount, 1);
+      expect(provider.state, const DataState('data'));
+    });
+
+    test('refresh starts a new operation after the current one completes',
+        () async {
+      int fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+          return 'data$fetchCount';
+        },
+      );
+
+      await Future.microtask(() {});
+
+      expect(fetchCount, 1);
+      expect(provider.state, const DataState('data1'));
+
+      await provider.refresh();
+
+      expect(fetchCount, 2);
+      expect(provider.state, const DataState('data2'));
+
+      await provider.refresh();
+
+      expect(fetchCount, 3);
+      expect(provider.state, const DataState('data3'));
+    });
+
+    test(
+        'concurrent refresh calls complete when the shared operation completes',
+        () async {
+      final completer = Completer<String>();
+      int fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+          return completer.future;
+        },
+      );
+
+      final firstRefresh = provider.refresh();
+      final secondRefresh = provider.refresh();
+
+      var firstCompleted = false;
+      var secondCompleted = false;
+
+      firstRefresh.then((_) => firstCompleted = true);
+      secondRefresh.then((_) => secondCompleted = true);
+
+      await Future.microtask(() {});
+
+      expect(fetchCount, 1);
+      expect(firstCompleted, false);
+      expect(secondCompleted, false);
+
+      completer.complete('data');
+
+      await Future.wait([
+        firstRefresh,
+        secondRefresh,
+      ]);
+
+      expect(firstCompleted, true);
+      expect(secondCompleted, true);
+      expect(provider.state, const DataState('data'));
+    });
+
+    test('concurrent refresh calls share the same error operation', () async {
+      final completer = Completer<String>();
+      int fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+          return completer.future;
+        },
+      );
+
+      final firstRefresh = provider.refresh();
+      final secondRefresh = provider.refresh();
+
+      expect(fetchCount, 1);
+
+      completer.completeError(Exception('Refresh failed'));
+
+      await Future.wait([
+        firstRefresh,
+        secondRefresh,
+      ]);
+
+      expect(fetchCount, 1);
+      expect(provider.state, isA<ErrorState<String>>());
+
+      final errorState = provider.state as ErrorState<String>;
+      expect(errorState.message, 'Exception: Refresh failed');
+    });
+
+    test('refresh can run again after a failed operation', () async {
+      int fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+
+          if (fetchCount == 1) {
+            throw Exception('First failure');
+          }
+
+          return 'success';
+        },
+      );
+
+      await Future.microtask(() {});
+
+      expect(provider.state, isA<ErrorState<String>>());
+      expect(fetchCount, 1);
+
+      await provider.refresh();
+
+      expect(fetchCount, 2);
+      expect(provider.state, const DataState('success'));
+    });
+
+    test('refresh reuses the initial build operation when it is still running',
+        () async {
+      final completer = Completer<String>();
+      int fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+          return completer.future;
+        },
+      );
+
+      expect(fetchCount, 1);
+      expect(provider.state, isA<LoadingState<String>>());
+
+      final refreshFuture = provider.refresh();
+
+      expect(fetchCount, 1);
+
+      completer.complete('data');
+
+      await refreshFuture;
+
+      expect(fetchCount, 1);
+      expect(provider.state, const DataState('data'));
     });
 
     // -----------------------------------------------------------------------

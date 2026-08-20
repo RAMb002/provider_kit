@@ -4,19 +4,22 @@ import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/view_states.dart';
 
-/// {@template providerkit-asyncviewstatenotifier}
+/// {@template provider_kit.asyncViewStateNotifier}
 /// An abstract class that extends [AsyncViewStateNotifierInterface] and provides default implementations for state management.
 ///
 /// The [AsyncViewStateNotifier] class is designed to handle common state transitions such as loading, error, and empty states.
-/// It ensures that the `init` method is guarded and automatically converts exceptions to error states.
-/// Override `init` method for full customization.
+/// It guards the initialization and refresh operations, prevents duplicate
+/// asynchronous operations while a build is already running, and automatically
+/// converts exceptions to error states.
+/// Override [init] for full customization.
 /// ```dart
 /// FutureOr<void> init() async {
 ///   if (state is! LoadingState<T>) {
 ///     state = loadingStateObject();
 ///   }
-///   T data = await fetchData();
-///   if (!_disableEmptyState && data is Iterable && data.isEmpty) {
+///   final T data = await fetchData();
+///   if (!mounted) return;
+///   if (data is Iterable && data.isEmpty) {
 ///     state = emptyStateObject();
 ///   } else {
 ///     state = DataState<T>(data);
@@ -31,6 +34,8 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// ### Customization:
 /// Users can override the following methods to customize state handling inside default init:
 /// - **`fetchData`** (*Required*) **:** The method that actually fetches the data. Must be implemented by subclasses.
+/// - **`init`** (*Optional*) **:** Customize the initialization and state transition flow.
+/// - **`refresh`** (*Optional*) **:** A method that can be used to retry fetching data.
 /// - **`errorStateObject`** (*Optional*) **:** Customize the error state object, allowing you to define a custom error message, additional metadata, or override how errors are handled.
 /// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
 /// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
@@ -38,7 +43,7 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// When [AsyncViewStateNotifier] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
 /// the **`onRetry`** function for the `ErrorState` will be determined as follows:
 /// 1. If `onRetry` is explicitly set in the `ErrorState`, that function will be used.
-/// 2. If `onRetry` is `null`, the provider’s `refresh()` function will be automatically used for retrying.
+/// 2. If `onRetry` is `null`, the provider’s [refresh] function will be automatically used for retrying.
 ///
 /// ### Example Usage:
 /// ```dart
@@ -85,6 +90,7 @@ import 'package:provider_kit/src/states/view_states.dart';
 /// ### Error Handling:
 /// - The `onError` method is called when an error occurs and registers the error in the state observer log.
 /// - The `refresh` method can be used to retry fetching data and will set the state to loading before retrying.
+/// - If a build operation is already in progress, additional `refresh` calls reuse the current operation instead of starting another fetch.
 ///
 /// ### Initial State:
 /// - By default, the initial state is set to **`LoadingState`**.
@@ -94,13 +100,41 @@ abstract class AsyncViewStateNotifier<T>
     extends AsyncViewStateNotifierInterface<T> {
   final bool _disableEmptyState;
 
-  /// {@macro providerkit-asyncviewstatenotifier}
+  /// The currently running build operation, if any.
+  Future<void>? _buildFuture;
+
+  /// {@macro provider_kit.asyncViewStateNotifier}
   AsyncViewStateNotifier({super.initialState, bool disableEmptyState = false})
       : _disableEmptyState = disableEmptyState {
     _build();
   }
 
-  FutureOr<void> _build() async {
+  /// Starts a build operation or returns the currently running operation.
+  ///
+  /// Multiple callers receive the same [Future] while a build is in progress,
+  /// preventing duplicate fetch operations.
+  Future<void> _build() {
+    if (!mounted) return Future.value();
+
+    final currentBuild = _buildFuture;
+    if (currentBuild != null) {
+      return currentBuild;
+    }
+
+    final future = _executeBuild();
+
+    _buildFuture = future;
+
+    future.whenComplete(() {
+      if (identical(_buildFuture, future)) {
+        _buildFuture = null;
+      }
+    });
+
+    return future;
+  }
+
+  Future<void> _executeBuild() async {
     if (!mounted) return;
     try {
       await init();
@@ -120,7 +154,7 @@ abstract class AsyncViewStateNotifier<T>
       state = loadingStateObject();
     }
     // Fetch data.
-    T data = await fetchData();
+    final T data = await fetchData();
 
     if (!mounted) return;
     // Set the state to empty if the data is an empty iterable.
@@ -152,7 +186,8 @@ abstract class AsyncViewStateNotifier<T>
   @override
   @mustCallSuper
 
-  ///This method takes care of guarding your init logic and trigger state if theres any exception
+  /// Handles errors thrown during initialization and updates the state
+  /// with an [ErrorState].
   void onError(Object error, StackTrace stackTrace) {
     if (!mounted) return;
     state = errorStateObject(error, stackTrace);
@@ -161,11 +196,14 @@ abstract class AsyncViewStateNotifier<T>
 
   @mustCallSuper
   @override
+
+  /// The `refresh` method can be used to retry fetching data and will set the
+  /// state to loading before retrying. If a build operation is already in
+  /// progress, additional `refresh` calls reuse the current operation instead
+  /// of starting another fetch.
   Future<void> refresh() async {
     if (!mounted) return;
-    if (state is! LoadingState<T>) {
-      state = loadingStateObject();
-    }
+    // Reuses the current build operation if one is already running.
     await _build();
   }
 }
@@ -188,9 +226,9 @@ abstract class AsyncViewStateNotifierInterface<T> extends ViewStateNotifier<T> {
   }) : super(initialState ?? LoadingState<T>());
 
   @protected
-  FutureOr<void>? init();
+  FutureOr<void> init();
 
-  FutureOr<void> refresh();
+  Future<void> refresh();
 
   FutureOr<T> fetchData();
 
