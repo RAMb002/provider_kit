@@ -1,0 +1,6 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: I have a problem and need help
+    url: https://github.com/RAMb002/provider_kit/discussions
+    about: Ask questions and get help from the community.
