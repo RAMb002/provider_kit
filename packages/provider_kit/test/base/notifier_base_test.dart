@@ -88,6 +88,9 @@ class ExposedNotifier extends StateNotifier<int> {
 // Tests
 // -----------------------------------------------------------------------------
 void main() {
+  setUp(() {
+    ProviderKit.resetForTesting();
+  });
   group('lifecycle', () {
     test('mounted returns true before dispose, false after', () {
       final notifier = StateNotifier<int>(0);
@@ -121,8 +124,10 @@ void main() {
 
     test('dispose sets _disposed flag and notifies observer', () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       final notifier = StateNotifier<int>(0);
       notifier.dispose();
@@ -130,8 +135,6 @@ void main() {
       expect(spy.onDisposeCalls, 1);
       expect(spy.lastOnDisposeTarget, notifier);
       expect(notifier.mounted, isFalse);
-
-      NotifierBase.observer = original;
     });
 
     test('dispose can be called multiple times safely', () {
@@ -169,21 +172,23 @@ void main() {
 
     test('observer.onCreate is called on instantiation', () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       final notifier = StateNotifier<int>(99);
 
       expect(spy.onCreateCalls, 1);
       expect(spy.lastOnCreateTarget, notifier);
 
-      NotifierBase.observer = original;
+      notifier.dispose();
     });
 
     test('observer.onChange is called on state change', () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       final notifier = StateNotifier<int>(1);
       notifier.state = 2;
@@ -197,13 +202,14 @@ void main() {
       notifier.state = 2; // same
       expect(spy.onChangeCalls, 0);
 
-      NotifierBase.observer = original;
+      notifier.dispose();
     });
 
     test('observer.onError is called when an error occurs during onChange', () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       final notifier = ThrowingNotifier(1);
       expect(() => notifier.state = 2, throwsException);
@@ -213,27 +219,27 @@ void main() {
       expect(spy.lastError, isA<Exception>());
       expect(spy.lastStackTrace, isNotNull);
 
-      NotifierBase.observer = original;
+      notifier.dispose();
     });
 
     test('observer.onDispose is called on dispose', () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       final notifier = StateNotifier<int>(1);
       notifier.dispose();
 
       expect(spy.onDisposeCalls, 1);
       expect(spy.lastOnDisposeTarget, notifier);
-
-      NotifierBase.observer = original;
     });
 
     test('custom observer can be set globally', () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       final notifier = StateNotifier<int>(10);
       notifier.state = 20;
@@ -242,8 +248,6 @@ void main() {
       expect(spy.onCreateCalls, 1);
       expect(spy.onChangeCalls, 1);
       expect(spy.onDisposeCalls, 1);
-
-      NotifierBase.observer = original;
     });
   });
   group('Change', () {

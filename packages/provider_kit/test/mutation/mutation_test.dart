@@ -2144,123 +2144,114 @@ void main() {
       );
     });
     group('NotifierObserver', () {
+      setUp(() {
+        ProviderKit.resetForTesting();
+      });
       test('observes mutation lifecycle events on success', () async {
         final observer = _TestNotifierObserver();
-        final previous = NotifierBase.observer;
+        ProviderKit.configure(
+          observer: observer,
+        );
 
-        NotifierBase.observer = observer;
+        final mutation = Mutation<int>();
 
-        try {
-          final mutation = Mutation<int>();
+        expect(observer.created, contains(mutation));
 
-          expect(observer.created, contains(mutation));
+        await mutation.run(() async => 42);
 
-          await mutation.run(() async => 42);
+        expect(observer.changes, hasLength(2));
 
-          expect(observer.changes, hasLength(2));
+        expect(observer.changes[0].currentState, isA<MutationIdle<int>>());
+        expect(observer.changes[0].nextState, isA<MutationLoading<int>>());
 
-          expect(observer.changes[0].currentState, isA<MutationIdle<int>>());
-          expect(observer.changes[0].nextState, isA<MutationLoading<int>>());
+        expect(observer.changes[1].currentState, isA<MutationLoading<int>>());
+        expect(observer.changes[1].nextState, isA<MutationSuccess<int>>());
 
-          expect(observer.changes[1].currentState, isA<MutationLoading<int>>());
-          expect(observer.changes[1].nextState, isA<MutationSuccess<int>>());
+        expect(observer.errors, isEmpty);
 
-          expect(observer.errors, isEmpty);
+        mutation.dispose();
 
-          mutation.dispose();
-
-          expect(observer.disposed, contains(mutation));
-        } finally {
-          NotifierBase.observer = previous;
-        }
+        expect(observer.disposed, contains(mutation));
       });
 
       test('observes mutation lifecycle events on error', () async {
         final observer = _TestNotifierObserver();
-        final previous = NotifierBase.observer;
+        ProviderKit.configure(
+          observer: observer,
+        );
 
-        NotifierBase.observer = observer;
+        final mutation = Mutation<int>();
+        final exception = StateError('failure');
 
         try {
-          final mutation = Mutation<int>();
-          final exception = StateError('failure');
-
-          try {
-            await mutation.run(() async {
-              throw exception;
-            });
-          } catch (error) {
-            expect(error, same(exception));
-          }
-
-          expect(observer.changes, hasLength(2));
-
-          expect(
-            observer.changes[0].currentState,
-            isA<MutationIdle<int>>(),
-          );
-          expect(
-            observer.changes[0].nextState,
-            isA<MutationLoading<int>>(),
-          );
-
-          expect(
-            observer.changes[1].currentState,
-            isA<MutationLoading<int>>(),
-          );
-          expect(
-            observer.changes[1].nextState,
-            isA<MutationError<int>>(),
-          );
-
-          expect(observer.errors, hasLength(1));
-          expect(observer.errors.single, same(exception));
-
-          mutation.dispose();
-
-          expect(observer.disposed, contains(mutation));
-        } finally {
-          NotifierBase.observer = previous;
+          await mutation.run(() async {
+            throw exception;
+          });
+        } catch (error) {
+          expect(error, same(exception));
         }
+
+        expect(observer.changes, hasLength(2));
+
+        expect(
+          observer.changes[0].currentState,
+          isA<MutationIdle<int>>(),
+        );
+        expect(
+          observer.changes[0].nextState,
+          isA<MutationLoading<int>>(),
+        );
+
+        expect(
+          observer.changes[1].currentState,
+          isA<MutationLoading<int>>(),
+        );
+        expect(
+          observer.changes[1].nextState,
+          isA<MutationError<int>>(),
+        );
+
+        expect(observer.errors, hasLength(1));
+        expect(observer.errors.single, same(exception));
+
+        mutation.dispose();
+
+        expect(observer.disposed, contains(mutation));
       });
       test(
         'reports errors thrown while publishing mutation state',
         () async {
           final observer = _TestNotifierObserver();
-          final previous = NotifierBase.observer;
+          ProviderKit.configure(
+            observer: observer,
+          );
 
-          NotifierBase.observer = observer;
+          final mutation = Mutation<int>();
 
-          try {
-            final mutation = Mutation<int>();
+          observer.throwOnChange = true;
 
-            observer.throwOnChange = true;
-
-            await expectLater(
-              mutation.run(() async => 42),
-              throwsA(
-                isA<StateError>().having(
-                  (error) => error.message,
-                  'message',
-                  'observer onChange failed',
-                ),
-              ),
-            );
-
-            expect(observer.errors, hasLength(1));
-            expect(
-              observer.errors.single,
+          await expectLater(
+            mutation.run(() async => 42),
+            throwsA(
               isA<StateError>().having(
                 (error) => error.message,
                 'message',
                 'observer onChange failed',
               ),
-            );
+            ),
+          );
 
-            mutation.dispose();
-          } finally {
-            NotifierBase.observer = previous;
-          }
+          expect(observer.errors, hasLength(1));
+          expect(
+            observer.errors.single,
+            isA<StateError>().having(
+              (error) => error.message,
+              'message',
+              'observer onChange failed',
+            ),
+          );
+
+          mutation.dispose();
         },
       );
     });

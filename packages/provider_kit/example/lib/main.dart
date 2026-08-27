@@ -22,7 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 void main() {
-  NotifierBase.observer = NotifierLogger();
+  ProviderKit.configure(observer: NotifierLogger());
   runApp(const MyApp());
 }
 

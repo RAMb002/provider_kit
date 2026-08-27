@@ -1,7 +1,13 @@
-import 'package:provider_kit/src/base/notifier_base.dart';
+library provider_kit_core;
+
+import 'package:flutter/foundation.dart';
+import 'package:provider_kit/src/base/observer/change.dart';
 import 'package:provider_kit/src/base/observer/notifier_observer.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/errors/error_info_mapper.dart';
+
+part '../base/notifier_base.dart';
+part 'provider_kit_config.dart';
 
 abstract final class ProviderKit {
   static _ProviderKitConfig _config = _ProviderKitConfig();
@@ -22,7 +28,7 @@ abstract final class ProviderKit {
     );
 
     if (_config.observer != null) {
-      NotifierBase.observer = _config.observer!;
+      NotifierBase._observer = _config.observer!;
     }
 
     _isConfigured = true;
@@ -37,23 +43,11 @@ abstract final class ProviderKit {
       stackTrace,
     );
   }
-}
 
-final class _ProviderKitConfig {
-  _ProviderKitConfig({
-    ErrorInfoMapper? errorInfoMapper,
-    this.observer,
-  }) : errorInfoMapper = errorInfoMapper ?? _defaultErrorInfoMapper;
-
-  final ErrorInfoMapper errorInfoMapper;
-  final NotifierObserver? observer;
-
-  static ErrorInfo _defaultErrorInfoMapper(
-    Object error,
-    StackTrace stackTrace,
-  ) {
-    return ErrorInfo(
-      message: error.toString(),
-    );
+  @visibleForTesting
+  static void resetForTesting() {
+    _config = _ProviderKitConfig();
+    _isConfigured = false;
+    NotifierBase._observer = const _DefaultNotifierObserver();
   }
 }

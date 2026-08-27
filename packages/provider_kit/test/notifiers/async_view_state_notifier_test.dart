@@ -101,8 +101,9 @@ void main() {
         'initial state can be overridden via constructor (verified via observer)',
         () {
       final spy = SpyObserver();
-      final original = NotifierBase.observer;
-      NotifierBase.observer = spy;
+      ProviderKit.configure(
+        observer: spy,
+      );
 
       TestProvider<String>(
         fetchDataImpl: () => 'data',
@@ -110,7 +111,7 @@ void main() {
       );
       expect(spy.capturedInitialState, const DataState('custom'));
 
-      NotifierBase.observer = original;
+      ProviderKit.resetForTesting();
     });
 
     // -----------------------------------------------------------------------

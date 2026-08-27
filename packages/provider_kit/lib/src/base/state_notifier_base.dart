@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/notifier_base.dart';
 import 'package:provider_kit/src/base/observer/change.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/core/provider_kit_core.dart';
 
 abstract class StateNotifierBase<State> extends NotifierBase<State>
     implements StateValueListenable<State> {
