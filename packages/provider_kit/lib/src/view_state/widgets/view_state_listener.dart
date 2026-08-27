@@ -60,7 +60,7 @@ part of '../view_state_widgets.dart';
 /// {@endtemplate}
 ///
 class ViewStateListener<T>
-    extends _ViewStateListenerBase<ViewStateNotifier<T>, T> {
+    extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
   /// {@macro provider_kit.view_state_listener}
   ViewStateListener({
     super.key,
@@ -116,7 +116,7 @@ class ViewStateListener<T>
 }
 
 class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
-    extends _ViewStateListenerBase<P, T> {
+    extends ViewStateListenerBase<P, T> {
   _ViewStateListenerOf({
     super.key,
     super.initialStateListener,
@@ -130,7 +130,7 @@ class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
   }) : super(provider: null);
 }
 
-abstract class _ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
+abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     extends StateListenerBase<P, ViewState<T>> {
   final InitialStateListener? initialStateListener;
   final LoadingStateListener? loadingStateListener;
@@ -138,7 +138,7 @@ abstract class _ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   final ErrorStateListener? errorStateListener;
   final DataStateListener<T>? dataStateListener;
 
-  _ViewStateListenerBase({
+  ViewStateListenerBase({
     super.key,
     super.provider,
     this.initialStateListener,

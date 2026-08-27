@@ -65,7 +65,7 @@ part of '../view_state_widgets.dart';
 /// ```
 /// {@endtemplate}
 class ViewStateBuilder<T>
-    extends _ViewStateBuilderBase<ViewStateNotifier<T>, T> {
+    extends ViewStateBuilderBase<ViewStateNotifier<T>, T> {
   /// {@macro provider_kit.view_state_builder}
   const ViewStateBuilder({
     super.key,
@@ -117,7 +117,7 @@ class ViewStateBuilder<T>
 }
 
 class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
-    extends _ViewStateBuilderBase<P, T> {
+    extends ViewStateBuilderBase<P, T> {
   const _ViewStateBuilderOf({
     super.key,
     required super.dataBuilder,
@@ -130,7 +130,7 @@ class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
   }) : super(provider: null);
 }
 
-abstract class _ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
+abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     extends StateBuilderBase<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;
   final DataStateBuilder<T> dataBuilder;
@@ -139,7 +139,7 @@ abstract class _ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
   final EmptyStateBuilder? emptyBuilder;
   final bool isSliver;
 
-  const _ViewStateBuilderBase({
+  const ViewStateBuilderBase({
     super.provider,
     super.rebuildWhen,
     required this.dataBuilder,

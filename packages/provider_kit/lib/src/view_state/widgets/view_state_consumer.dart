@@ -63,7 +63,7 @@ part of '../view_state_widgets.dart';
 /// ```
 /// {@endtemplate}
 class ViewStateConsumer<T>
-    extends _ViewStateConsumerBase<ViewStateNotifier<T>, T> {
+    extends ViewStateConsumerBase<ViewStateNotifier<T>, T> {
   /// {@macro provider_kit.view_state_consumer}
   ViewStateConsumer({
     super.key,
@@ -136,7 +136,7 @@ class ViewStateConsumer<T>
 }
 
 class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
-    extends _ViewStateConsumerBase<P, T> {
+    extends ViewStateConsumerBase<P, T> {
   _ViewStateConsumerOf({
     super.key,
     required super.dataBuilder,
@@ -156,7 +156,7 @@ class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
   }) : super(provider: null);
 }
 
-abstract class _ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
+abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     extends StateConsumerBase<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;
   final LoadingStateBuilder? loadingBuilder;
@@ -171,7 +171,7 @@ abstract class _ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
   final ErrorStateListener? errorStateListener;
   final DataStateListener<T>? dataStateListener;
 
-  _ViewStateConsumerBase({
+  ViewStateConsumerBase({
     super.key,
     super.provider,
     super.rebuildWhen,
@@ -190,7 +190,7 @@ abstract class _ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     super.callListenerOnInit,
   }) : super(
           builder: (context, state, child) {
-            return _ViewStateBuilderBase.buildStateWidget<P, T>(
+            return ViewStateBuilderBase.buildStateWidget<P, T>(
               context,
               provider,
               state,
