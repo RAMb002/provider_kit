@@ -1,8 +1,8 @@
 library provider_kit_core;
 
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/observer/change.dart';
-import 'package:provider_kit/src/base/observer/notifier_observer.dart';
+import 'package:provider_kit/src/observer/change.dart';
+import 'package:provider_kit/src/observer/notifier_observer.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/errors/error_info_mapper.dart';
 

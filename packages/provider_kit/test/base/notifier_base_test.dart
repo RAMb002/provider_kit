@@ -3,7 +3,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
-
 // -----------------------------------------------------------------------------
 // Spy observer (copied from state_notifier_test)
 // -----------------------------------------------------------------------------

@@ -1,5 +1,5 @@
-import 'package:provider_kit/src/base/observer/notifier_observer.dart';
-import 'package:provider_kit/src/base/state_notifier_base.dart';
+import 'package:provider_kit/src/observer/notifier_observer.dart';
+import 'package:provider_kit/src/state/state_notifier_base.dart';
 
 /// {@template providerkit-statenotifier}
 /// A notifier that holds a single state value and notifies listeners when it changes.
