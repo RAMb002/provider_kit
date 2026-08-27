@@ -1,25 +1,10 @@
-import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
-import 'package:provider_kit/src/utils/type_definitions.dart';
-import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
-import 'package:provider_kit/src/view_state/view_states.dart';
-
-class ViewStateBase {
+part of 'view_state_widgets.dart';
+class _ViewStateBase {
   static bool hasErrorState<T>(List<ViewState<T>> states) =>
       states.any((state) => state is ErrorState<T>);
 
   static bool hasInitialState<T>(List<ViewState<T>> states) =>
       states.any((state) => state is InitialState<T>);
-
-  static bool hasLoadingState<T>(List<ViewState<T>> states) =>
-      states.any((state) => state is LoadingState<T>);
-
-  static bool hasEmptyState<T>(List<ViewState<T>> states) =>
-      states.any((state) => state is EmptyState<T>);
-
-  static bool allAreDataState<T>(List<ViewState<T>> states) =>
-      states.every((state) => state is DataState<T>);
 
   static Widget buildInitialWidget(BuildContext context,
       InitialStateBuilder? initialBuilder, bool isSliver) {

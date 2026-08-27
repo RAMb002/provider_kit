@@ -1,12 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/view_state/widgets/view_state_builder.dart';
-import 'package:provider_kit/src/states/state_consumers/state_consumer.dart';
-import 'package:provider_kit/src/view_state/view_states.dart';
-import 'package:provider_kit/src/utils/type_definitions.dart';
+part of '../view_state_widgets.dart';
 
-/// {@template provider_kit.viewStateConsumer}
+/// {@template provider_kit.view_state_consumer}
 /// A widget that combines listening to and building based on the specific
 /// [ViewState] of a [ViewStateNotifier].
 ///
@@ -69,8 +63,8 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// ```
 /// {@endtemplate}
 class ViewStateConsumer<T>
-    extends ViewStateConsumerBase<ViewStateNotifier<T>, T> {
-  /// {@macro provider_kit.viewStateConsumer}
+    extends _ViewStateConsumerBase<ViewStateNotifier<T>, T> {
+  /// {@macro provider_kit.view_state_consumer}
   ViewStateConsumer({
     super.key,
     required ViewStateNotifier<T> provider,
@@ -142,7 +136,7 @@ class ViewStateConsumer<T>
 }
 
 class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
-    extends ViewStateConsumerBase<P, T> {
+    extends _ViewStateConsumerBase<P, T> {
   _ViewStateConsumerOf({
     super.key,
     required super.dataBuilder,
@@ -162,7 +156,7 @@ class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
   }) : super(provider: null);
 }
 
-abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
+abstract class _ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     extends StateConsumerBase<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;
   final LoadingStateBuilder? loadingBuilder;
@@ -177,7 +171,7 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
   final ErrorStateListener? errorStateListener;
   final DataStateListener<T>? dataStateListener;
 
-  ViewStateConsumerBase({
+  _ViewStateConsumerBase({
     super.key,
     super.provider,
     super.rebuildWhen,
@@ -196,7 +190,7 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     super.callListenerOnInit,
   }) : super(
           builder: (context, state, child) {
-            return ViewStateBuilderBase.buildStateWidget<P, T>(
+            return _ViewStateBuilderBase.buildStateWidget<P, T>(
               context,
               provider,
               state,

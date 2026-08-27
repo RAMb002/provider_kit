@@ -1,16 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:provider/provider.dart';
-import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
-import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/states/states.dart';
-import 'package:provider_kit/src/utils/type_definitions.dart';
-import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+part of '../view_state_widgets.dart';
 
-import '../view_state_base.dart';
-import '../view_states.dart';
-
-/// {@template provider_kit.viewStateBuilder}
+/// {@template provider_kit.view_state_builder}
 /// A widget that builds its UI based on the specific [ViewState] of a [ViewStateNotifier].
 ///
 /// The [ViewStateBuilder] is used to build different UI components in response to different view states
@@ -75,8 +65,8 @@ import '../view_states.dart';
 /// ```
 /// {@endtemplate}
 class ViewStateBuilder<T>
-    extends ViewStateBuilderBase<ViewStateNotifier<T>, T> {
-  /// {@macro provider_kit.viewStateBuilder}
+    extends _ViewStateBuilderBase<ViewStateNotifier<T>, T> {
+  /// {@macro provider_kit.view_state_builder}
   const ViewStateBuilder({
     super.key,
     required ViewStateNotifier<T> provider,
@@ -127,7 +117,7 @@ class ViewStateBuilder<T>
 }
 
 class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
-    extends ViewStateBuilderBase<P, T> {
+    extends _ViewStateBuilderBase<P, T> {
   const _ViewStateBuilderOf({
     super.key,
     required super.dataBuilder,
@@ -140,7 +130,7 @@ class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
   }) : super(provider: null);
 }
 
-class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
+abstract class _ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     extends StateBuilderBase<P, ViewState<T>> {
   final InitialStateBuilder? initialBuilder;
   final DataStateBuilder<T> dataBuilder;
@@ -149,7 +139,7 @@ class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
   final EmptyStateBuilder? emptyBuilder;
   final bool isSliver;
 
-  const ViewStateBuilderBase({
+  const _ViewStateBuilderBase({
     super.provider,
     super.rebuildWhen,
     required this.dataBuilder,
@@ -193,15 +183,15 @@ class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
   ) {
     switch (state) {
       case InitialState<T>():
-        return ViewStateBase.buildInitialWidget(
+        return _ViewStateBase.buildInitialWidget(
             context, initialBuilder, isSliver);
 
       case LoadingState<T>():
-        return ViewStateBase.buildLoadingWidget(
+        return _ViewStateBase.buildLoadingWidget(
             context, loadingBuilder, state.message, state.progress, isSliver);
 
       case EmptyState<T>():
-        return ViewStateBase.buildEmptyWidget(
+        return _ViewStateBase.buildEmptyWidget(
             context, emptyBuilder, state.message, isSliver);
 
       case ErrorState<T>():

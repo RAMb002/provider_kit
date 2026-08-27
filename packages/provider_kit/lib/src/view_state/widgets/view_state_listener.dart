@@ -1,11 +1,6 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/states/state_listeners/state_listener.dart';
-import 'package:provider_kit/src/view_state/view_states.dart';
-import 'package:provider_kit/src/utils/type_definitions.dart';
+part of '../view_state_widgets.dart';
 
-/// {@template provider_kit.viewStateListener}
+/// {@template provider_kit.view_state_listener}
 /// A widget that listens to changes in a [ViewStateNotifier] and triggers callbacks
 /// based on the specific [ViewState].
 ///
@@ -65,8 +60,8 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// {@endtemplate}
 ///
 class ViewStateListener<T>
-    extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
-  /// {@macro provider_kit.viewStateListener}
+    extends _ViewStateListenerBase<ViewStateNotifier<T>, T> {
+  /// {@macro provider_kit.view_state_listener}
   ViewStateListener({
     super.key,
     required ViewStateNotifier<T> provider,
@@ -121,7 +116,7 @@ class ViewStateListener<T>
 }
 
 class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
-    extends ViewStateListenerBase<P, T> {
+    extends _ViewStateListenerBase<P, T> {
   _ViewStateListenerOf({
     super.key,
     super.initialStateListener,
@@ -135,7 +130,7 @@ class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
   }) : super(provider: null);
 }
 
-abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
+abstract class _ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     extends StateListenerBase<P, ViewState<T>> {
   final InitialStateListener? initialStateListener;
   final LoadingStateListener? loadingStateListener;
@@ -143,7 +138,7 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   final ErrorStateListener? errorStateListener;
   final DataStateListener<T>? dataStateListener;
 
-  ViewStateListenerBase({
+  _ViewStateListenerBase({
     super.key,
     super.provider,
     this.initialStateListener,
