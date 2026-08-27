@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/observer/change.dart';
+import 'package:provider_kit/src/observer/change.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
 
 /// Observer for all ProviderKit notifiers.

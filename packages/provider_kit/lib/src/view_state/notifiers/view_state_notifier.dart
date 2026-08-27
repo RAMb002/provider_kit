@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/state/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 /// {@template providerkit-viewstatenotifier}

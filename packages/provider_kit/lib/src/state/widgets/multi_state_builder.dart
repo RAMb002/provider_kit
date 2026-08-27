@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
-import 'package:provider_kit/src/states/state_listeners/multi_state_listener.dart';
+import 'package:provider_kit/src/state/widgets/multi_state_listener.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 

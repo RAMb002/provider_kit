@@ -1,11 +1,10 @@
 // ignore_for_file: invalid_use_of_protected_member
 
 import 'dart:async';
-
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/observer/change.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
+import 'package:provider_kit/src/observer/change.dart';
 
 /// Manages the state of an asynchronous operation.
 ///
