@@ -5,7 +5,7 @@ import 'package:provider_kit/src/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
-import 'package:provider_kit/src/view_state/view_states.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';

@@ -1,5 +1,5 @@
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/view_state/view_states.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 /// A mixin that provides caching functionality for [DataState] in a [ViewStateNotifier].
 ///

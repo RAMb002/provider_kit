@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/view_state/view_states.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 /// {@template provider_kit.asyncViewStateNotifier}
 /// An abstract class that extends [AsyncViewStateNotifierInterface] and provides default implementations for state management.
