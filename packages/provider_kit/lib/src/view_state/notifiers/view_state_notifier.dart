@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/state/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 
-/// {@template providerkit-viewstatenotifier}
+/// {@template provider_kit.view_state_notifier}
 /// A base notifier class for managing state with [ValueNotifier].
 /// Designed for use with provider-based state management.
 ///
@@ -33,6 +33,6 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 abstract class ViewStateNotifier<State>
     extends StateNotifier<ViewState<State>> {
-  /// {@macro providerkit-viewstatenotifier}
+  /// {@macro provider_kit.view_state_notifier}
   ViewStateNotifier(super.state);
 }

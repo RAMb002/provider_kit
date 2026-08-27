@@ -5,7 +5,7 @@ import 'package:provider_kit/src/state/widgets/multi_state_listener.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
-/// {@template providerkit-multistatebuilder}
+/// {@template provider_kit.multi_state_builder}
 
 /// A widget that builds its UI based on the states of multiple [StateValueListenable]s.
 ///
@@ -37,7 +37,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// {@endtemplate}
 
 class MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
-  /// {@macro providerkit-multistatebuilder}
+  /// {@macro provider_kit.multi_state_builder}
   const MultiStateBuilder({
     super.key,
     required super.providers,
