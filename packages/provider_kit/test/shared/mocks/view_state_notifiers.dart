@@ -1,5 +1,5 @@
-import 'package:provider_kit/src/notifiers/notifiers.dart';
-import 'package:provider_kit/src/states/states.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/view_states.dart';
 
 class TestViewStateNotifier<T> extends ViewStateNotifier<T> {
   TestViewStateNotifier([ViewState<T>? initialState])

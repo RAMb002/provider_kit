@@ -1,9 +1,9 @@
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/notifiers/async_view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
 import 'package:provider_kit/src/notifiers/state_notifier.dart';
-import 'package:provider_kit/src/states/states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
-import 'package:provider_kit/src/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/view_states.dart';
 
 class ViewStateBase {
   static bool hasErrorState<T>(List<ViewState<T>> states) =>

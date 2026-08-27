@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'utils/type_definitions.dart';
+import '../utils/type_definitions.dart';
 
 /// Used to configure default widgets for InitialState, LoadingState, ErrorState, and EmptyState.
 /// Wrap this widget around any widget to change the default widgets for these states within its widget sub-tree.

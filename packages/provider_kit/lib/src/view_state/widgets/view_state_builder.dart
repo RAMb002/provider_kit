@@ -1,11 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/notifiers/async_view_state_notifier.dart';
-import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/states/states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
-import 'package:provider_kit/src/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+
+import '../view_state_base.dart';
+import '../view_states.dart';
 
 /// {@template provider_kit.viewStateBuilder}
 /// A widget that builds its UI based on the specific [ViewState] of a [ViewStateNotifier].

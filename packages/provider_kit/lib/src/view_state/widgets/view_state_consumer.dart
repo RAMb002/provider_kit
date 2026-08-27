@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/states/state_builders/view_state_builder.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/widgets/view_state_builder.dart';
 import 'package:provider_kit/src/states/state_consumers/state_consumer.dart';
-import 'package:provider_kit/src/states/view_states.dart';
+import 'package:provider_kit/src/view_state/view_states.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template provider_kit.viewStateConsumer}

@@ -1,7 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider_kit/src/states/states.dart';
-import 'package:provider_kit/src/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/view_state_base.dart';
+import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/view_states.dart';
 
 import '../shared/mocks/provider_kit.dart';
 import '../shared/mocks/view_state_notifiers.dart';
