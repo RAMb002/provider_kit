@@ -1,6 +1,7 @@
 // ignore_for_file: invalid_use_of_protected_member
 
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -149,6 +150,8 @@ void main() {
 
         expect(state.error, same(exception));
         expect(state.stackTrace.toString(), isNotEmpty);
+        expect(state.errorInfo.message, exception.toString());
+        expect(state.errorInfo.code, isNull);
 
         expect(mutation.isIdle, isFalse);
         expect(mutation.isLoading, isFalse);
@@ -196,7 +199,38 @@ void main() {
 
         mutation.dispose();
       });
+      test('uses the configured error mapper for MutationError', () async {
+        const String customMessage = 'Unable to save changes.';
+        ProviderKit.configure(
+          errorInfoMapper: (error, stackTrace) {
+            return const ErrorInfo(
+              message: customMessage,
+              code: 'save_failed',
+            );
+          },
+        );
 
+        final mutation = Mutation<int>();
+        final exception = StateError('database failure');
+
+        final future = mutation.run(() async {
+          throw exception;
+        });
+
+        await expectLater(
+          future,
+          throwsA(same(exception)),
+        );
+
+        final state = mutation.state as MutationError<int>;
+
+        expect(state.error, same(exception));
+        expect(state.errorInfo.message, customMessage);
+        expect(state.message, customMessage);
+        expect(state.errorInfo.code, 'save_failed');
+
+        mutation.dispose();
+      });
       test('supports synchronous executor throws', () async {
         final mutation = Mutation<int>();
         final exception = ArgumentError('invalid argument');

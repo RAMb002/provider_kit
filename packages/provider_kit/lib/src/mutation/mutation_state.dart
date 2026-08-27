@@ -29,6 +29,7 @@ sealed class MutationState<T> {
     required R Function(
       Object error,
       StackTrace stackTrace,
+      ErrorInfo errorInfo,
     ) error,
   }) {
     final state = this;
@@ -37,7 +38,8 @@ sealed class MutationState<T> {
       MutationIdle<T>() => idle(),
       MutationLoading<T>() => loading(),
       MutationSuccess<T>() => success(state.data),
-      MutationError<T>() => error(state.error, state.stackTrace),
+      MutationError<T>() =>
+        error(state.error, state.stackTrace, state.errorInfo),
     };
   }
 
@@ -80,6 +82,7 @@ sealed class MutationState<T> {
     R Function(
       Object error,
       StackTrace stackTrace,
+      ErrorInfo errorInfo,
     )? error,
   }) {
     final state = this;
@@ -88,8 +91,9 @@ sealed class MutationState<T> {
       MutationIdle<T>() => idle != null ? idle() : orElse(),
       MutationLoading<T>() => loading != null ? loading() : orElse(),
       MutationSuccess<T>() => success != null ? success(state.data) : orElse(),
-      MutationError<T>() =>
-        error != null ? error(state.error, state.stackTrace) : orElse(),
+      MutationError<T>() => error != null
+          ? error(state.error, state.stackTrace, state.errorInfo)
+          : orElse(),
     };
   }
 
@@ -182,14 +186,13 @@ final class MutationSuccess<T> extends MutationState<T> {
 /// {@template provider_kit.mutation_error}
 /// Indicates that a mutation operation failed.
 ///
-/// The error thrown by the operation is available through [error],
-/// and its associated [StackTrace] is available through [stackTrace].
+/// The error thrown by the operation is available through [error].
+/// Its associated [StackTrace] is available through [stackTrace].
+/// The mapped error information is available through [errorInfo].
 /// {@endtemplate}
 final class MutationError<T> extends MutationState<T> {
-  const MutationError._(
-    this.error,
-    this.stackTrace,
-  ) : super._();
+  const MutationError._(this.error, this.stackTrace, this.errorInfo)
+      : super._();
 
   /// The error thrown during the mutation operation.
   final Object error;
@@ -197,13 +200,22 @@ final class MutationError<T> extends MutationState<T> {
   /// The stack trace associated with the error.
   final StackTrace stackTrace;
 
+  /// The mapped information for this error.
+  ///
+  /// The information is produced by the configured [ErrorInfoMapper] via
+  /// [ProviderKit.configure].
+  final ErrorInfo errorInfo;
+
+  String get message => errorInfo.message;
+
   @override
   bool operator ==(Object other) =>
       other is MutationError<T> &&
       runtimeType == other.runtimeType &&
       other.error == error &&
-      other.stackTrace == stackTrace;
+      other.stackTrace == stackTrace &&
+      other.errorInfo == errorInfo;
 
   @override
-  int get hashCode => Object.hash(error, stackTrace);
+  int get hashCode => Object.hash(error, stackTrace, errorInfo);
 }

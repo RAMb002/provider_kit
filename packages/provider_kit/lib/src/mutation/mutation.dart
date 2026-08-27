@@ -2,13 +2,15 @@
 library provider_kit_mutation;
 
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
+import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/observer/change.dart';
 
-part 'mutation_state.dart';
 part 'mutation_group.dart';
+part 'mutation_state.dart';
 
 /// Manages the state of an asynchronous operation.
 ///
@@ -62,7 +64,7 @@ part 'mutation_group.dart';
 ///       idle: () => const Text('Delete'),
 ///       loading: () => const CircularProgressIndicator(),
 ///       success: (_) => const Icon(Icons.check),
-///       error: (error, stackTrace) => const Icon(Icons.error),
+///       error: (error, stackTrace, errorInfo) => const Icon(Icons.error),
 ///     );
 ///   },
 /// );
@@ -172,6 +174,7 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   /// If [executor] throws:
   ///
   /// - The mutation changes to [MutationError].
+  /// - The mapped error information is available through [MutationError.errorInfo].
   /// - The original error is rethrown.
   ///
   /// This allows the operation to be handled both reactively through
@@ -217,7 +220,12 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
     } catch (error, stackTrace) {
       if (!mounted || generation != _runGeneration) rethrow;
 
-      _setState(MutationError<T>._(error, stackTrace));
+      final errorInfo = ProviderKit.resolveErrorInfo(
+        error,
+        stackTrace,
+      );
+
+      _setState(MutationError<T>._(error, stackTrace, errorInfo));
       onError(error, stackTrace);
       rethrow;
     }

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/src/mutation/mutation.dart';
 
@@ -12,7 +13,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (_) => 'success',
-          error: (_, __) => 'error',
+          error: (_, __, ___) => 'error',
         );
 
         expect(result, 'idle');
@@ -30,7 +31,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (_) => 'success',
-          error: (_, __) => 'error',
+          error: (_, __, ___) => 'error',
         );
 
         expect(result, 'loading');
@@ -50,7 +51,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (data) => 'success:$data',
-          error: (_, __) => 'error',
+          error: (_, __, ___) => 'error',
         );
 
         expect(result, 'success:42');
@@ -58,7 +59,8 @@ void main() {
         mutation.dispose();
       });
 
-      test('handles error state and receives error and stack trace', () async {
+      test('handles error state and receives error, stack trace and error info',
+          () async {
         final mutation = Mutation<int>();
         final exception = StateError('failure');
 
@@ -72,9 +74,11 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (_) => 'success',
-          error: (error, stackTrace) {
+          error: (error, stackTrace, errorInfo) {
             expect(error, same(exception));
             expect(stackTrace.toString(), isNotEmpty);
+            expect(errorInfo.message, exception.toString());
+            expect(errorInfo.code, isNull);
             return 'error';
           },
         );
@@ -227,9 +231,11 @@ void main() {
         } catch (_) {}
 
         final result = mutation.state.maybeWhen(
-          error: (error, stackTrace) {
+          error: (error, stackTrace, errorInfo) {
             expect(error, same(exception));
             expect(stackTrace.toString(), isNotEmpty);
+            expect(errorInfo.message, exception.toString());
+            expect(errorInfo.code, isNull);
             return 'error';
           },
           orElse: () => 'fallback',
