@@ -7,3 +7,5 @@ export 'src/states/states.dart';
 export 'src/utils/utils.dart';
 export 'src/view_state_widgets_provider.dart';
 export 'src/mutation/index.dart';
+export 'src/errors/index.dart';
+export 'src/config/index.dart';
