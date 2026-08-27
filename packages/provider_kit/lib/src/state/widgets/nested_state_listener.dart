@@ -1,6 +1,6 @@
 import 'package:nested/nested.dart';
 
-/// {@template providerkit-nestedstatelistener}
+/// {@template provider_kit.nested_state_listener}
 /// A widget that nests multiple state listeners within a single widget.
 ///
 /// The `NestedStateListener` allows combining multiple types of listeners,
@@ -48,7 +48,7 @@ import 'package:nested/nested.dart';
 /// - **`child`** (*Required*) **:** The widget wrapped by the listeners, typically the UI component that reacts to state changes.
 /// {@endtemplate}
 class NestedStateListener extends Nested {
-  /// {@macro providerkit-nestedstatelistener}
+  /// {@macro provider_kit.nested_state_listener}
   NestedStateListener({
     super.key,
     required List<SingleChildWidget> listeners,

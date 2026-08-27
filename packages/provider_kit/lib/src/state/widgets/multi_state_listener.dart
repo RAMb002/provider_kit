@@ -5,7 +5,7 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
-/// {@template providerkit-multistatelistener}
+/// {@template provider_kit.multi_state_listener}
 /// A widget that listens to changes in the states of multiple [StateValueListenable]s and triggers callbacks.
 ///
 /// The [MultiStateListener] widget is used to perform actions in response to state changes
@@ -37,7 +37,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// ```
 /// {@endtemplate}
 class MultiStateListener<T> extends MultiStateListenerBase<T> {
-  /// {@macro providerkit-multistatelistener}
+  /// {@macro provider_kit.multi_state_listener}
   const MultiStateListener({
     super.key,
     required super.providers,

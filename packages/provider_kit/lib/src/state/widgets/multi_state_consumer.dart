@@ -5,7 +5,7 @@ import 'package:provider_kit/src/state/widgets/multi_state_builder.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 import 'package:provider_kit/src/utils/type_definitions.dart';
 
-/// {@template providerkit-multistateconsumer}
+/// {@template provider_kit.multi_state_consumer}
 
 /// A widget that combines both listening to and building based on the states of multiple [StateValueListenable]s.
 ///
@@ -50,7 +50,7 @@ import 'package:provider_kit/src/utils/type_definitions.dart';
 /// {@endtemplate}
 
 class MultiStateConsumer<T> extends StatefulWidget {
-  /// {@macro providerkit-multistateconsumer}
+  /// {@macro provider_kit.multi_state_consumer}
   const MultiStateConsumer({
     super.key,
     required this.builder,

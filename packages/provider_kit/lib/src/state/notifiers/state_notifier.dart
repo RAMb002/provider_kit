@@ -1,7 +1,7 @@
 import 'package:provider_kit/src/observer/notifier_observer.dart';
 import 'package:provider_kit/src/state/state_notifier_base.dart';
 
-/// {@template providerkit-statenotifier}
+/// {@template provider_kit.state_notifier}
 /// A notifier that holds a single state value and notifies listeners when it changes.
 ///
 /// [StateNotifier] is the most basic state‑holding notifier in this package. It is
@@ -46,6 +46,6 @@ import 'package:provider_kit/src/state/state_notifier_base.dart';
 /// - **`state`** – The initial state of the notifier.
 /// {@endtemplate}
 class StateNotifier<State> extends StateNotifierBase<State> {
-  /// {@macro providerkit-statenotifier}
+  /// {@macro provider_kit.state_notifier}
   StateNotifier(super.state);
 }
