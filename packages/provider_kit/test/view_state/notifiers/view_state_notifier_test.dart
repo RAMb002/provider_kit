@@ -21,7 +21,12 @@ void main() {
       expect(notifier.state, isA<DataState<int>>());
       expect((notifier.state as DataState<int>).data, 42);
 
-      notifier.state = const ErrorState<int>('error');
+      final error = StateError('error');
+
+      notifier.state = ErrorState<int>(
+        error,
+        StackTrace.current,
+      );
       expect(notifier.state, isA<ErrorState<int>>());
 
       notifier.state = const EmptyState<int>();

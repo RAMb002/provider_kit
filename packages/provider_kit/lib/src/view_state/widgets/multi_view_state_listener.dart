@@ -18,17 +18,6 @@ part of '../view_state_widgets.dart';
 /// If the user does not supply a listener for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// ### Parameters:
-/// - **`providers`** (*Required*) **:** A list of [ViewStateNotifier]s that supply the states.
-/// - **`initialStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `InitialState`.
-/// - **`loadingStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `LoadingState`.
-/// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
-/// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
-/// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`listenWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering listener whenever any provider's state changes.
-/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
-/// - **`child`** (*Optional*) **:** A widget that is part of the widget tree.
-///
 /// ### Example Usage:
 /// ```dart
 /// MultiViewStateListener<DataType>(
@@ -42,7 +31,7 @@ part of '../view_state_widgets.dart';
 ///   emptyStateListener: (message) {
 ///     // Handle EmptyState
 ///   },
-///   errorStateListener: (errorMessage, onRetry, exception, stackTrace) {
+///   errorStateListener: (errorInfo, error, stackTrace, onRetry) {
 ///     // Handle ErrorState
 ///   },
 ///   dataStateListener: (data) {
@@ -104,8 +93,12 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
     if (errorStates.isNotEmpty) {
       final errorState = errorStates.first;
       onRetry() => _ViewStateBase.onRetry(providers);
-      errorStateListener?.call(errorState.message, onRetry,
-          errorState.exception, errorState.stackTrace);
+      errorStateListener?.call(
+        errorState.errorInfo,
+        errorState.error,
+        errorState.stackTrace,
+        onRetry,
+      );
       return;
     }
     if (_ViewStateBase.hasInitialState(states)) {
@@ -114,8 +107,10 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
     }
     final loadingStates = _ViewStateBase.getLoadingStates(states);
     if (loadingStates.isNotEmpty) {
-      loadingStateListener?.call(loadingStates.first.message,
-          _ViewStateBase.getCombinedLoadingProgress(loadingStates));
+      loadingStateListener?.call(
+        loadingStates.first.message,
+        _ViewStateBase.getCombinedLoadingProgress(loadingStates),
+      );
       return;
     }
     final emptyStates = _ViewStateBase.getEmptyStates(states);

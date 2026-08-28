@@ -15,23 +15,6 @@ part of '../view_state_widgets.dart';
 /// If the user does not supply a builder for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// ### Parameters:
-/// - **`provider`** (*Required*) **:** The [ViewStateNotifier] whose state you want to listen to.
-/// - **`initialBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `InitialState`.
-/// - **`loadingBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `LoadingState`.
-/// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
-/// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
-/// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
-/// - **`initialStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `InitialState`.
-/// - **`loadingStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `LoadingState`.
-/// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
-/// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
-/// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current state. Defaults to calling the builder when `previous != current`.
-/// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current state. Defaults to calling the listener when `previous != current`.
-/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
-/// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
-///
 /// ### Example Usage:
 /// ```dart
 /// ViewStateConsumer<DataType>(
@@ -39,7 +22,7 @@ part of '../view_state_widgets.dart';
 ///   dataBuilder: (data) {
 ///     return ...;
 ///   },
-///   loadingBuilder: (message, progress) {
+///   loadingBuilder: (message, progress, isSliver) {
 ///     return ...;
 ///   },
 ///   dataStateListener: (data) {
@@ -56,7 +39,7 @@ part of '../view_state_widgets.dart';
 ///   dataBuilder: (data) {
 ///     return ...;
 ///   },
-///   loadingBuilder: (message, progress) {
+///   loadingBuilder: (message, progress, isSliver) {
 ///     return ...;
 ///   },
 /// )

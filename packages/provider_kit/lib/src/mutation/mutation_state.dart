@@ -200,10 +200,7 @@ final class MutationError<T> extends MutationState<T> {
   /// The stack trace associated with the error.
   final StackTrace stackTrace;
 
-  /// The mapped information for this error.
-  ///
-  /// The information is produced by the configured [ErrorInfoMapper] via
-  /// [ProviderKit.configure].
+  /// {@macro provider_kit.error_info_field}
   final ErrorInfo errorInfo;
 
   String get message => errorInfo.message;

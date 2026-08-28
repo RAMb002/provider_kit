@@ -8,17 +8,6 @@ part of '../view_state_widgets.dart';
 /// such as `InitialState`, `LoadingState`, `DataState<DataType>`, `EmptyState`, and `ErrorState`.
 /// It ensures that the appropriate callback is called based on the current view state.
 ///
-/// ### Parameters:
-/// - **`provider`** (*Required*) **:** The [ViewStateNotifier] whose state you want to listen to.
-/// - **`initialStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `InitialState`.
-/// - **`loadingStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `LoadingState`.
-/// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
-/// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
-/// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`listenWhen`** (*Optional*) **:** A function that determines whether the listener should be called based on changes between the previous and current state. Defaults to calling the listener when `previous != current`.
-/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
-/// - **`child`** (*Required*) **:** Your child widget goes here.
-///
 /// ### Example Usage:
 /// ```dart
 /// ViewStateListener<Provider, DataType>(
@@ -33,7 +22,7 @@ part of '../view_state_widgets.dart';
 ///   emptyStateListener: (message) {
 ///     // Handle empty state
 ///   },
-///   errorStateListener: (errorMessage, onRetry, exception, stackTrace) {
+///   errorStateListener: (errorInfo, error, stackTrace, onRetry) {
 ///     // Handle error state
 ///   },
 ///   dataStateListener: (data) {

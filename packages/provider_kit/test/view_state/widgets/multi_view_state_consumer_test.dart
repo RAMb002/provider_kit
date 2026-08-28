@@ -182,7 +182,12 @@ void main() {
 
         initialBuilt = false;
 
-        provider1.emit(const ErrorState('error'));
+        provider1.emit(
+          ErrorState<String>(
+            StateError('Error'),
+            StackTrace.current,
+          ),
+        );
         await tester.pump();
         expect(errorBuilt, true);
         expect(initialBuilt, false);
@@ -211,22 +216,32 @@ void main() {
     // -----------------------------------------------------------------------
     testWidgets('errorBuilder receives correct parameters', (tester) async {
       final provider1 = TestViewStateNotifier<String>(const DataState('dummy'));
-      final provider2 =
-          TestViewStateNotifier<String>(const ErrorState('Error!'));
+      final error = StateError('Error');
+      final stackTrace = StackTrace.current;
 
-      String? capturedMessage;
+      final provider2 = TestViewStateNotifier<String>(
+        ErrorState<String>(
+          error,
+          stackTrace,
+          errorInfo: const ErrorInfo(
+            message: 'Error',
+          ),
+        ),
+      );
+
+      ErrorInfo? capturedErrorInfo;
       VoidCallback? capturedOnRetry;
-      dynamic capturedException;
+      Object? capturedError;
       StackTrace? capturedStackTrace;
       bool? capturedIsSliver;
 
       await tester.pumpWidget(
         buildConsumer(
           providers: [provider1, provider2],
-          errorBuilder: (message, onRetry, exception, stackTrace, isSliver) {
-            capturedMessage = message;
+          errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
+            capturedErrorInfo = errorInfo;
             capturedOnRetry = onRetry;
-            capturedException = exception;
+            capturedError = error;
             capturedStackTrace = stackTrace;
             capturedIsSliver = isSliver;
             return const SizedBox();
@@ -236,10 +251,11 @@ void main() {
         ),
       );
 
-      expect(capturedMessage, 'Error!');
+      expect(capturedErrorInfo!, isNotNull);
+      expect(capturedErrorInfo?.message, 'Error');
+      expect(capturedError, same(error));
+      expect(capturedStackTrace, same(stackTrace));
       expect(capturedOnRetry, isA<VoidCallback>());
-      expect(capturedException, isNull);
-      expect(capturedStackTrace, isNull);
       expect(capturedIsSliver, true);
     });
 
@@ -329,33 +345,43 @@ void main() {
       final provider1 = TestViewStateNotifier<String>(const DataState('dummy'));
       final provider2 =
           TestViewStateNotifier<String>(const DataState('dummy2'));
-      final exception = Exception('Test error');
+      final error = Exception('Test error');
       final stackTrace = StackTrace.current;
-      String? capturedMessage;
+
+      ErrorInfo? capturedErrorInfo;
       VoidCallback? capturedOnRetry;
-      dynamic capturedException;
+      Object? capturedError;
       StackTrace? capturedStackTrace;
 
       await tester.pumpWidget(
         buildConsumer(
           providers: [provider1, provider2],
-          errorStateListener: (message, onRetry, exception, stackTrace) {
-            capturedMessage = message;
+          errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+            capturedErrorInfo = errorInfo;
             capturedOnRetry = onRetry;
-            capturedException = exception;
+            capturedError = error;
             capturedStackTrace = stackTrace;
           },
           dataBuilder: (_) => const SizedBox(),
         ),
       );
 
-      provider1.emit(ErrorState<String>('Error!', exception, stackTrace, null));
+      provider1.emit(
+        ErrorState<String>(
+          error,
+          stackTrace,
+          errorInfo: const ErrorInfo(
+            message: 'Test error',
+          ),
+        ),
+      );
       await tester.pump();
 
-      expect(capturedMessage, 'Error!');
+      expect(capturedErrorInfo, isNotNull);
+      expect(capturedErrorInfo!.message, 'Test error');
       expect(capturedOnRetry, isA<VoidCallback>());
-      expect(capturedException, exception);
-      expect(capturedStackTrace, stackTrace);
+      expect(capturedError, same(error));
+      expect(capturedStackTrace, same(stackTrace));
     });
 
     testWidgets('loadingStateListener receives message and combined progress',
@@ -460,11 +486,11 @@ void main() {
         await tester.pumpWidget(
           buildConsumer(
             providers: [provider1, provider2],
-            errorBuilder: (_, onRetry, __, ___, ____) {
+            errorBuilder: (_, ___, __, onRetry, ____) {
               capturedBuilderRetry = onRetry;
               return const SizedBox();
             },
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedListenerRetry = onRetry;
             },
             dataBuilder: (_) => const SizedBox(),
@@ -493,7 +519,7 @@ void main() {
         await tester.pumpWidget(
           buildConsumer(
             providers: [provider],
-            errorBuilder: (_, onRetry, __, ___, ____) {
+            errorBuilder: (_, ___, __, onRetry, ____) {
               capturedOnRetry = onRetry;
               return const SizedBox();
             },
@@ -501,7 +527,10 @@ void main() {
           ),
         );
 
-        provider.state = const ErrorState<String>('Error');
+        provider.state = ErrorState<String>(
+          StateError('Error'),
+          StackTrace.current,
+        );
         await tester.pump();
 
         expect(capturedOnRetry, isA<VoidCallback>());
@@ -526,14 +555,17 @@ void main() {
         await tester.pumpWidget(
           buildConsumer(
             providers: [provider],
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
             dataBuilder: (_) => const SizedBox(),
           ),
         );
 
-        provider.state = const ErrorState<String>('Error');
+        provider.state = ErrorState<String>(
+          StateError('Error'),
+          StackTrace.current,
+        );
         await tester.pump();
 
         expect(capturedOnRetry, isA<VoidCallback>());
@@ -561,11 +593,11 @@ void main() {
         await tester.pumpWidget(
           buildConsumer(
             providers: [provider],
-            errorBuilder: (_, onRetry, __, ___, ____) {
+            errorBuilder: (_, ___, __, onRetry, ____) {
               capturedBuilderRetry = onRetry;
               return const SizedBox();
             },
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedListenerRetry = onRetry;
             },
             dataBuilder: (_) => const SizedBox(),
@@ -573,10 +605,9 @@ void main() {
         );
 
         provider.state = ErrorState<String>(
-          'Error',
-          null,
-          null,
-          () => retryCalls++,
+          StateError('Error'),
+          StackTrace.current,
+          onRetry: () => retryCalls++,
         );
 
         await tester.pump();
@@ -721,8 +752,12 @@ void main() {
     });
 
     testWidgets('uses default error widget from provider', (tester) async {
-      final provider1 =
-          TestViewStateNotifier<String>(const ErrorState('error'));
+      final provider1 = TestViewStateNotifier<String>(
+        ErrorState<String>(
+          StateError('Error'),
+          StackTrace.current,
+        ),
+      );
       final provider2 = TestViewStateNotifier<String>(const DataState('dummy'));
 
       await tester.pumpWidget(
@@ -739,8 +774,12 @@ void main() {
     // 8. isSliver flag propagation
     // -----------------------------------------------------------------------
     testWidgets('passes isSliver flag to errorBuilder', (tester) async {
-      final provider1 =
-          TestViewStateNotifier<String>(const ErrorState('error'));
+      final provider1 = TestViewStateNotifier<String>(
+        ErrorState<String>(
+          StateError('Error'),
+          StackTrace.current,
+        ),
+      );
       final provider2 = TestViewStateNotifier<String>(const DataState('dummy'));
       bool? isSliverPassed;
 

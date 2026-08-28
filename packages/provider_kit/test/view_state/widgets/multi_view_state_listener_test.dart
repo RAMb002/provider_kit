@@ -90,7 +90,12 @@ void main() {
           ),
         );
 
-        provider1.emit(const ErrorState('Error!'));
+        provider1.emit(
+          ErrorState<String>(
+            StateError('Error!'),
+            StackTrace.current,
+          ),
+        );
         await tester.pump();
         expect(errorCalled, true);
         expect(dataCalled, false);
@@ -283,7 +288,12 @@ void main() {
         expect(emptyCalls, 1);
 
         // --- Step 5: Emit Error on provider1 → aggregated Error ---
-        provider1.emit(const ErrorState('error'));
+        provider1.emit(
+          ErrorState<String>(
+            StateError('Error'),
+            StackTrace.current,
+          ),
+        );
         await tester.pump();
         expect(errorCalls, 1);
         expect(initialCalls, 1);
@@ -311,32 +321,47 @@ void main() {
       final provider1 = TestViewStateNotifier<String>(const DataState('dummy'));
       final provider2 =
           TestViewStateNotifier<String>(const DataState('dummy2'));
-      final exception = Exception('Test error');
+      final error = Exception('Test error');
       final stackTrace = StackTrace.current;
-      String? capturedMessage;
+
+      const errorInfo = ErrorInfo(
+        message: 'Test error',
+        code: 'test_error',
+      );
+
+      ErrorInfo? capturedErrorInfo;
       VoidCallback? capturedOnRetry;
-      dynamic capturedException;
+      Object? capturedError;
       StackTrace? capturedStackTrace;
 
       await tester.pumpWidget(
         buildListener(
           providers: [provider1, provider2],
-          errorStateListener: (message, onRetry, exception, stackTrace) {
-            capturedMessage = message;
+          errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+            capturedErrorInfo = errorInfo;
+
             capturedOnRetry = onRetry;
-            capturedException = exception;
+            capturedError = error;
             capturedStackTrace = stackTrace;
           },
         ),
       );
 
-      provider1.emit(ErrorState<String>('Error!', exception, stackTrace, null));
+      provider1.emit(
+        ErrorState<String>(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+        ),
+      );
+
       await tester.pump();
 
-      expect(capturedMessage, 'Error!');
+      expect(capturedErrorInfo, isNotNull);
+      expect(capturedErrorInfo!.message, errorInfo.message);
       expect(capturedOnRetry, isA<VoidCallback>());
-      expect(capturedException, exception);
-      expect(capturedStackTrace, stackTrace);
+      expect(capturedError, same(error));
+      expect(capturedStackTrace, same(stackTrace));
     });
 
     testWidgets('loadingStateListener receives message and combined progress',
@@ -437,7 +462,7 @@ void main() {
         await tester.pumpWidget(
           buildListener(
             providers: [provider1, provider2],
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
           ),
@@ -464,20 +489,27 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           providers: [provider1, provider2],
-          errorStateListener: (_, onRetry, __, ___) {
+          errorStateListener: (_, ___, __, onRetry) {
             capturedOnRetry = onRetry;
           },
         ),
       );
 
-      // Force Error state on provider1.
-      provider1.state = const ErrorState<String>('Error');
+      final error = StateError('Error');
+      final stackTrace = StackTrace.current;
+
+      provider1.state = ErrorState<String>(
+        error,
+        stackTrace,
+      );
       await tester.pump();
 
       expect(capturedOnRetry, isA<VoidCallback>());
-      expect(provider1.state, const ErrorState<String>('Error'));
+      expect(provider1.state, isA<ErrorState<String>>());
+
       capturedOnRetry!();
       expect(provider1.refreshCalls, 1);
+      expect(provider2.refreshCalls, 0);
     });
 
     testWidgets(
@@ -498,14 +530,20 @@ void main() {
         await tester.pumpWidget(
           buildListener(
             providers: [provider1, provider2],
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
           ),
         );
 
-        provider1.state = const ErrorState<String>('Error 1');
-        provider2.state = const ErrorState<String>('Error 2');
+        provider1.state = ErrorState<String>(
+          StateError('Error 1'),
+          StackTrace.current,
+        );
+        provider2.state = ErrorState<String>(
+          StateError('Error 2'),
+          StackTrace.current,
+        );
 
         await tester.pump();
 
@@ -534,17 +572,16 @@ void main() {
         await tester.pumpWidget(
           buildListener(
             providers: [provider],
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
           ),
         );
 
         provider.state = ErrorState<String>(
-          'Error',
-          null,
-          null,
-          () => retryCalls++,
+          StateError('Error'),
+          StackTrace.current,
+          onRetry: () => retryCalls++,
         );
 
         await tester.pump();
@@ -562,7 +599,10 @@ void main() {
       'onRetry does nothing for non-async ErrorState without callback',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
-          const ErrorState<String>('Error'),
+          ErrorState<String>(
+            StateError('Error'),
+            StackTrace.current,
+          ),
         );
 
         VoidCallback? capturedOnRetry;
@@ -571,7 +611,7 @@ void main() {
           buildListener(
             providers: [provider],
             callListenerOnInit: true,
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
           ),

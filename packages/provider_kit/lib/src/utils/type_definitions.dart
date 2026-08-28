@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:provider_kit/src/errors/error_info.dart';
 
 /// A function that builds a widget for the initial state.
 ///
@@ -25,16 +26,16 @@ typedef MultiDataStateBuilder<T> = Widget Function(T dataStates);
 
 /// A function that builds a widget for the error state.
 ///
-/// The [message] parameter provides an optional error message.
+/// The [errorInfo] parameter provides mapped information about the error.
+/// The [error] parameter provides the original error.
+/// The [stackTrace] parameter provides the stack trace associated with the error.
 /// The [onRetry] parameter provides an optional retry callback.
-/// The [exception] parameter provides the exception that caused the error.
-/// The [stackTrace] parameter provides the stack trace of the error.
 /// The [isSliver] parameter indicates whether the widget should be a sliver.
 typedef ErrorStateBuilder = Widget Function(
-    String? message,
+    ErrorInfo errorInfo,
+    Object error,
+    StackTrace stackTrace,
     VoidCallback? onRetry,
-    dynamic exception,
-    StackTrace? stackTrace,
     bool isSliver);
 
 /// A function that builds a widget for the empty state.
@@ -64,12 +65,16 @@ typedef MultiDataStateListener<T> = void Function(T dataStates);
 
 /// A callback function that is invoked when the state is the error state.
 ///
-/// The [message] parameter provides an optional error message.
+/// The [errorInfo] parameter provides mapped information about the error.
+/// The [error] parameter provides the original error.
+/// The [stackTrace] parameter provides the stack trace associated with the error.
 /// The [onRetry] parameter provides an optional retry callback.
-/// The [exception] parameter provides the exception that caused the error.
-/// The [stackTrace] parameter provides the stack trace of the error.
-typedef ErrorStateListener = void Function(String? message,
-    VoidCallback? onRetry, dynamic exception, StackTrace? stackTrace);
+typedef ErrorStateListener = void Function(
+  ErrorInfo errorInfo,
+  Object error,
+  StackTrace stackTrace,
+  VoidCallback? onRetry,
+);
 
 /// A callback function that is invoked when the state is the empty state.
 ///

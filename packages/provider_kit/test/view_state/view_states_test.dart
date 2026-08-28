@@ -47,22 +47,32 @@ void main() {
 
       test('ErrorState equality', () {
         void retryCallback() {}
-        final exception = Exception('Failed');
+        final error = Exception('Failed');
         final stackTrace = StackTrace.current;
 
+        const errorInfo = ErrorInfo(
+          message: 'Error',
+          code: 'failed',
+        );
+
         final state1 = ErrorState<String>(
-          'Error',
-          exception,
+          error,
           stackTrace,
-          retryCallback,
+          errorInfo: errorInfo,
+          onRetry: retryCallback,
         );
         final state2 = ErrorState<String>(
-          'Error',
-          exception,
+          error,
           stackTrace,
-          retryCallback,
+          errorInfo: errorInfo,
+          onRetry: retryCallback,
         );
-        const state3 = ErrorState<String>('Error');
+        final state3 = ErrorState<String>(
+          Exception('Other'),
+          stackTrace,
+          errorInfo: errorInfo,
+          onRetry: retryCallback,
+        );
 
         expect(state1, equals(state2));
         expect(state1.hashCode, equals(state2.hashCode));
@@ -134,14 +144,19 @@ void main() {
       test('executes correct branch and passes all parameters for ErrorState',
           () {
         void dummyRetry() {}
-        final exception = Exception('Custom error');
+        final error = Exception('Custom error');
         final stackTrace = StackTrace.current;
 
+        const errorInfo = ErrorInfo(
+          message: 'Failed',
+          code: 'custom_error',
+        );
+
         final ViewState<String> state = ErrorState<String>(
-          'Failed',
-          exception,
+          error,
           stackTrace,
-          dummyRetry,
+          errorInfo: errorInfo,
+          onRetry: dummyRetry,
         );
 
         final result = state.when(
@@ -149,11 +164,12 @@ void main() {
           loadingState: (_, __) => 'loading',
           dataState: (_) => 'data',
           emptyState: (_) => 'empty',
-          errorState: (msg, retry, exc, st) {
-            expect(msg, 'Failed');
-            expect(retry, dummyRetry);
-            expect(exc, exception);
-            expect(st, stackTrace);
+          errorState: (errorInfo, error, stackTrace, onRetry) {
+            expect(errorInfo, same(errorInfo));
+            expect(error, same(error));
+            expect(stackTrace, same(stackTrace));
+            expect(onRetry, same(dummyRetry));
+
             return 'error_matched';
           },
         );
@@ -170,7 +186,19 @@ void main() {
         const ViewState<String> s2 = LoadingState('loading');
         const ViewState<String> s3 = DataState('data');
         const ViewState<String> s4 = EmptyState('empty');
-        const ViewState<String> s5 = ErrorState('error');
+        final error = StateError('failure');
+        final stackTrace = StackTrace.current;
+
+        const errorInfo = ErrorInfo(
+          message: 'error',
+          code: 'failure',
+        );
+
+        final ViewState<String> s5 = ErrorState(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+        );
 
         String mapper(ViewState<String> state) {
           return state.map(
@@ -178,7 +206,7 @@ void main() {
             loadingState: (s) => s.message!,
             dataState: (s) => s.data,
             emptyState: (s) => s.message!,
-            errorState: (s) => s.message!,
+            errorState: (s) => s.errorInfo.message,
           );
         }
 
@@ -205,14 +233,27 @@ void main() {
 
       test('passes correct message and onRetry parameters for ErrorState', () {
         void dummyRetry() {}
-        final ViewState<String> state =
-            ErrorState('Fail', null, null, dummyRetry);
+        final error = StateError('failure');
+        final stackTrace = StackTrace.current;
 
+        const errorInfo = ErrorInfo(
+          message: 'Fail',
+          code: 'failure',
+        );
+
+        final ViewState<String> state = ErrorState(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+          onRetry: dummyRetry,
+        );
         final result = state.maybeWhen(
           orElse: () => 'fallback',
-          errorState: (msg, retry) {
-            expect(msg, 'Fail');
-            expect(retry, dummyRetry);
+          errorState: (errorInfo, error, stackTrace, onRetry) {
+            expect(errorInfo, same(errorInfo));
+            expect(error, same(error));
+            expect(stackTrace, same(stackTrace));
+            expect(onRetry, same(dummyRetry));
             return 'error_ok';
           },
         );
@@ -231,7 +272,10 @@ void main() {
       test(
           'falls back to orElse for ErrorState when errorState callback is absent',
           () {
-        const ViewState<String> state = ErrorState<String>('error');
+        final ViewState<String> state = ErrorState<String>(
+          StateError('error'),
+          StackTrace.current,
+        );
 
         final result = state.maybeWhen(
           orElse: () => 'fallback',
@@ -276,13 +320,71 @@ void main() {
       test(
           'falls back to orElse for ErrorState when errorState mapper is absent',
           () {
-        const ViewState<String> state = ErrorState<String>('error');
+        final ViewState<String> state = ErrorState<String>(
+          StateError('error'),
+          StackTrace.current,
+        );
 
         final result = state.maybeMap(
           orElse: () => 'fallback',
         );
 
         expect(result, 'fallback');
+      });
+    });
+
+    group('toString()', () {
+      test('LoadingState', () {
+        const state = LoadingState<String>('Loading...', 0.5);
+
+        expect(
+          state.toString(),
+          'LoadingState { message: Loading..., progress: 0.5 }',
+        );
+      });
+
+      test('EmptyState', () {
+        const state = EmptyState<String>('No data');
+
+        expect(
+          state.toString(),
+          'EmptyState { message: No data }',
+        );
+      });
+
+      test('DataState', () {
+        const state = DataState<String>('Hello');
+
+        expect(
+          state.toString(),
+          'DataState { data: Hello }',
+        );
+      });
+
+      test('ErrorState', () {
+        final error = StateError('failure');
+        final stackTrace = StackTrace.current;
+
+        const errorInfo = ErrorInfo(
+          message: 'Something went wrong',
+          code: 'failure',
+        );
+
+        final state = ErrorState<String>(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+        );
+
+        expect(
+          state.toString(),
+          'ErrorState { '
+          'errorInfo: $errorInfo, '
+          'error: $error, '
+          'stackTrace: $stackTrace, '
+          'onRetry: false'
+          ' }',
+        );
       });
     });
   });

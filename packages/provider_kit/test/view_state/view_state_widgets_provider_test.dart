@@ -16,10 +16,10 @@ Widget dummyEmptyBuilder(String? message, bool isSliver) =>
     const SizedBox(key: Key('empty'));
 
 Widget dummyErrorBuilder(
-  String? message,
-  VoidCallback? onRetry,
-  dynamic exception,
+  ErrorInfo errorInfo,
+  Object error,
   StackTrace? stackTrace,
+  VoidCallback? onRetry,
   bool isSliver,
 ) =>
     const SizedBox(key: Key('error'));

@@ -180,39 +180,48 @@ void main() {
     testWidgets('calls errorStateListener with correct parameters',
         (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
-      String? capturedErrorMessage;
-      VoidCallback? capturedOnRetry;
-      dynamic capturedException;
-      StackTrace? capturedStackTrace;
-
       void onRetry() {}
-      final exception = Exception('Test error');
+
+      final error = Exception('Test error');
       final stackTrace = StackTrace.current;
+
+      const errorInfo = ErrorInfo(
+        message: 'Something went wrong',
+        code: 'test_error',
+      );
+
+      ErrorInfo? capturedErrorInfo;
+      VoidCallback? capturedOnRetry;
+      Object? capturedError;
+      StackTrace? capturedStackTrace;
 
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          errorStateListener: (errorMessage, onRetry, exception, stackTrace) {
-            capturedErrorMessage = errorMessage;
+          errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+            capturedErrorInfo = errorInfo;
             capturedOnRetry = onRetry;
-            capturedException = exception;
+            capturedError = error;
             capturedStackTrace = stackTrace;
           },
         ),
       );
 
-      provider.emit(ErrorState<String>(
-        'Something went wrong',
-        exception,
-        stackTrace,
-        onRetry,
-      ));
+      provider.emit(
+        ErrorState<String>(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+          onRetry: onRetry,
+        ),
+      );
+
       await tester.pump();
 
-      expect(capturedErrorMessage, 'Something went wrong');
-      expect(capturedOnRetry, onRetry);
-      expect(capturedException, exception);
-      expect(capturedStackTrace, stackTrace);
+      expect(capturedErrorInfo, same(errorInfo));
+      expect(capturedOnRetry, same(onRetry));
+      expect(capturedError, same(error));
+      expect(capturedStackTrace, same(stackTrace));
     });
 
     testWidgets('does not call listener when emitting the same state twice',
@@ -278,7 +287,12 @@ void main() {
       expect(dataCount, 1);
       expect(loadingCount, 1);
 
-      provider.emit(const ErrorState<String>('error'));
+      provider.emit(
+        ErrorState<String>(
+          StateError('error'),
+          StackTrace.current,
+        ),
+      );
       await tester.pump();
       expect(errorCount, 1);
       expect(emptyCount, 1);
@@ -568,15 +582,20 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             provider: provider,
-            errorStateListener: (_, onRetry, __, ___) {
+            errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
             child: const SizedBox(),
           ),
         ),
       );
-
-      provider.emit(ErrorState<String>('error', null, null, expectedOnRetry));
+      provider.emit(
+        ErrorState<String>(
+          StateError('error'),
+          StackTrace.current,
+          onRetry: expectedOnRetry,
+        ),
+      );
       await tester.pump();
       expect(capturedOnRetry, expectedOnRetry);
     });
@@ -592,9 +611,9 @@ void main() {
 
         expect(provider.state, isA<ErrorState<String>>());
 
-        String? capturedErrorMessage;
+        ErrorInfo? capturedErrorInfo;
         VoidCallback? capturedOnRetry;
-        dynamic capturedException;
+        Object? capturedError;
         StackTrace? capturedStackTrace;
 
         await tester.pumpWidget(
@@ -602,11 +621,10 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
               provider: provider,
-              errorStateListener:
-                  (errorMessage, onRetry, exception, stackTrace) {
-                capturedErrorMessage = errorMessage;
+              errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+                capturedErrorInfo = errorInfo;
                 capturedOnRetry = onRetry;
-                capturedException = exception;
+                capturedError = error;
                 capturedStackTrace = stackTrace;
               },
               callListenerOnInit: true,
@@ -614,12 +632,17 @@ void main() {
             ),
           ),
         );
-        capturedOnRetry!();
-        expect(capturedErrorMessage, exception.toString());
-        expect(capturedOnRetry, provider.refresh);
-        expect(provider.refreshCalls, 1);
+        expect(capturedErrorInfo, isNotNull);
+        expect(capturedErrorInfo!.message, exception.toString());
+        expect(capturedError, same(exception));
         expect(capturedStackTrace, isNotNull);
-        expect(capturedException, isNotNull);
+        expect(capturedOnRetry, isA<VoidCallback>());
+
+        final refreshCallsBefore = provider.refreshCalls;
+
+        capturedOnRetry!();
+
+        expect(provider.refreshCalls, refreshCallsBefore + 1);
       },
     );
 

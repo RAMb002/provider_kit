@@ -10,17 +10,6 @@ part of '../view_state_widgets.dart';
 /// If the user does not supply a builder for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// ### Parameters:
-/// - **`provider`** (*Required*) **:** The [ViewStateNotifier] whose state you want to listen to.
-/// - **`initialBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `InitialState`.
-/// - **`loadingBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `LoadingState`.
-/// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
-/// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
-/// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
-/// - **`rebuildWhen`** (*Optional*) **:** A function that determines whether the builder should be called based on changes between the previous and current state. Defaults to calling the builder when `previous != current`.
-/// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
-/// - **`key`** (*Optional*) **:** An optional key for the widget.
-///
 /// ### Example Usage:
 /// ```dart
 /// ViewStateBuilder<DataType>(
@@ -28,19 +17,19 @@ part of '../view_state_widgets.dart';
 ///   rebuildWhen: (previous, current) {
 ///     // Return true/false to control rebuilding based on state changes
 ///   },
-///   initialBuilder: () {
+///   initialBuilder: (isSliver) {
 ///     // Build your widget tree for InitialState
 ///     return Container();
 ///   },
-///   loadingBuilder: (message, progress) {
+///   loadingBuilder: (message, progress, isSliver) {
 ///     // Build your widget tree for LoadingState
 ///     return Container();
 ///   },
-///   emptyBuilder: (message) {
+///   emptyBuilder: (message, isSliver) {
 ///     // Build your widget tree for EmptyState
 ///     return Container();
 ///   },
-///   errorBuilder: (message, onRetry, exception, stackTrace) {
+///   errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
 ///     // Build your widget tree for ErrorState
 ///     return Container();
 ///   },
@@ -218,10 +207,20 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     final effectiveOnRetry =
         errorState.onRetry ?? _getOnRetryFromProvider<P, T>(context, provider);
     return errorBuilder != null
-        ? errorBuilder(errorState.message, effectiveOnRetry,
-            errorState.exception, errorState.stackTrace, isSliver)
-        : context.errorStateWidget(errorState.message, effectiveOnRetry,
-            errorState.exception, errorState.stackTrace, isSliver);
+        ? errorBuilder(
+            errorState.errorInfo,
+            errorState.error,
+            errorState.stackTrace,
+            effectiveOnRetry,
+            isSliver,
+          )
+        : context.errorStateWidget(
+            errorState.errorInfo,
+            errorState.error,
+            errorState.stackTrace,
+            effectiveOnRetry,
+            isSliver,
+          );
   }
 
   static VoidCallback? _getOnRetryFromProvider<P, T>(

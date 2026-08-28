@@ -36,7 +36,8 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 /// - **`fetchData`** (*Required*) **:** The method that actually fetches the data. Must be implemented by subclasses.
 /// - **`init`** (*Optional*) **:** Customize the initialization and state transition flow.
 /// - **`refresh`** (*Optional*) **:** A method that can be used to retry fetching data.
-/// - **`errorStateObject`** (*Optional*) **:** Customize the error state object, allowing you to define a custom error message, additional metadata, or override how errors are handled.
+/// - **`errorStateObject`** (*Optional*) **:** Customize the [ErrorState],
+///   including its [ErrorInfo] and retry callback.
 /// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
 /// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
 ///
@@ -55,11 +56,21 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 ///     // Fetch data from an API or database
 ///   }
 ///
-///   @override
-///   ErrorState<MyDataType> errorStateObject(Object error, StackTrace stackTrace) {
-///     // Customize the error state object
-///     return ErrorState<MyDataType>('Custom error message', error, stackTrace);
-///   }
+/// @override
+/// ErrorState<MyDataType> errorStateObject(
+///   Object error,
+///   StackTrace stackTrace,
+/// ) {
+///   return ErrorState<MyDataType>(
+///     error,
+///     stackTrace,
+///     errorInfo: const ErrorInfo(
+///       message: 'Unable to load data.',
+///       code: 'load_failed',
+///     ),
+///     onRetry: refresh,
+///   );
+/// }
 ///
 ///   @override
 ///   LoadingState<MyDataType> loadingStateObject() {
@@ -88,7 +99,7 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 /// ```
 ///
 /// ### Error Handling:
-/// - The `onError` method is called when an error occurs and registers the error in the state observer log.
+/// - The `onError` method updates the state to [ErrorState] and notifies the configured [NotifierObserver].
 /// - The `refresh` method can be used to retry fetching data and will set the state to loading before retrying.
 /// - If a build operation is already in progress, additional `refresh` calls reuse the current operation instead of starting another fetch.
 ///
@@ -172,7 +183,7 @@ abstract class AsyncViewStateNotifier<T>
   @override
   @protected
   ErrorState<T> errorStateObject(Object error, StackTrace stackTrace) =>
-      ErrorState<T>(error.toString(), error, stackTrace, refresh);
+      ErrorState<T>(error, stackTrace, onRetry: refresh);
 
   @override
   @protected

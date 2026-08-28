@@ -18,44 +18,27 @@ part of '../view_state_widgets.dart';
 /// If the user does not supply a builder or listener for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// ### Parameters:
-/// - **`providers`** (*Required*) **:** A list of [ViewStateNotifier]s that supply the states.
-/// - **`initialBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `InitialState`.
-/// - **`loadingBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `LoadingState`.
-/// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
-/// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
-/// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
-/// - **`initialStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `InitialState`.
-/// - **`loadingStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `LoadingState`.
-/// - **`emptyStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `EmptyState`.
-/// - **`errorStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `ErrorState`.
-/// - **`dataStateListener`** (*Optional*) **:** A callback function that is invoked when the state is `DataState<DataType>`.
-/// - **`rebuildWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering builder whenever any provider's state changes.
-/// - **`listenWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering listener whenever any provider's state changes.
-/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Indicates whether the listener should be called when the widget is first initialized.
-/// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
-///
 /// ### Example Usage:
 /// ```dart
 /// MultiViewStateConsumer<DataType>(
 ///   providers: [provider1, provider2], // Required
-///   initialBuilder: (context) {
+///   initialBuilder: (isSliver) {
 ///     // Build your widget tree for InitialState
 ///     return Container();
 ///   },
-///   loadingBuilder: (context, message, progress) {
+///   loadingBuilder: (message, progress, isSliver) {
 ///     // Build your widget tree for LoadingState
 ///     return Container();
 ///   },
-///   emptyBuilder: (context, message) {
+///   emptyBuilder: (message, isSliver) {
 ///     // Build your widget tree for EmptyState
 ///     return Container();
 ///   },
-///   errorBuilder: (context, message, onRetry, exception, stackTrace) {
+///   errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
 ///     // Build your widget tree for ErrorState
 ///     return Container();
 ///   },
-///   dataBuilder: (context, data) {
+///   dataBuilder: (data) {
 ///     // Build your widget tree for DataState<DataType>
 ///     return Container();
 ///   },
@@ -68,7 +51,7 @@ part of '../view_state_widgets.dart';
 ///   emptyStateListener: (message) {
 ///     // Handle EmptyState
 ///   },
-///   errorStateListener: (errorMessage, onRetry, exception, stackTrace) {
+///   errorStateListener: (errorInfo, error, stackTrace, onRetry) {
 ///     // Handle ErrorState
 ///   },
 ///   dataStateListener: (data) {

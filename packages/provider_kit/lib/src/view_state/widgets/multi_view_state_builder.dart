@@ -17,37 +17,27 @@ part of '../view_state_widgets.dart';
 /// If the user does not supply a builder for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// ### Parameters:
-/// - **`providers`** (*Required*) **:** A list of [ViewStateNotifier]s that supply the states.
-/// - **`initialBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `InitialState`.
-/// - **`loadingBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `LoadingState`.
-/// - **`emptyBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `EmptyState`.
-/// - **`errorBuilder`** (*Optional*) **:** A builder function that is invoked when the state is `ErrorState`.
-/// - **`dataBuilder`** (*Required*) **:** A builder function that is invoked when the state is `DataState<DataType>`.
-/// - **`rebuildWhen`** (*Optional*) **:** Modifying this overrides the default priority logic, triggering builder whenever any provider's state changes.
-/// - **`isSliver`** (*Optional*, default: `false`) **:** Indicates whether the widget should be a sliver.
-///
 /// ### Example Usage:
 /// ```dart
 /// MultiViewStateBuilder<DataType>(
 ///   providers: [provider1, provider2], // Required
-///   initialBuilder: (context) {
+///   initialBuilder: (isSliver) {
 ///     // Build your widget tree for InitialState
 ///     return Container();
 ///   },
-///   loadingBuilder: (context, message, progress) {
+///   loadingBuilder: (message, progress, isSliver) {
 ///     // Build your widget tree for LoadingState
 ///     return Container();
 ///   },
-///   emptyBuilder: (context, message) {
+///   emptyBuilder: (message, isSliver) {
 ///     // Build your widget tree for EmptyState
 ///     return Container();
 ///   },
-///   errorBuilder: (context, message, onRetry, exception, stackTrace) {
+///   errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
 ///     // Build your widget tree for ErrorState
 ///     return Container();
 ///   },
-///   dataBuilder: (context, data) {
+///   dataBuilder: (data) {
 ///     // Build your widget tree for DataState<DataType>
 ///     return Container();
 ///   },
@@ -106,25 +96,38 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
       MultiDataStateBuilder<List<DataState<T>>> dataBuilder) {
     if (_ViewStateBase.hasErrorState(states)) {
       return _buildErrorWidget(
-          providers, errorBuilder, states, context, isSliver);
+        providers,
+        errorBuilder,
+        states,
+        context,
+        isSliver,
+      );
     }
     if (_ViewStateBase.hasInitialState(states)) {
       return _ViewStateBase.buildInitialWidget(
-          context, initialBuilder, isSliver);
+        context,
+        initialBuilder,
+        isSliver,
+      );
     }
     final loadingStates = _ViewStateBase.getLoadingStates(states);
     if (loadingStates.isNotEmpty) {
       return _ViewStateBase.buildLoadingWidget(
-          context,
-          loadingBuilder,
-          loadingStates.first.message,
-          _ViewStateBase.getCombinedLoadingProgress(loadingStates),
-          isSliver);
+        context,
+        loadingBuilder,
+        loadingStates.first.message,
+        _ViewStateBase.getCombinedLoadingProgress(loadingStates),
+        isSliver,
+      );
     }
     final emptyStates = _ViewStateBase.getEmptyStates(states);
     if (emptyStates.isNotEmpty) {
       return _ViewStateBase.buildEmptyWidget(
-          context, emptyBuilder, emptyStates.first.message, isSliver);
+        context,
+        emptyBuilder,
+        emptyStates.first.message,
+        isSliver,
+      );
     }
     return dataBuilder(states.cast<DataState<T>>().toList());
   }
@@ -142,18 +145,23 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
       _ViewStateBase.onRetry(providers);
     }
 
-    final errorMessage = errorStates.first.message;
-    final exception = errorStates.first.exception;
+    final errorInfo = errorStates.first.errorInfo;
+    final error = errorStates.first.error;
     final stackTrace = errorStates.first.stackTrace;
     return errorBuilder?.call(
-          errorMessage,
-          onRetry,
-          exception,
+          errorInfo,
+          error,
           stackTrace,
+          onRetry,
           isSliver,
         ) ??
         context.errorStateWidget(
-            errorMessage, onRetry, exception, stackTrace, isSliver);
+          errorInfo,
+          error,
+          stackTrace,
+          onRetry,
+          isSliver,
+        );
   }
 
   @override

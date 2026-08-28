@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -60,10 +61,12 @@ class CustomErrorProvider extends TestProvider<String> {
   @override
   ErrorState<String> errorStateObject(Object error, StackTrace stackTrace) {
     return ErrorState<String>(
-      'Custom: $error',
       error,
       stackTrace,
-      null,
+      errorInfo: ErrorInfo(
+        message: 'Custom: $error',
+      ),
+      onRetry: null,
     );
   }
 }
@@ -134,7 +137,7 @@ void main() {
       expect(state, isA<ErrorState<String>>());
       final errorState = state as ErrorState<String>;
       expect(errorState.message, 'Exception: Test error');
-      expect(errorState.exception, isA<Exception>());
+      expect(errorState.error, isA<Exception>());
       expect(errorState.onRetry, provider.refresh);
     });
 
