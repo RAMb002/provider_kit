@@ -83,7 +83,7 @@ class _TodoItemState extends State<TodoItem> {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             success: (_) => const Icon(Icons.check, color: Colors.green),
-            error: (err, st) => IconButton(
+            error: (errorInfo, error, stackTrace) => IconButton(
               icon: const Icon(Icons.error, color: Colors.red),
               onPressed: () {},
             ),

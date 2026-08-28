@@ -1,5 +1,29 @@
 ## Unreleased
 
+**Added**
+
+- Added `ProviderKit.configure()` for one-time global configuration.
+- Added `ErrorInfo` and `ErrorInfoMapper` for centralized error handling.
+- Added global `NotifierObserver` configuration through
+  `ProviderKit.configure()`.
+
+**Breaking**
+
+- Updated `ErrorState` to require the original `error` and `stackTrace`, with
+  optional `errorInfo` and `onRetry`.
+- `ErrorState` and `MutationError` now expose mapped `ErrorInfo` alongside the
+  original error and stack trace.
+- `ErrorState` and `MutationError` automatically resolve `ErrorInfo` through
+  the configured `ErrorInfoMapper` when no `ErrorInfo` is provided.
+- Updated `ViewState` error callbacks to receive
+  `(ErrorInfo, Object, StackTrace, VoidCallback?)`.
+- Updated `MutationState` error callbacks to receive
+  `(ErrorInfo, Object, StackTrace)`.
+- Global notifier observation now uses `ProviderKit.configure(observer: ...)`
+  instead of direct `NotifierBase` configuration.
+
+## 0.3.0
+
 **Mutations**
 - Added `Mutation` for managing the state of asynchronous operations.
 - Added `MutationGroup` for managing independent mutations by key.

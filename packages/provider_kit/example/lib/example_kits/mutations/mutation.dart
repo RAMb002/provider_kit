@@ -63,7 +63,7 @@ class _TodoListScreenState extends State<_TodoListScreen> {
                     loading: () => const CircularProgressIndicator(),
                     success: (_) =>
                         const Icon(Icons.check, color: Colors.green),
-                    error: (err, st) => IconButton(
+                    error: (errorInfo, error, stackTrace) => IconButton(
                       icon: const Icon(Icons.error, color: Colors.red),
                       onPressed: () {
                         notifier.addMutation.reset();
