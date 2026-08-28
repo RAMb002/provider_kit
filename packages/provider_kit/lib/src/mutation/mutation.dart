@@ -220,12 +220,7 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
     } catch (error, stackTrace) {
       if (!mounted || generation != _runGeneration) rethrow;
 
-      final errorInfo = ProviderKit.resolveErrorInfo(
-        error,
-        stackTrace,
-      );
-
-      _setState(MutationError<T>._(error, stackTrace, errorInfo));
+      _setState(MutationError<T>._(error, stackTrace));
       onError(error, stackTrace);
       rethrow;
     }

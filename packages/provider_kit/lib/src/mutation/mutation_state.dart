@@ -27,9 +27,9 @@ sealed class MutationState<T> {
     required R Function() loading,
     required R Function(T data) success,
     required R Function(
+      ErrorInfo errorInfo,
       Object error,
       StackTrace stackTrace,
-      ErrorInfo errorInfo,
     ) error,
   }) {
     final state = this;
@@ -39,7 +39,39 @@ sealed class MutationState<T> {
       MutationLoading<T>() => loading(),
       MutationSuccess<T>() => success(state.data),
       MutationError<T>() =>
-        error(state.error, state.stackTrace, state.errorInfo),
+        error(state.errorInfo, state.error, state.stackTrace),
+    };
+  }
+
+  /// {@template provider_kit.mutation_state.maybe_when}
+  /// Executes the matching callback when one is provided.
+  ///
+  /// If no callback is provided for the current state, [orElse] is
+  /// executed instead.
+  ///
+  /// This is useful when only a subset of mutation states needs to
+  /// be handled.
+  /// {@endtemplate}
+  R maybeWhen<R>({
+    required R Function() orElse,
+    R Function()? idle,
+    R Function()? loading,
+    R Function(T data)? success,
+    R Function(
+      ErrorInfo errorInfo,
+      Object error,
+      StackTrace stackTrace,
+    )? error,
+  }) {
+    final state = this;
+
+    return switch (state) {
+      MutationIdle<T>() => idle != null ? idle() : orElse(),
+      MutationLoading<T>() => loading != null ? loading() : orElse(),
+      MutationSuccess<T>() => success != null ? success(state.data) : orElse(),
+      MutationError<T>() => error != null
+          ? error(state.errorInfo, state.error, state.stackTrace)
+          : orElse(),
     };
   }
 
@@ -62,38 +94,6 @@ sealed class MutationState<T> {
       MutationLoading<T>() => loading(state),
       MutationSuccess<T>() => success(state),
       MutationError<T>() => error(state),
-    };
-  }
-
-  /// {@template provider_kit.mutation_state.maybe_when}
-  /// Executes the matching callback when one is provided.
-  ///
-  /// If no callback is provided for the current state, [orElse] is
-  /// executed instead.
-  ///
-  /// This is useful when only a subset of mutation states needs to
-  /// be handled.
-  /// {@endtemplate}
-  R maybeWhen<R>({
-    required R Function() orElse,
-    R Function()? idle,
-    R Function()? loading,
-    R Function(T data)? success,
-    R Function(
-      Object error,
-      StackTrace stackTrace,
-      ErrorInfo errorInfo,
-    )? error,
-  }) {
-    final state = this;
-
-    return switch (state) {
-      MutationIdle<T>() => idle != null ? idle() : orElse(),
-      MutationLoading<T>() => loading != null ? loading() : orElse(),
-      MutationSuccess<T>() => success != null ? success(state.data) : orElse(),
-      MutationError<T>() => error != null
-          ? error(state.error, state.stackTrace, state.errorInfo)
-          : orElse(),
     };
   }
 
@@ -181,6 +181,9 @@ final class MutationSuccess<T> extends MutationState<T> {
 
   @override
   int get hashCode => data.hashCode;
+
+  @override
+  String toString() => 'MutationSuccess { data: $data }';
 }
 
 /// {@template provider_kit.mutation_error}
@@ -191,8 +194,19 @@ final class MutationSuccess<T> extends MutationState<T> {
 /// The mapped error information is available through [errorInfo].
 /// {@endtemplate}
 final class MutationError<T> extends MutationState<T> {
-  const MutationError._(this.error, this.stackTrace, this.errorInfo)
-      : super._();
+  MutationError._(
+    this.error,
+    this.stackTrace, {
+    ErrorInfo? errorInfo,
+  })  : errorInfo = errorInfo ??
+            ProviderKit.resolveErrorInfo(
+              error,
+              stackTrace,
+            ),
+        super._();
+
+  /// {@macro provider_kit.error_info_field}
+  final ErrorInfo errorInfo;
 
   /// The error thrown during the mutation operation.
   final Object error;
@@ -200,19 +214,21 @@ final class MutationError<T> extends MutationState<T> {
   /// The stack trace associated with the error.
   final StackTrace stackTrace;
 
-  /// {@macro provider_kit.error_info_field}
-  final ErrorInfo errorInfo;
-
+  /// The message provided by [errorInfo].
   String get message => errorInfo.message;
 
   @override
   bool operator ==(Object other) =>
       other is MutationError<T> &&
       runtimeType == other.runtimeType &&
+      other.errorInfo == errorInfo &&
       other.error == error &&
-      other.stackTrace == stackTrace &&
-      other.errorInfo == errorInfo;
+      other.stackTrace == stackTrace;
 
   @override
-  int get hashCode => Object.hash(error, stackTrace, errorInfo);
+  int get hashCode => Object.hash(errorInfo, error, stackTrace);
+
+  @override
+  String toString() => 'MutationError { errorInfo: $errorInfo, error: $error, '
+      'stackTrace: $stackTrace }';
 }

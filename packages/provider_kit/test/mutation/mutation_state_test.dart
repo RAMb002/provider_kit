@@ -74,7 +74,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (_) => 'success',
-          error: (error, stackTrace, errorInfo) {
+          error: (errorInfo, error, stackTrace) {
             expect(error, same(exception));
             expect(stackTrace.toString(), isNotEmpty);
             expect(errorInfo.message, exception.toString());
@@ -231,7 +231,7 @@ void main() {
         } catch (_) {}
 
         final result = mutation.state.maybeWhen(
-          error: (error, stackTrace, errorInfo) {
+          error: (errorInfo, error, stackTrace) {
             expect(error, same(exception));
             expect(stackTrace.toString(), isNotEmpty);
             expect(errorInfo.message, exception.toString());
@@ -581,6 +581,43 @@ void main() {
 
         completer.complete(1);
         await future;
+
+        mutation.dispose();
+      });
+    });
+    group('toString()', () {
+      test('MutationSuccess toString', () async {
+        final mutation = Mutation<String>();
+
+        await mutation.run(() async => 'success');
+
+        final state = mutation.state;
+
+        expect(
+          state.toString(),
+          'MutationSuccess { data: success }',
+        );
+
+        mutation.dispose();
+      });
+      test('MutationError toString', () async {
+        final mutation = Mutation<String>();
+        final error = StateError('failure');
+
+        try {
+          await mutation.run(() async {
+            throw error;
+          });
+        } catch (_) {
+          // Expected.
+        }
+
+        final state = mutation.state as MutationError<String>;
+
+        expect(state.toString(), contains('MutationError'));
+        expect(state.toString(), contains('errorInfo: ${state.errorInfo}'));
+        expect(state.toString(), contains('error: $error'));
+        expect(state.toString(), contains('stackTrace: ${state.stackTrace}'));
 
         mutation.dispose();
       });
