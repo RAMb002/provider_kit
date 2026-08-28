@@ -64,7 +64,7 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
           onAction: _notifier.refresh,
         ),
       ErrorState<String>() => DemoViewStateContent(
-          message: state.message ?? "",
+          message: state.message,
           icon: Icons.error_outline_rounded,
           iconColor: const Color(0xFFE05252),
           actionLabel: 'Retry',

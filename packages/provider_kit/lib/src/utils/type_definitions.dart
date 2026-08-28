@@ -32,11 +32,12 @@ typedef MultiDataStateBuilder<T> = Widget Function(T dataStates);
 /// The [onRetry] parameter provides an optional retry callback.
 /// The [isSliver] parameter indicates whether the widget should be a sliver.
 typedef ErrorStateBuilder = Widget Function(
-    ErrorInfo errorInfo,
-    Object error,
-    StackTrace stackTrace,
-    VoidCallback? onRetry,
-    bool isSliver);
+  ErrorInfo errorInfo,
+  Object error,
+  StackTrace stackTrace,
+  VoidCallback? onRetry,
+  bool isSliver,
+);
 
 /// A function that builds a widget for the empty state.
 ///

@@ -1,4 +1,5 @@
 part of 'view_state_widgets.dart';
+
 class _ViewStateBase {
   static bool hasErrorState<T>(List<ViewState<T>> states) =>
       states.any((state) => state is ErrorState<T>);

@@ -39,9 +39,7 @@ class MyApp extends StatelessWidget {
           EmptyStateWidget(isSliver: isSliver),
       errorStateBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) =>
           ErrorStateWidget(
-              text: errorInfo.message,
-              onTap: onRetry,
-              isSliver: isSliver),
+              text: errorInfo.message, onTap: onRetry, isSliver: isSliver),
       loadingStateBuilder: (message, progress, isSliver) =>
           LoadingStateWidget(isSliver: isSliver),
       child: MaterialApp(
