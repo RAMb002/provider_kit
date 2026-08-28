@@ -39,6 +39,7 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
 ## Contents
 
 - [Getting started](#getting-started)
+- [ProviderKit configuration](#providerkit-configuration)
 - [State](#state)
     - [State Notifier](#statenotifier)
     - [State Widgets](#state-widgets)
@@ -98,20 +99,26 @@ dependencies:
   ```
 ### Provider integration
 
-ProviderKit works with the [`provider`](https://pub.dev/packages/provider) package for dependency injection and accessing providers from the widget tree. This integration is optional, and we will explore it more later.
+ProviderKit uses the [`provider`](https://pub.dev/packages/provider) package
+internally to resolve providers from the widget tree through `BuildContext`.
 
-If you register your provider in the widget tree, ProviderKit UI widgets can access it internally:
+You can also use the `provider` package for dependency injection in your
+application. It works naturally with ProviderKit because ProviderKit notifiers
+are based on Flutter's `ChangeNotifier`.
+
+For example:
 
 ```dart
-//Registering provider
 ChangeNotifierProvider(
   create: (_) => MyProvider(),
   child: ...,
 )
 ```
-For more information and details about registering your provider, see the documentation of [provider](https://pub.dev/packages/provider) package.
 
-### ProviderKit configuration
+For more information about dependency injection and registering providers,
+see the [`provider`](https://pub.dev/packages/provider) package documentation.
+
+## ProviderKit configuration
 
 Configuring ProviderKit is optional. You can configure it once during
 application startup to define global error handling and notifier observation.
@@ -144,13 +151,16 @@ This centralizes your error handling in one place. Without an
 `ApiException`, `SocketException`, and other error types into user-friendly
 messages whenever you create an `ErrorState` in each provider.
 
-The `errorInfoMapper` defines how errors are converted into `ErrorInfo`,
-while the `observer` allows you to monitor notifier lifecycle and state
-change events globally.
+- The `errorInfoMapper` defines how errors are converted into `ErrorInfo`.
+
+- The `observer` monitors notifier lifecycle and state changes globally for
+  debugging, logging, analytics, or other cross-cutting concerns.
 
 We’ll explore errorInfoMapper and observer in more detail later.
 
-Alright, now let's dive in!
+With the setup out of the way, let’s start with the basics.
+
+---
 
 ## State
 
@@ -169,7 +179,7 @@ class MyProvider extends StateNotifier<int> {
 }
 ```
 
-### State Widgets
+## State Widgets
 
 State Widgets help you react to state changes from your provider (e.g., `StateNotifier`) in the UI.
 
@@ -194,7 +204,7 @@ Each widget supports two ways to access the provider:
 2. **From context** — use the static `.of` method to resolve the provider from the widget tree.
 
 > **Note:** For the `.of` method to work, the provider must be registered in the widget tree using `Provider`, `ChangeNotifierProvider`, or a similar widget from the [`provider`](https://pub.dev/packages/provider) package.
-### StateListener
+## StateListener
 
 A widget that listens for state changes and executes side effects without rebuilding the UI.
 
@@ -219,7 +229,7 @@ StateListener.of<MyProvider, MyDataType>(
 );
 ```
 
-### StateBuilder
+## StateBuilder
 
 A widget that rebuilds when the state changes.
 
@@ -241,7 +251,7 @@ StateBuilder.of<MyProvider, MyDataType>(
 );
 ```
 
-### StateConsumer
+## StateConsumer
 
 A widget that combines the features of both `StateListener` and `StateBuilder`.
 
@@ -273,7 +283,7 @@ StateConsumer.of<MyProvider, MyDataType>(
 
 ---
 
-### Multi State Widgets
+## Multi State Widgets
 
 With Multi State Widgets, we can listen to the states of multiple providers using a single widget. However, these widgets won't try to read the provider. 
 
@@ -290,7 +300,7 @@ With Multi State Widgets, we can listen to the states of multiple providers usin
 
 - Multi State Widgets include **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
 
-### MultiStateListener
+## MultiStateListener
 
 A widget that listens to the state of multiple providers, and a state change in any of the providers will trigger the listener callback.
 
@@ -306,7 +316,7 @@ MultiStateListener<MyDataType>(
 );
 ```
 
-### MultiStateBuilder
+## MultiStateBuilder
 
 A widget that listens to the state of multiple providers, and a state change in any of the providers will trigger the builder.
 
@@ -319,7 +329,7 @@ MultiStateBuilder<MyDataType>(
 );
 ```
 
-### MultiStateConsumer
+## MultiStateConsumer
 
 A widget that combines both the features of `MultiStateListener` and `MultiStateBuilder`.
 
@@ -343,6 +353,10 @@ MultiStateConsumer<MyDataType>(
 
 
 ---
+
+Now that we've covered the core state-management building blocks, let's move
+on to ProviderKit's higher-level features for handling common application
+workflows.
 
 ## ViewState
 
@@ -368,7 +382,7 @@ It is particularly useful for managing data displayed by a view, such as data lo
 | `EmptyState`    | Represents an empty state with an optional message.              | `message: String?` |
 | `ErrorState` | Represents an error state containing mapped error information, the original error, its stack trace, and an optional retry callback. | `errorInfo: ErrorInfo`, `error: Object`, `stackTrace: StackTrace`, `onRetry: VoidCallback?` |
 
-**Error information**
+### Error information
 
 
 `ErrorState` contains the mapped `errorInfo`, the original `error`, its
@@ -432,8 +446,6 @@ state.when(
 ```
 > **Important Note:** `EmptyState` will be used only for `Iterable` data types. For Example when your T is a `List`, `Set` etc.
 
----
-
 ## ViewStateNotifier
 
 `ViewStateNotifier` is a `StateNotifier` that manages `ViewState<T>`. It simplifies state management by handling various states such as **loading, empty, data, and error** for a given data type.
@@ -480,7 +492,6 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
 **Tired of manually implementing the same logic for every provider?**
 No worries! Introducing **AsyncViewStateNotifier**—a more efficient way to manage our view state.
 
----
 
 ## AsyncViewStateNotifier
 
@@ -641,7 +652,6 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
 
 Before moving on to the widgets that listen to `ViewStateNotifier` and `AsyncViewStateNotifier`, let's first look at `ViewStateWidgetsProvider`, which allows us to define the default widgets used to represent different `ViewState`s.
 
----
 
 ## ViewStateWidgetsProvider
 
@@ -757,10 +767,7 @@ With `ViewStateWidgetsProvider`, we can significantly reduce the amount of UI bo
   </tr>
 </table>
 
-
----
-
-### View State Widgets
+## View State Widgets
 
 These widgets are similar to [State Widgets](#state-widgets) but are designed to adapt based on the corresponding [ViewState](#viewstate). They listen to a provider that extends either `ViewStateNotifier` or `AsyncViewStateNotifier`, ensuring they respond dynamically to state changes. For example `MyViewStateProvider` which we learned above.
 
@@ -773,7 +780,7 @@ Each widget offers **two** ways to access the provider:
 - View State Widgets include **`ViewStateListener`, `ViewStateBuilder`, `ViewStateConsumer`**.
 
 
-### ViewStateListener
+## ViewStateListener
 This widget provides individual `listener` callbacks for each `ViewState`, allowing customized behavior based on the current state.
 
 ```dart
@@ -807,7 +814,7 @@ ViewStateListener.of<MyViewStateProvider, MyDataType>(
 
 Each callback is triggered based on the current `ViewState`, allowing dynamic response handling within `ViewStateListener`.
 
-### ViewStateBuilder
+## ViewStateBuilder
 This widget provides individual `builder` for each `ViewState`, allowing customized behavior based on the current state. 
  >**Important Note:** _`initialStateBuilder`, `loadingStateBuilder`, `emptyStateBuilder` and `errorStateBuilder` that we supplied to **`ViewStateWidgetsProvider`** will be used by this widget internally by default_.
 
@@ -844,7 +851,7 @@ The `ViewStateBuilder` allows customization of UI rendering for different `ViewS
 | `child`         | `Widget?`                                                            | Optional         | A static child widget that does not depend on the state. |
 
 
-### `ViewStateConsumer`  
+## `ViewStateConsumer`  
 
 This widget combines features of both `ViewStateListener` and `ViewStateBuilder`. We can use this widget when we need both listeners and builders functionality.
  >**Important Note:** _`initialStateBuilder`, `loadingStateBuilder`, `emptyStateBuilder` and `errorStateBuilder` that we supplied to **`ViewStateWidgetsProvider`** will be used by this widget internally by default_.
@@ -949,7 +956,7 @@ The behavior of **`MultiViewStateBuilder`**, **`MultiViewStateListener`**, and *
 This ensures `EmptyState` won’t be triggered unless **all** providers return an empty state.  
 
 
-### MultiViewStateListener 
+## MultiViewStateListener 
 
 The `MultiViewStateListener` allows listening to multiple `ViewState` providers simultaneously. It merges their states into a unified `ViewState`, enabling centralized state management without manually handling multiple providers.
 
@@ -968,7 +975,7 @@ MultiViewStateListener<MyDataType>(
 `MultiViewStateListener` uses the same parameters as [`ViewStateListener`](#viewstatelistener), but accepts a `providers` list and does not provide an `.of` method.
 
 
-### MultiViewStateBuilder
+## MultiViewStateBuilder
 
 The `MultiViewStateBuilder` enables building UI based on multiple `ViewState` providers simultaneously. It merges their states into a unified `ViewState`.
  >**Important Note:** _`initialStateBuilder`, `loadingStateBuilder`, `emptyStateBuilder` and `errorStateBuilder` that we supplied to **`ViewStateWidgetsProvider`** will be used by this widget internally by default_.
@@ -984,7 +991,7 @@ MultiViewStateBuilder<MyDataType>(
 
 `MultiViewStateBuilder` uses the same parameters as [`ViewStateBuilder`](#viewstatebuilder), but accepts a `providers` list and does not provide an `.of` method.
 
-### MultiViewStateConsumer
+## MultiViewStateConsumer
 Combines the features of `MultiViewStateListener` and `MultiViewStateBuilder` in a single widget.
  >**Important Note:** _`initialStateBuilder`, `loadingStateBuilder`, `emptyStateBuilder` and `errorStateBuilder` that we supplied to **`ViewStateWidgetsProvider`** will be used by this widget internally by default_.
 
@@ -1069,7 +1076,7 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<String>> with Data
 ---
 <br>
 
-## Mutations
+# Mutations
 
 A `Mutation` manages the state of an asynchronous operation such as creating, updating, deleting, or submitting data.
 When an operation is running, the UI may need to show a loading indicator, display the result when it succeeds, or show an error when it fails.
@@ -1084,10 +1091,7 @@ When an operation is running, the UI may need to show a loading indicator, displ
   />
 </p>
 
-
----
-
-### MutationState
+## MutationState
 
 A mutation progresses through four states: `MutationIdle` → `MutationLoading` → `MutationSuccess` or `MutationError`.
 
@@ -1235,8 +1239,6 @@ The same mutation can be reused for subsequent executions:
 
 
 See [MutationState](#mutationstate) for state handling and pattern matching.
-
----
 
 ## MutationGroup
 
