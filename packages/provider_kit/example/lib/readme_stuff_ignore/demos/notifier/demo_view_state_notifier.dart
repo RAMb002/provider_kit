@@ -13,11 +13,10 @@ class DemoViewStateNotifier extends ViewStateNotifier<String> {
     _timer = Timer(
       const Duration(milliseconds: 1300),
       () {
-        state = ErrorState<String>(
-          'Something went wrong',
+        state = state = ErrorState<String>(
           StateError('Demo error'),
-          null,
-          retry,
+          StackTrace.current,
+          onRetry: retry,
         );
       },
     );

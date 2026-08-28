@@ -21,7 +21,11 @@ class ViewStateProviderOne extends ViewStateNotifier<List<Item>> {
       }
       state = DataState(items);
     } catch (e, s) {
-      state = ErrorState(e.toString(), e, s, onRetry);
+      state = ErrorState(
+        e,
+        s,
+        onRetry: onRetry,
+      );
     }
   }
 
@@ -53,8 +57,11 @@ class ViewStateProviderTwo extends ViewStateNotifier<List<Item>>
       }
       state = DataState(items);
       saveDataStateCopy(state);
-    } catch (e) {
-      state = ErrorState(e.toString());
+    } catch (e, s) {
+      state = ErrorState(
+        e,
+        s,
+      );
     }
   }
 }

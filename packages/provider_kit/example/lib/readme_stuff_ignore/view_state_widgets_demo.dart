@@ -89,13 +89,13 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
       emptyBuilder: (message, _) => _contentForState(
         EmptyState<String>(message),
       ),
-      errorBuilder: (message, onRetry, exception, stackTrace, _) =>
+      errorBuilder: (errorInfo, error, stackTrace, onRetry, _) =>
           _contentForState(
         ErrorState<String>(
-          message,
-          exception,
+          error,
           stackTrace,
-          onRetry,
+          errorInfo: errorInfo,
+          onRetry: onRetry,
         ),
       ),
       dataBuilder: (data) => _contentForState(
@@ -145,13 +145,13 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
       emptyBuilder: (message, _) => _contentForState(
         EmptyState<String>(message),
       ),
-      errorBuilder: (message, onRetry, exception, stackTrace, _) =>
+      errorBuilder: (errorInfo, error, stackTrace, onRetry, _) =>
           _contentForState(
         ErrorState<String>(
-          message,
-          exception,
+          error,
           stackTrace,
-          onRetry,
+          errorInfo: errorInfo,
+          onRetry: onRetry,
         ),
       ),
       dataBuilder: (data) => _contentForState(
