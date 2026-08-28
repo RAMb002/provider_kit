@@ -1,13 +1,13 @@
 part of '../core/provider_kit_core.dart';
 
-
 /// The foundation for all notifiers in this package.
 ///
 /// [NotifierBase] centralises lifecycle and observer behaviour shared by every
 /// notifier implementation – including state change notification, error
 /// reporting, disposal, and Flutter memory allocation tracking.
 ///
-/// **This class is internal and not intended to be used directly by end users.**
+/// This class is an internal foundation for ProviderKit notifiers and is not
+/// intended to be used directly by application code.
 ///
 /// Instead of extending [NotifierBase], you should extend one of the concrete
 /// notifier implementations provided by this package, such as:
@@ -18,15 +18,17 @@ part of '../core/provider_kit_core.dart';
 ///
 /// ### Observing notifier lifecycle events
 ///
-/// To monitor all notifiers globally, assign an implementation of
-/// [NotifierObserver] to the static [observer] field:
+/// To observe notifier lifecycle events globally, configure a
+/// [NotifierObserver] through [ProviderKit.configure]:
 ///
 /// ```dart
-/// NotifierBase.observer = MyCustomObserver();
+/// ProviderKit.configure(
+///   observer: MyNotifierObserver(),
+/// );
 /// ```
 ///
-/// This observer will receive `onCreate`, `onChange`, `onError`, and `onDispose`
-/// events for every notifier in your application.
+/// The observer receives `onCreate`, `onChange`, `onError`, and `onDispose`
+/// events for notifiers created after the observer is configured.
 ///
 /// ### Subclassing guidelines
 ///

@@ -30,6 +30,8 @@ part 'mutation_state.dart';
 /// Idle → Loading → Success
 ///              ↘ Error
 /// ```
+/// When an execution fails, [MutationError] contains the original error,
+/// stack trace, and mapped [ErrorInfo].
 ///
 /// ### Basic usage
 ///
@@ -64,7 +66,7 @@ part 'mutation_state.dart';
 ///       idle: () => const Text('Delete'),
 ///       loading: () => const CircularProgressIndicator(),
 ///       success: (_) => const Icon(Icons.check),
-///       error: (error, stackTrace, errorInfo) => const Icon(Icons.error),
+///       error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
 ///     );
 ///   },
 /// );

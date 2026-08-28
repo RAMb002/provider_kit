@@ -12,8 +12,8 @@ sealed class ViewState<T> {
   /// - [loadingState]: Callback for the loading state, with optional message and progress.
   /// - [dataState]: Callback for the data state, with the data object.
   /// - [emptyState]: Callback for the empty state, with an optional message.
-  /// - [errorState]: Callback for the error state, with error information,
-  ///   the original error, its stack trace, and an optional retry callback.
+  /// - [errorState]: Callback for the error state, receiving the mapped
+  ///   [ErrorInfo], original error, stack trace, and optional retry callback.
   R when<R extends Object?>({
     required R Function() initialState,
     required R Function(String? message, double? progress) loadingState,
@@ -43,13 +43,13 @@ sealed class ViewState<T> {
 
   /// Executes the corresponding callback based on the current state, or executes [orElse] if no match is found.
   ///
-  /// - [orElse]: Callback to execute if no match is found.
+  /// - [orElse]: Callback to execute when no matching state callback is provided.
   /// - [initialState]: Optional Callback for the initial state.
   /// - [loadingState]: Optional Callback for the loading state, with optional message and progress.
   /// - [dataState]: Optional Callback for the data state, with the data object.
   /// - [emptyState]: Optional Callback for the empty state, with an optional message.
-  /// - [errorState]: Optional Callback for the error state, with error information,
-  ///   the original error, its stack trace, and an optional retry callback.
+  /// - [errorState]: Callback for the error state, receiving the mapped
+  ///   [ErrorInfo], original error, stack trace, and optional retry callback.
   R maybeWhen<R extends Object?>({
     required R Function() orElse,
     R Function()? initialState,
@@ -106,7 +106,7 @@ sealed class ViewState<T> {
 
   /// Maps the current state to a corresponding callback, or executes [orElse] if no match is found.
   ///
-  /// - [orElse]: Callback to execute if no match is found.
+  /// - [orElse]: Callback to execute when no matching state callback is provided.
   /// - [initialState]: Optional callback for the initial state.
   /// - [loadingState]: Optional callback for the loading state.
   /// - [dataState]: Optional callback for the data state.
@@ -139,6 +139,9 @@ class InitialState<T> extends ViewState<T> {
 }
 
 /// Represents the loading state of a view.
+///
+/// [message] optionally describes the current loading operation.
+/// [progress] optionally indicates the loading progress.
 class LoadingState<T> extends ViewState<T> {
   final String? message;
   final double? progress;
@@ -161,6 +164,8 @@ class LoadingState<T> extends ViewState<T> {
 }
 
 /// Represents the empty state of a view.
+///
+/// [message] optionally describes why no data is available.
 class EmptyState<T> extends ViewState<T> {
   final String? message;
   const EmptyState([this.message]);
@@ -179,6 +184,8 @@ class EmptyState<T> extends ViewState<T> {
 }
 
 /// Represents the data state of a view.
+///
+/// [data] contains the data produced by the operation.
 class DataState<T> extends ViewState<T> {
   const DataState(this.data);
   final T data;

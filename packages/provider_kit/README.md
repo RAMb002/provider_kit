@@ -66,6 +66,7 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
       - [Ex View State Cache Mixin](#exviewstatecachemixin)
       - [Data State Copy Cache Mixin](#datastatecopycachemixin)
 - [Mutations](#mutations)
+    - [MutationState](#mutationstate)
     - [Defining a Mutation](#defining-a-mutation)
     - [Listening to a Mutation](#listening-to-a-mutation)
     - [Triggering a Mutation](#triggering-a-mutation)
@@ -81,7 +82,6 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
         - [Manual Disposal](#manual-disposal)
      - [Why Use MutationGroup?](#why-use-mutationgroup)
      - [Mutation vs MutationGroup](#mutation-vs-mutationgroup)
-    - [MutationState](#mutationstate)
 - [Nested State Listener](#nestedstatelistener)
 - [Notifier Observer](#notifierobserver)
 - [VS Code Extension](#vs-code-extension)
@@ -96,7 +96,7 @@ dependencies:
   provider_kit: ^0.3.0
   provider: ^6.1.5 # For dependency injection
   ```
-### Using ProviderKit with `provider`
+### Provider integration
 
 ProviderKit works with the [`provider`](https://pub.dev/packages/provider) package for dependency injection and accessing providers from the widget tree. This integration is optional, and we will explore it more later.
 
@@ -110,6 +110,45 @@ ChangeNotifierProvider(
 )
 ```
 For more information and details about registering your provider, see the documentation of [provider](https://pub.dev/packages/provider) package.
+
+### ProviderKit configuration
+
+Configuring ProviderKit is optional. You can configure it once during
+application startup to define global error handling and notifier observation.
+
+For example:
+
+```dart
+void main() {
+  ProviderKit.configure(
+    observer: MyNotifierObserver(),
+    errorInfoMapper: (error, stackTrace) {
+      if (error is AuthException) {
+        return ErrorInfo(
+          message: error.message ?? 'Authentication failed.',
+          code: error.code,
+        );
+      }
+
+      return ErrorInfo(
+        message: error.toString(),
+      );
+    },
+  );
+
+  runApp(const MyApp());
+}
+```
+This centralizes your error handling in one place. Without an
+`errorInfoMapper`, you would need to manually convert errors such as
+`ApiException`, `SocketException`, and other error types into user-friendly
+messages whenever you create an `ErrorState` in each provider.
+
+The `errorInfoMapper` defines how errors are converted into `ErrorInfo`,
+while the `observer` allows you to monitor notifier lifecycle and state
+change events globally.
+
+We’ll explore errorInfoMapper and observer in more detail later.
 
 Alright, now let's dive in!
 
@@ -130,7 +169,7 @@ class MyProvider extends StateNotifier<int> {
 }
 ```
 
-### _**State Widgets**_
+### State Widgets
 
 State Widgets help you react to state changes from your provider (e.g., `StateNotifier`) in the UI.
 
@@ -229,15 +268,14 @@ StateConsumer.of<MyProvider, MyDataType>(
   builder: (context, state, child) => Text('$state'),
 );
 ```
+> **Tip:** `State Widgets` work with any notifier
+> provided by ProviderKit, not just `StateNotifier`.
 
 ---
 
-
-### _**Multi State Widgets**_
+### Multi State Widgets
 
 With Multi State Widgets, we can listen to the states of multiple providers using a single widget. However, these widgets won't try to read the provider. 
-> **Note:** The providers' states can be of the same type or different types (`dynamic`).  
-> The providers themselves are not limited to `StateNotifier`; any object implementing `StateValueListenable` can be used.
 
 <p>
   <img
@@ -247,6 +285,8 @@ With Multi State Widgets, we can listen to the states of multiple providers usin
     alt="Multi State Widgets Demo"
   />
 </p>
+
+> **Note:** The providers' states can be of the same type or different types (`dynamic`).  
 
 - Multi State Widgets include **`MultiStateListener`, `MultiStateBuilder` and `MultiStateConsumer`**.
 
@@ -298,8 +338,9 @@ MultiStateConsumer<MyDataType>(
   child: YourStaticWidget(), // Optional, won't be rebuilt
 );
 ```
+> **Tip:** `Multi State Widgets` work with any notifier
+> provided by ProviderKit, not just `StateNotifier`.
 
-> **Note:** `State Widgets` and `Multi State Widgets` are not limited to `StateNotifier`. They can be used with any notifier from this package, as long as it implements `StateValueListenable`.
 
 ---
 
@@ -323,11 +364,74 @@ It is particularly useful for managing data displayed by a view, such as data lo
 |-----------------|-------------------------------------------------------------------|------------|
 | `InitialState`  | Represents the initial state of a view.                          | None       |
 | `LoadingState`  | Represents a loading state with optional progress and message.   | `message: String?`, `progress: double?` |
-| `DataState`     | Represents a successful data state containing the result object. | `dataObject: T` |
+| `DataState`     | Represents a successful data state containing the result object. | `data: T` |
 | `EmptyState`    | Represents an empty state with an optional message.              | `message: String?` |
-| `ErrorState`    | Represents an error state with an optional message and retry callback. | `message: String?`, `onRetry: VoidCallback?`, `exception: dynamic`, `stackTrace: StackTrace?` |
+| `ErrorState` | Represents an error state containing mapped error information, the original error, its stack trace, and an optional retry callback. | `errorInfo: ErrorInfo`, `error: Object`, `stackTrace: StackTrace`, `onRetry: VoidCallback?` |
 
+**Error information**
+
+
+`ErrorState` contains the mapped `errorInfo`, the original `error`, its
+`stackTrace`, and an optional `onRetry` callback.
+
+You can provide `errorInfo` explicitly when you want to define the error
+information yourself:
+
+```dart
+final state = ErrorState(
+  error,
+  stackTrace,
+  errorInfo: const ErrorInfo(
+    message: 'An error occurred.',
+    code: 'unknown_error',
+  ),
+  onRetry: retry,
+);
+```
+
+When `errorInfo` is omitted, ProviderKit automatically creates it using the
+`ErrorInfoMapper` configured through `ProviderKit.configure()`:
+
+```dart
+final state = ErrorState(
+  error,
+  stackTrace,
+);
+
+print(state.errorInfo.message);
+print(state.errorInfo.code);
+```
+
+`ErrorInfo` is especially useful when handling errors in listeners and other
+application logic. For example, a listener can show a user-friendly message
+without needing to understand the underlying exception:
+
+```dart
+errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+  showToast(errorInfo.message);
+}
+```
+
+By configuring an `ErrorInfoMapper` once through `ProviderKit.configure()`,
+different error types can be converted into consistent error messages and codes
+throughout the application.
+
+### Handling ViewState
+
+`ViewState` provides `when`, `maybeWhen`, `map`, and `maybeMap` methods for
+handling each state type without manually checking the state.
+
+```dart
+state.when(
+  initialState: () => ...,
+  loadingState: (message, progress) => ...,
+  dataState: (data) => ...,
+  emptyState: (message) => ...,
+  errorState: (errorInfo, error, stackTrace, onRetry) => ...,
+);
+```
 > **Important Note:** `EmptyState` will be used only for `Iterable` data types. For Example when your T is a `List`, `Set` etc.
+
 ---
 
 ## ViewStateNotifier
@@ -354,8 +458,12 @@ class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
         return;
       }
       state = DataState(items);
-    } catch (e, s) {
-      state = ErrorState(e.toString(), e, s, onRefresh);
+    } catch (error, stackTrace) {
+      state = ErrorState(
+        error,
+        stackTrace,
+        onRetry: onRefresh,
+      );
     }
   }
 
@@ -426,9 +534,9 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
 ✅ Automatically fetches data upon initialization.  
 ✅ Transitions to `LoadingState` before fetching.  
 ✅ If the data is `Iterable` and if it's empty, it switches to `EmptyState`.  
-✅ Catches exceptions and converts them into `ErrorState`.  
-✅ Includes a built-in `onRefresh` function, which rebuilds the initialization logic.  
-✅ Passes the `onRefresh` function, exception, and stack trace to `ErrorState`.  
+✅ Catches errors and converts them into `ErrorState`.  
+✅ Includes a built-in `refresh` function, which rebuilds the initialization logic.  
+✅ Passes the `refresh` function, error, and stack trace to `ErrorState`.  
 ✅ Internally guarded with `mounted` – For safe async state updates.  
 
 > **Note** `FlutterError` exceptions are **re‑thrown** and **not** converted to `ErrorState`. This ensures that fatal programming errors (e.g., assertion failures) are not masked by the UI.
@@ -482,17 +590,29 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
     return [];
   }
 
-  ///  **Custom error state handling**
+  /// **Custom error state handling**
   @override
-  ErrorState<List<Item>> errorStateObject(Object error, StackTrace stackTrace) {
-    String message = "Something went wrong";
+  ErrorState<List<Item>> errorStateObject(
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    var errorInfo = const ErrorInfo(
+      message: 'Something went wrong.',
+    );
 
-    // Custom error message handling
     if (error is MyException) {
-      message = error.message;
+      errorInfo = ErrorInfo(
+        message: error.message,
+        code: 'my_exception',
+      );
     }
 
-    return ErrorState<List<Item>>(message, error, stackTrace, refresh);
+    return ErrorState<List<Item>>(
+      error,
+      stackTrace,
+      errorInfo: errorInfo,
+      onRetry: refresh,
+    );
   }
 
   ///  **Custom loading state**
@@ -515,7 +635,9 @@ class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
   }
 }
 ```
-> **Note:** Even if `refresh` is not passed inside the `ErrorState` for `retry` mechanism, the `refresh` will be automatically be read by the `View State Widgets` as long as the provider extends `AsyncViewStateNotifier`.
+> **Note:** When `ErrorState.onRetry` is not provided, ViewState Widgets
+> automatically use the provider's `refresh()` method as the retry callback
+> when the provider is an `AsyncViewStateNotifier`.
 
 Before moving on to the widgets that listen to `ViewStateNotifier` and `AsyncViewStateNotifier`, let's first look at `ViewStateWidgetsProvider`, which allows us to define the default widgets used to represent different `ViewState`s.
 
@@ -558,12 +680,13 @@ class MyApp extends StatelessWidget {
       },
       //supply your error state widget
       //onRetry will refresh the provider 
-      errorStateBuilder: (errorMessage, onRetry, exception, stackTrace, isSliver) {
+      errorStateBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
         final widget = Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(errorMessage ?? "An error occurred",
+              Text(
+                  errorInfo.message,
                   style: const TextStyle(color: Colors.red)),
               TextButton(
                   onPressed: onRetry, child: const Text("Retry")),
@@ -606,7 +729,6 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 ```
-> **Note:** In `errorStateBuilder`, the `errorMessage`, `onRetry`, `exception`, and `stackTrace` are automatically passed to the function if your provider is `providerKit`.
 
 With `ViewStateWidgetsProvider`, we can significantly reduce the amount of UI boilerplate:
 
@@ -677,7 +799,7 @@ ViewStateListener.of<MyViewStateProvider, MyDataType>(
 | `loadingStateListener`     | `void Function(String? message, double? progress)?`                                          | Optional         | Invoked when the state is `LoadingState`. |
 | `dataStateListener`        | `void Function(T data)?`                                                                      | **Required**     | Invoked when the state is `DataState`. |
 | `emptyStateListener`       | `void Function(String? message)?`                                                             | Optional         | Invoked when the state is `EmptyState`. |
-| `errorStateListener`       | `void Function(String? message, VoidCallback? onRetry, dynamic exception, StackTrace? stackTrace)?` | Optional | Invoked when the state is `ErrorState`. |
+| `errorStateListener` | `void Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry)?` | Optional | Invoked when the state is `ErrorState`. |
 | `listenWhen`               | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                   | Optional         | Determines whether to listen for state changes based on previous and next state comparisons. |
 | `callListenerOnInit` | `bool`                                                                                        | Optional         | Determines whether the state listener should be called immediately upon initialization. Defaults to `false`. |
 | `child`                    | `Widget?`                                                                                    | **Required**     | The child widget wrapped by `ViewStateListener`. |
@@ -715,7 +837,7 @@ The `ViewStateBuilder` allows customization of UI rendering for different `ViewS
 | `rebuildWhen`    | `bool Function(ViewState<T> previous, ViewState<T> next)?`           | Optional         | Determines if the builder should rebuild based on state changes. |
 | `initialBuilder` | `Widget Function(bool isSliver)?`                                    | Optional         | Called when the state is `InitialState`. |
 | `dataBuilder`    | `Widget Function(T data)`                                            | **Required**     | Called when the state is `DataState`, passing the retrieved data. |
-| `errorBuilder`   | `Widget Function(String? message, VoidCallback? onRetry, dynamic exception, StackTrace? stackTrace, bool isSliver)?` | Optional | Called when the state is `ErrorState`. |
+| `errorBuilder` | `Widget Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry, bool isSliver)?` | Optional | Called when the state is `ErrorState`. |
 | `loadingBuilder` | `Widget Function(String? message, double? progress, bool isSliver)?` | Optional         | Called when the state is `LoadingState`. |
 | `emptyBuilder`   | `Widget Function(String? message, bool isSliver)?`                   | Optional         | Called when the state is `EmptyState`. |
 | `isSliver`       | `bool`                                                               | Optional         | Specifies whether the widget is a sliver. Defaults to `false`. |
@@ -754,7 +876,7 @@ ViewStateConsumer.of<MyViewStateProvider, MyDataType>(
 | `loadingStateListener`     | `void Function(String? message, double? progress)?`                                          | Optional         | Invoked when the state is `LoadingState`. |
 | `dataStateListener`        | `void Function(T data)?`                                                                      | Optional         | Invoked when the state is `DataState`. |
 | `emptyStateListener`       | `void Function(String? message)?`                                                             | Optional         | Invoked when the state is `EmptyState`. |
-| `errorStateListener`       | `void Function(String? message, VoidCallback? onRetry, dynamic exception, StackTrace? stackTrace)?` | Optional | Invoked when the state is `ErrorState`. |
+| `errorStateListener` | `void Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry)?` | Optional | Invoked when the state is `ErrorState`. |
 | `listenWhen`               | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                   | Optional         | Determines whether to listen for state changes based on previous and next state comparisons. |
 ||
 | `rebuildWhen`              | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                    | Optional         | Determines if the builder should rebuild based on state changes. |
@@ -762,7 +884,7 @@ ViewStateConsumer.of<MyViewStateProvider, MyDataType>(
 | `loadingBuilder`           | `Widget Function(String? message, double? progress, bool isSliver)?`                          | Optional         | Called when the state is `LoadingState`. |
 | `emptyBuilder`             | `Widget Function(String? message, bool isSliver)?`                                            | Optional         | Called when the state is `EmptyState`. |
 | `dataBuilder`              | `Widget Function(T data)`                                                                     | **Required**     | Called when the state is `DataState`, passing the retrieved data. |
-| `errorBuilder`             | `Widget Function(String? message, VoidCallback? onRetry, dynamic exception, StackTrace? stackTrace, bool isSliver)?` | Optional | Called when the state is `ErrorState`. |
+| `errorBuilder` | `Widget Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry, bool isSliver)?` | Optional | Called when the state is `ErrorState`. |
 | `isSliver`                 | `bool`                                                                                        | Optional         | Specifies whether the widget is a sliver. Defaults to `false`. |
 
 ---
@@ -795,19 +917,19 @@ The behavior of **`MultiViewStateBuilder`**, **`MultiViewStateListener`**, and *
 
 #### 1️⃣ **`ErrorState`** (**Highest Priority**)  
    - If **any** provider is in `ErrorState`, the `errorStateListener` (or `errorBuilder`) **will be invoked**.  
-   - > The first encountered `ErrorState` data will be passed to the `errorStatelistener` or `errorBuilder`.
+   - > The first encountered `ErrorState` data will be passed to the `errorStateListener` or `errorBuilder`.
 
 #### 2️⃣ **`InitialState`**  
    - If no `ErrorState` is found, but **at least one provider** is in `InitialState`, the `initialStateListener` (or `initialBuilder`) **will be invoked**.  
 
 #### 3️⃣ **`LoadingState`**  
    - If **no `ErrorState` or `InitialState` exists**, but **at least one provider** is in `LoadingState`, the `loadingStateListener` (or `loadingBuilder`) **will be invoked**.  
-   - > **First encountered `LoadingState` message** will be passed to the `loadingStatelistener` or `loadingBuilder`.  
+   - > **First encountered `LoadingState` message** will be passed to the `loadingStateListener` or `loadingBuilder`.  
    - > **`progress` will be aggregated** from all `LoadingState`s into a **single combined value**.  
 
 #### 4️⃣ **`EmptyState`**  
    - If none of the above states are present, but **at least one provider** is in `EmptyState`, the `emptyStateListener` (or `emptyBuilder`) **will be invoked**.  
-   - > The **first encountered `EmptyState` message** will be passed to the `emptyStatelistener` or `emptybuilder`.
+   - > The **first encountered `EmptyState` message** will be passed to the `emptyStateListener` or `emptyBuilder`.
 
 #### 5️⃣ **`DataState<DataType>`** (**Lowest Priority**)  
    - Only If **all** providers are in `DataState`, the `dataStateListener` (or `dataBuilder`) **will be invoked**.  
@@ -962,9 +1084,39 @@ When an operation is running, the UI may need to show a loading indicator, displ
   />
 </p>
 
-A mutation progresses through four states:
 
-`MutationIdle` → `MutationLoading` → `MutationSuccess` or `MutationError`
+---
+
+### MutationState
+
+A mutation progresses through four states: `MutationIdle` → `MutationLoading` → `MutationSuccess` or `MutationError`.
+
+| State | Description | Properties |
+| --- | --- | --- |
+| `MutationIdle` | Represents the initial state before the mutation has been executed. | None |
+| `MutationLoading` | Represents a mutation that is currently executing. | None |
+| `MutationSuccess` | Represents a successfully completed mutation and contains its result. | `data: T` |
+| `MutationError` | Represents a failed mutation and contains the mapped `errorInfo`, original `error`, and its `stackTrace`. | `errorInfo: ErrorInfo`, `error: Object`, `stackTrace: StackTrace` |
+
+A mutation manages its own state through `run()`. The mutation state cannot be
+set directly.
+
+> **Note:** When an operation fails, `MutationError` automatically creates
+> `errorInfo` using the `ErrorInfoMapper` configured through
+> `ProviderKit.configure()`.
+
+`MutationState` provides `when()`, `maybeWhen()`, `map()`, and `maybeMap()` for
+handling its states. Use `when()` when every state should be handled:
+
+```dart
+state.when(
+  idle: () => const Text('Ready'),
+  loading: () => const CircularProgressIndicator(),
+  success: (data) => Text('Success: $data'),
+  error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
+);
+```
+
 
 ### Defining a Mutation
 
@@ -989,7 +1141,7 @@ StateBuilder(
       idle: () => const Text('Delete'),
       loading: () => const CircularProgressIndicator(),
       success: (_) => const Icon(Icons.check),
-      error: (error, stackTrace) => const Icon(Icons.error),
+      error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
     );
   },
 );
@@ -1025,7 +1177,9 @@ When the operation completes:
 - If the operation succeeds, the mutation enters `MutationSuccess`.
 - If the operation throws an exception, the mutation enters `MutationError`.
 
-The successful result is available through `MutationSuccess`, while `MutationError` contains the original error and its stack trace.
+The successful result is available through `MutationSuccess`, while
+`MutationError` contains the mapped `errorInfo`, original `error`, and
+`stackTrace`.
 
 > **Note:** Mutations allow multiple `run()` calls to execute concurrently. Only the most
 > recently started execution can update the mutation state. Earlier executions
@@ -1352,69 +1506,6 @@ deleteTodo(todo3.id);
 
 ---
 
-## MutationState
-
-`MutationState` represents the different states of a mutation operation, including `Idle`, `Loading`, `Success`, and `Error`.
-
-It is particularly useful for tracking the progress and result of asynchronous operations such as creating, updating, deleting, submitting, logging in, or uploading data.
-
-| State | Description | Properties |
-| --- | --- | --- |
-| `MutationIdle` | Represents the initial state before the mutation has been executed. | None |
-| `MutationLoading` | Represents a mutation that is currently executing. | None |
-| `MutationSuccess` | Represents a successfully completed mutation and contains its result. | `data: T` |
-| `MutationError` | Represents a failed mutation and contains the error and its stack trace. | `error: Object`, `stackTrace: StackTrace` |
-
-`MutationState` provides pattern-matching helpers for handling its different states. Use `when()` and `maybeWhen()` when you want to work with the values exposed by each state, and `map()` and `maybeMap()` when you need access to the complete state object.
-
-### `when`
-
-Use `when()` when every state should be handled:
-
-```dart
-state.when(
-  idle: () => const Text('Ready'),
-  loading: () => const CircularProgressIndicator(),
-  success: (data) => Text('Success: $data'),
-  error: (error, stackTrace) => Text('Error: $error'),
-);
-```
-
-### `maybeWhen`
-
-Use `maybeWhen()` when only specific states need handling:
-
-```dart
-state.maybeWhen(
-  loading: () => const CircularProgressIndicator(),
-  orElse: () => const SizedBox(),
-);
-```
-
-### `map`
-
-Use `map()` when you need access to the complete state object:
-
-```dart
-state.map(
-  idle: (state) => const Text('Ready'),
-  loading: (state) => const Text('Loading'),
-  success: (state) => Text('Result: ${state.data}'),
-  error: (state) => Text('Error: ${state.error}'),
-);
-```
-
-`maybeMap()` can be used when only specific state objects need to be handled.
-```dart
-state.maybeMap(
-  loading: (state) => const CircularProgressIndicator(),
-  success: (state) => Text('Result: ${state.data}'),
-  orElse: () => const SizedBox(),
-);
-```
-
----
-
 ## NestedStateListener
 
 `NestedStateListener` is a widget that nests multiple state listeners within a single widget. It allows you to combine different types of listeners and manage them together efficiently.
@@ -1472,13 +1563,17 @@ It can be used for debugging, logging, analytics, or any other cross‑cutting c
 
 ### Setting up a global observer
 
-Assign an implementation of `NotifierObserver` to the static `observer` field on `NotifierBase`.  
-This is typically done at the start of your app, before running the `MaterialApp`.
+Configure a global `NotifierObserver` through `ProviderKit.configure()`.
+
+This is typically done during application startup, before running the `MaterialApp`.
 
 ```dart
 void main() {
-  // Set the global observer
-  NotifierBase.observer = MyNotifierObserver();
+  ProviderKit.configure(
+    // Set the global observer
+    observer: MyNotifierObserver(),
+  );
+
   runApp(const MyApp());
 }
 
@@ -1515,8 +1610,6 @@ class MyNotifierObserver extends NotifierObserver {
   }
 }
 ```
-
-
 ---
 
 ## VS Code Extension

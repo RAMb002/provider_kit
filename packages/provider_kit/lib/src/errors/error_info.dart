@@ -1,13 +1,15 @@
-/// Presentation-friendly information about an error.
+/// {@template provider_kit.error_info}
+/// Information about an error.
 ///
-/// [ErrorInfo] separates information intended for presentation or application
-/// logic from the original technical error object.
+/// [ErrorInfo] provides structured information about an error that can be used
+/// by application logic or presentation code.
 ///
-/// ProviderKit keeps the original error and stack trace separately, while
-/// [ErrorInfo] provides a stable, simple contract for user-facing error
-/// handling.
+/// It contains mapped error information such as a human-readable [message] and
+/// an optional machine-readable [code], while the original error and its stack
+/// trace remain available separately.
 ///
-/// Example:
+///
+/// ### Example
 ///
 /// ```dart
 /// const ErrorInfo(
@@ -15,35 +17,23 @@
 ///   code: 'invalid_credentials',
 /// );
 /// ```
+/// {@endtemplate}
 final class ErrorInfo {
-  /// Creates error information.
-  ///
-  /// [message] is the human-readable description of the error.
-  ///
-  /// [code] is an optional machine-readable identifier that an application can
-  /// use when it needs to distinguish between different error conditions.
+  /// {@macro provider_kit.error_info}
   const ErrorInfo({
     required this.message,
     this.code,
   });
 
-  /// Human-readable message suitable for presentation.
-  ///
-  /// Applications can use this value for UI feedback such as snackbars,
-  /// dialogs, inline error messages, or other presentation mechanisms.
+  /// A human-readable description of the error.
   final String message;
 
-  /// Optional machine-readable error code.
-  ///
-  /// ProviderKit does not impose any meaning or format on this value.
-  /// Applications may use strings representing their own error taxonomy.
+  /// An optional machine-readable error code.
   final String? code;
 
   @override
   bool operator ==(Object other) {
-    return other is ErrorInfo &&
-        other.message == message &&
-        other.code == code;
+    return other is ErrorInfo && other.message == message && other.code == code;
   }
 
   @override

@@ -1,17 +1,18 @@
 import 'package:provider_kit/src/errors/error_info.dart';
 
-/// Converts an arbitrary error into [ErrorInfo].
+/// Converts an error into an [ErrorInfo].
 ///
-/// The mapper receives both the original [error] and its [StackTrace], allowing
-/// applications to inspect the underlying failure and produce presentation-
-/// friendly information.
+/// The mapper receives the original [error] and its [StackTrace], allowing
+/// applications to inspect the failure and return structured error
+/// information.
 ///
-/// Example:
+/// ### Example
 ///
 /// ```dart
 /// final ErrorInfoMapper mapper = (error, stackTrace) {
 ///   return ErrorInfo(
 ///     message: 'Something went wrong.',
+///     code: 'unknown_error',
 ///   );
 /// };
 /// ```

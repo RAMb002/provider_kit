@@ -1,14 +1,14 @@
-import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/state/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 /// {@template provider_kit.view_state_notifier}
-/// A base notifier class for managing state with [ValueNotifier].
-/// Designed for use with provider-based state management.
+/// A notifier for managing a [ViewState] and exposing it to listeners.
 ///
-/// The [ViewStateNotifier] class extends [StateNotifier] and is used to manage view states.
-/// It is designed to work with provider-based state management and provides a way to handle different view states
-/// such as loading, error, and data states.
+/// [ViewStateNotifier] extends [StateNotifier] and provides a convenient
+/// base class for notifiers whose state follows the [ViewState] model.
+///
+/// A view state can represent an initial, loading, data, empty, or error
+/// condition.
 ///
 /// ### Example Usage:
 /// ```dart
@@ -20,15 +20,13 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 ///       state = LoadingState();
 ///       final data = await fetchDataFromApi();
 ///       state = DataState(data);
-///     } catch (e) {
-///       state = ErrorState(e.toString());
+///     } catch (error, stackTrace) {
+///       state = ErrorState(error, stackTrace);
 ///     }
 ///   }
 /// }
 /// ```
 ///
-/// ### Parameters:
-/// - **`state`** (*Required*) **:** The initial state of the notifier.
 /// {@endtemplate}
 
 abstract class ViewStateNotifier<State>

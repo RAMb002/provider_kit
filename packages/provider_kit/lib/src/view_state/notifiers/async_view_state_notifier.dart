@@ -9,8 +9,8 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 ///
 /// The [AsyncViewStateNotifier] class is designed to handle common state transitions such as loading, error, and empty states.
 /// It guards the initialization and refresh operations, prevents duplicate
-/// asynchronous operations while a build is already running, and automatically
-/// converts exceptions to error states.
+/// asynchronous operations while a build is already running, and converts
+/// errors into [ErrorState] instances.
 /// Override [init] for full customization.
 /// ```dart
 /// FutureOr<void> init() async {
