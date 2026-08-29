@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 /// {@template provider_kit.initial_state_callback}
 /// A callback invoked for the [InitialState].
@@ -44,6 +45,51 @@ typedef ErrorStateCallback<R> = R Function(
   Object error,
   StackTrace stackTrace,
   VoidCallback? onRetry,
+);
+
+/// {@template provider_kit.initial_state_mapper}
+/// A callback that maps an [InitialState] to a value of type [R].
+///
+/// The [initialState] parameter contains the complete [InitialState] object.
+/// {@endtemplate}
+typedef InitialStateMapper<R, T> = R Function(
+  InitialState<T> initialState,
+);
+
+/// {@template provider_kit.loading_state_mapper}
+/// A callback that maps a [LoadingState] to a value of type [R].
+///
+/// The [loadingState] parameter contains the complete [LoadingState] object.
+/// {@endtemplate}
+typedef LoadingStateMapper<R, T> = R Function(
+  LoadingState<T> loadingState,
+);
+
+/// {@template provider_kit.data_state_mapper}
+/// A callback that maps a [DataState] to a value of type [R].
+///
+/// The [dataState] parameter contains the complete [DataState] object.
+/// {@endtemplate}
+typedef DataStateMapper<R, T> = R Function(
+  DataState<T> dataState,
+);
+
+/// {@template provider_kit.empty_state_mapper}
+/// A callback that maps an [EmptyState] to a value of type [R].
+///
+/// The [emptyState] parameter contains the complete [EmptyState] object.
+/// {@endtemplate}
+typedef EmptyStateMapper<R, T> = R Function(
+  EmptyState<T> emptyState,
+);
+
+/// {@template provider_kit.error_state_mapper}
+/// A callback that maps an [ErrorState] to a value of type [R].
+///
+/// The [errorState] parameter contains the complete [ErrorState] object.
+/// {@endtemplate}
+typedef ErrorStateMapper<R, T> = R Function(
+  ErrorState<T> errorState,
 );
 
 /// {@macro provider_kit.initial_state_callback}

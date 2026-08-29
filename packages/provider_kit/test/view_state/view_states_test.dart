@@ -181,7 +181,7 @@ void main() {
     // 3. map() Pattern Matching
     // -------------------------------------------------------------------------
     group('map()', () {
-      test('maps every state to strongly typed subclass instance', () {
+      test('maps each state to the corresponding callback', () {
         const ViewState<String> s1 = InitialState();
         const ViewState<String> s2 = LoadingState('loading');
         const ViewState<String> s3 = DataState('data');
@@ -229,6 +229,39 @@ void main() {
           dataState: (data) => 'matched: $data',
         );
         expect(result, 'matched: Success');
+      });
+
+      test('executes the provided callback for each state', () {
+        const ViewState<String> initialState = InitialState();
+        const ViewState<String> loadingState = LoadingState(
+          'Loading',
+          0.5,
+        );
+        const ViewState<String> emptyState = EmptyState('No data');
+
+        expect(
+          initialState.maybeWhen(
+            orElse: () => 'fallback',
+            initialState: () => 'initial',
+          ),
+          'initial',
+        );
+
+        expect(
+          loadingState.maybeWhen(
+            orElse: () => 'fallback',
+            loadingState: (message, progress) => '$message: $progress',
+          ),
+          'Loading: 0.5',
+        );
+
+        expect(
+          emptyState.maybeWhen(
+            orElse: () => 'fallback',
+            emptyState: (message) => message ?? '',
+          ),
+          'No data',
+        );
       });
 
       test('passes correct message and onRetry parameters for ErrorState', () {
@@ -286,7 +319,65 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    // 5. maybeMap() Fallback Behavior
+    // 5. whenOrNull() Matching & Null Behavior
+    // -------------------------------------------------------------------------
+    group('whenOrNull()', () {
+      test('executes the matching callback and returns its result', () {
+        const ViewState<String> state = DataState('Payload');
+
+        final result = state.whenOrNull(
+          dataState: (data) => 'matched: $data',
+        );
+
+        expect(result, 'matched: Payload');
+      });
+
+      test('passes the correct parameters for ErrorState', () {
+        void dummyRetry() {}
+        final error = StateError('failure');
+        final stackTrace = StackTrace.current;
+
+        const errorInfo = ErrorInfo(
+          message: 'Failed',
+          code: 'failure',
+        );
+
+        final ViewState<String> state = ErrorState(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+          onRetry: dummyRetry,
+        );
+
+        final result = state.whenOrNull(
+          errorState: (receivedErrorInfo, receivedError, receivedStackTrace,
+              receivedOnRetry) {
+            expect(receivedErrorInfo, same(errorInfo));
+            expect(receivedError, same(error));
+            expect(receivedStackTrace, same(stackTrace));
+            expect(receivedOnRetry, same(dummyRetry));
+
+            return 'error_matched';
+          },
+        );
+
+        expect(result, 'error_matched');
+      });
+
+      test('returns null when no callback matches the current state', () {
+        const ViewState<String> state = LoadingState('Loading');
+
+        final result = state.whenOrNull(
+          dataState: (_) => 'data',
+          errorState: (_, __, ___, ____) => 'error',
+        );
+
+        expect(result, isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 6. maybeMap() Fallback Behavior
     // -------------------------------------------------------------------------
     group('maybeMap()', () {
       test('executes specific callback when provided', () {
@@ -306,7 +397,7 @@ void main() {
         );
         expect(result, 'fallback');
       });
-      test('uses initialState mapper when provided', () {
+      test('executes initialState callback when provided', () {
         const ViewState<String> state = InitialState();
 
         final result = state.maybeMap(
@@ -331,8 +422,131 @@ void main() {
 
         expect(result, 'fallback');
       });
+
+      test('passes the complete state object to the matching callback', () {
+        const ViewState<String> state = DataState('Payload');
+
+        final result = state.maybeMap(
+          orElse: () => 'fallback',
+          dataState: (dataState) => dataState.data,
+        );
+
+        expect(result, 'Payload');
+      });
     });
 
+    // -------------------------------------------------------------------------
+    // 7. mapOrNull() Matching & Null Behavior
+    // -------------------------------------------------------------------------
+    group('mapOrNull()', () {
+      test('executes the matching callback and returns its result', () {
+        const ViewState<String> state = DataState('Payload');
+
+        final result = state.mapOrNull(
+          dataState: (state) => 'matched: ${state.data}',
+        );
+
+        expect(result, 'matched: Payload');
+      });
+
+      test('passes the complete ErrorState to the matching callback', () {
+        final error = StateError('failure');
+        final stackTrace = StackTrace.current;
+
+        const errorInfo = ErrorInfo(
+          message: 'Failed',
+          code: 'failure',
+        );
+
+        final ViewState<String> state = ErrorState(
+          error,
+          stackTrace,
+          errorInfo: errorInfo,
+        );
+
+        final result = state.mapOrNull(
+          errorState: (errorState) {
+            expect(errorState, same(state));
+            expect(errorState.errorInfo, same(errorInfo));
+            expect(errorState.error, same(error));
+            expect(errorState.stackTrace, same(stackTrace));
+
+            return errorState.errorInfo.message;
+          },
+        );
+
+        expect(result, 'Failed');
+      });
+
+      test('returns null when no callback matches the current state', () {
+        const ViewState<String> state = EmptyState('No data');
+
+        final result = state.mapOrNull(
+          dataState: (_) => 'data',
+          errorState: (_) => 'error',
+        );
+
+        expect(result, isNull);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // 8. State Type Getters
+    // -------------------------------------------------------------------------
+    group('state type getters', () {
+      test('InitialState has the correct flags', () {
+        const ViewState<String> state = InitialState();
+
+        expect(state.isInitial, isTrue);
+        expect(state.isLoading, isFalse);
+        expect(state.isData, isFalse);
+        expect(state.isEmpty, isFalse);
+        expect(state.isError, isFalse);
+      });
+
+      test('LoadingState has the correct flags', () {
+        const ViewState<String> state = LoadingState();
+
+        expect(state.isInitial, isFalse);
+        expect(state.isLoading, isTrue);
+        expect(state.isData, isFalse);
+        expect(state.isEmpty, isFalse);
+        expect(state.isError, isFalse);
+      });
+
+      test('DataState has the correct flags', () {
+        const ViewState<String> state = DataState('data');
+
+        expect(state.isInitial, isFalse);
+        expect(state.isLoading, isFalse);
+        expect(state.isData, isTrue);
+        expect(state.isEmpty, isFalse);
+        expect(state.isError, isFalse);
+      });
+
+      test('EmptyState has the correct flags', () {
+        const ViewState<String> state = EmptyState();
+
+        expect(state.isInitial, isFalse);
+        expect(state.isLoading, isFalse);
+        expect(state.isData, isFalse);
+        expect(state.isEmpty, isTrue);
+        expect(state.isError, isFalse);
+      });
+
+      test('ErrorState has the correct flags', () {
+        final ViewState<String> state = ErrorState(
+          StateError('failure'),
+          StackTrace.current,
+        );
+
+        expect(state.isInitial, isFalse);
+        expect(state.isLoading, isFalse);
+        expect(state.isData, isFalse);
+        expect(state.isEmpty, isFalse);
+        expect(state.isError, isTrue);
+      });
+    });
     group('toString()', () {
       test('LoadingState', () {
         const state = LoadingState<String>('Loading...', 0.5);

@@ -432,8 +432,8 @@ throughout the application.
 
 ### Handling ViewState
 
-`ViewState` provides `when`, `maybeWhen`, `map`, and `maybeMap` methods for
-handling each state type without manually checking the state.
+`ViewState` provides `when`, `maybeWhen`, `whenOrNull`, `map`, `maybeMap`,
+and `mapOrNull` for handling each state without manually checking the state.
 
 ```dart
 state.when(
