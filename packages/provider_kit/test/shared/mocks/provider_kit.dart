@@ -32,10 +32,9 @@ class MockAsyncViewStateNotifierWithoutRetry
     StackTrace stackTrace,
   ) {
     return ErrorState<String>(
-      error.toString(),
       error,
       stackTrace,
-      null,
+      onRetry: null,
     );
   }
 }

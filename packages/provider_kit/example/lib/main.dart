@@ -22,7 +22,7 @@ import 'package:flutter/material.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 void main() {
-  NotifierBase.observer = NotifierLogger();
+  ProviderKit.configure(observer: NotifierLogger());
   runApp(const MyApp());
 }
 
@@ -37,11 +37,9 @@ class MyApp extends StatelessWidget {
       ),
       emptyStateBuilder: (message, isSliver) =>
           EmptyStateWidget(isSliver: isSliver),
-      errorStateBuilder: (error, onRetry, exception, stackTrace, isSliver) =>
+      errorStateBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) =>
           ErrorStateWidget(
-              text: error ?? "something went wrong",
-              onTap: onRetry,
-              isSliver: isSliver),
+              text: errorInfo.message, onTap: onRetry, isSliver: isSliver),
       loadingStateBuilder: (message, progress, isSliver) =>
           LoadingStateWidget(isSliver: isSliver),
       child: MaterialApp(

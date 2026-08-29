@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/observer/change.dart';
-import 'package:provider_kit/src/base/observer/notifier_observer.dart';
+part of '../core/provider_kit_core.dart';
 
 /// The foundation for all notifiers in this package.
 ///
@@ -8,7 +6,8 @@ import 'package:provider_kit/src/base/observer/notifier_observer.dart';
 /// notifier implementation – including state change notification, error
 /// reporting, disposal, and Flutter memory allocation tracking.
 ///
-/// **This class is internal and not intended to be used directly by end users.**
+/// This class is an internal foundation for ProviderKit notifiers and is not
+/// intended to be used directly by application code.
 ///
 /// Instead of extending [NotifierBase], you should extend one of the concrete
 /// notifier implementations provided by this package, such as:
@@ -19,15 +18,17 @@ import 'package:provider_kit/src/base/observer/notifier_observer.dart';
 ///
 /// ### Observing notifier lifecycle events
 ///
-/// To monitor all notifiers globally, assign an implementation of
-/// [NotifierObserver] to the static [observer] field:
+/// To observe notifier lifecycle events globally, configure a
+/// [NotifierObserver] through [ProviderKit.configure]:
 ///
 /// ```dart
-/// NotifierBase.observer = MyCustomObserver();
+/// ProviderKit.configure(
+///   observer: MyNotifierObserver(),
+/// );
 /// ```
 ///
-/// This observer will receive `onCreate`, `onChange`, `onError`, and `onDispose`
-/// events for every notifier in your application.
+/// The observer receives `onCreate`, `onChange`, `onError`, and `onDispose`
+/// events for notifiers created after the observer is configured.
 ///
 /// ### Subclassing guidelines
 ///
@@ -47,7 +48,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   /// Flutter memory allocation events when enabled.
   NotifierBase() {
     // ignore: invalid_use_of_protected_member
-    observer.onCreate(this);
+    _observer.onCreate(this);
 
     if (kFlutterMemoryAllocationsEnabled) {
       ChangeNotifier.maybeDispatchObjectCreation(this);
@@ -55,7 +56,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   }
 
   /// The global observer used to monitor notifier lifecycle events.
-  static NotifierObserver observer = const _DefaultNotifierObserver();
+  static NotifierObserver _observer = const _DefaultNotifierObserver();
 
   bool _disposed = false;
 
@@ -112,7 +113,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   void onChange(Change<State> change) {
     assert(debugAssertNotDisposed(this, 'onChange'));
     // ignore: invalid_use_of_protected_member
-    observer.onChange(this, change);
+    _observer.onChange(this, change);
   }
 
   /// Called whenever an error occurs.
@@ -137,7 +138,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   ) {
     assert(debugAssertNotDisposed(this, 'onError'));
     // ignore: invalid_use_of_protected_member
-    observer.onError(this, error, stackTrace);
+    _observer.onError(this, error, stackTrace);
   }
 
   /// disposes the instance.
@@ -155,7 +156,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
     _disposed = true;
 
     // ignore: invalid_use_of_protected_member
-    observer.onDispose(this);
+    _observer.onDispose(this);
     super.dispose();
   }
 }

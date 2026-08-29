@@ -1,6 +1,5 @@
-import 'package:provider_kit/provider_kit.dart';
-
 import 'package:example/repository/repository.dart';
+import 'package:provider_kit/provider_kit.dart';
 
 class ViewStateProvider extends ViewStateNotifier<List<Item>>
     with DataStateCopyCacheMixin, ExViewStateCacheMixin {
@@ -21,8 +20,11 @@ class ViewStateProvider extends ViewStateNotifier<List<Item>>
       }
       state = DataState(items);
       saveDataStateCopy(state);
-    } catch (e) {
-      state = ErrorState(e.toString());
+    } catch (e, s) {
+      state = ErrorState(
+        e,
+        s,
+      );
     }
   }
 }

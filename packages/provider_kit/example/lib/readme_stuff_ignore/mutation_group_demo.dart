@@ -272,7 +272,7 @@ class _LikeAction extends StatelessWidget {
           ),
         ],
       ),
-      error: (_, __) => IconButton(
+      error: (_, __, ___) => IconButton(
         onPressed: onPressed,
         icon: const Icon(
           Icons.refresh_rounded,

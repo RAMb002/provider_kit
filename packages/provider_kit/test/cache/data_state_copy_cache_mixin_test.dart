@@ -92,8 +92,10 @@ void main() {
 
       // 2. Pass non-DataState values
       const loadingState = LoadingState<String>('Loading...');
-      const errorState = ErrorState<String>('Error occurred');
-
+      final errorState = ErrorState<String>(
+        StateError('Error occurred'),
+        StackTrace.current,
+      );
       provider.saveDataStateCopy(loadingState);
       provider.saveDataStateCopy(errorState);
       provider.saveDataStateCopy(null);
