@@ -172,15 +172,15 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
   ) {
     switch (state) {
       case InitialState<T>():
-        return _ViewStateBase.buildInitialWidget(
+        return _ViewStateWidgetUtils.buildInitialWidget(
             context, initialBuilder, isSliver);
 
       case LoadingState<T>():
-        return _ViewStateBase.buildLoadingWidget(
+        return _ViewStateWidgetUtils.buildLoadingWidget(
             context, loadingBuilder, state.message, state.progress, isSliver);
 
       case EmptyState<T>():
-        return _ViewStateBase.buildEmptyWidget(
+        return _ViewStateWidgetUtils.buildEmptyWidget(
             context, emptyBuilder, state.message, isSliver);
 
       case ErrorState<T>():

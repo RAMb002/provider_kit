@@ -10,7 +10,7 @@ import 'package:provider/provider.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/state/index.dart';
 
-part 'view_state_base.dart';
+part 'view_state_widget_utils.dart';
 part '../view_state/widgets/view_state_builder.dart';
 part 'widgets/view_state_listener.dart';
 part 'widgets/view_state_consumer.dart';
