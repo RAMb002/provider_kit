@@ -231,6 +231,18 @@ void main() {
         expect(result, 'matched: Success');
       });
 
+      test('uses orElse for LoadingState when loadingState callback is absent',
+          () {
+        const ViewState<String> state = LoadingState('Loading', 0.5);
+
+        final result = state.maybeWhen(
+          dataState: (_) => 'data',
+          orElse: () => 'fallback',
+        );
+
+        expect(result, 'fallback');
+      });
+
       test('executes the provided callback for each state', () {
         const ViewState<String> initialState = InitialState();
         const ViewState<String> loadingState = LoadingState(
@@ -330,6 +342,16 @@ void main() {
         );
 
         expect(result, 'matched: Payload');
+      });
+
+      test('passes message and progress for LoadingState', () {
+        const ViewState<String> state = LoadingState('Loading', 0.5);
+
+        final result = state.whenOrNull(
+          loadingState: (message, progress) => '$message: $progress',
+        );
+
+        expect(result, 'Loading: 0.5');
       });
 
       test('passes the correct parameters for ErrorState', () {
