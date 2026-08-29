@@ -432,8 +432,8 @@ throughout the application.
 
 ### Handling ViewState
 
-`ViewState` provides `when`, `maybeWhen`, `map`, and `maybeMap` methods for
-handling each state type without manually checking the state.
+`ViewState` provides `when`, `maybeWhen`, `whenOrNull`, `map`, `maybeMap`,
+and `mapOrNull` for handling each state without manually checking the state.
 
 ```dart
 state.when(
@@ -1109,8 +1109,10 @@ set directly.
 > `errorInfo` using the `ErrorInfoMapper` configured through
 > `ProviderKit.configure()`.
 
-`MutationState` provides `when()`, `maybeWhen()`, `map()`, and `maybeMap()` for
-handling its states. Use `when()` when every state should be handled:
+`MutationState` provides `when()`, `maybeWhen()`, `whenOrNull()`, `map()`,
+`maybeMap()`, and `mapOrNull()` for handling its states.
+
+Use `when()` when every state should be handled:
 
 ```dart
 state.when(

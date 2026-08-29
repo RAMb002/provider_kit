@@ -88,11 +88,11 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
       LoadingStateListener? loadingStateListener,
       EmptyStateListener? emptyStateListener,
       MultiDataStateListener<List<DataState<T>>>? dataStateListener) {
-    final errorStates = _ViewStateBase.getErrorStates(states);
+    final errorStates = _ViewStateWidgetUtils.getErrorStates(states);
 
     if (errorStates.isNotEmpty) {
       final errorState = errorStates.first;
-      onRetry() => _ViewStateBase.onRetry(providers);
+      onRetry() => _ViewStateWidgetUtils.onRetry(providers);
       errorStateListener?.call(
         errorState.errorInfo,
         errorState.error,
@@ -101,19 +101,19 @@ class MultiViewStateListener<T> extends MultiStateListener<ViewState<T>> {
       );
       return;
     }
-    if (_ViewStateBase.hasInitialState(states)) {
+    if (_ViewStateWidgetUtils.hasInitialState(states)) {
       initialStateListener?.call();
       return;
     }
-    final loadingStates = _ViewStateBase.getLoadingStates(states);
+    final loadingStates = _ViewStateWidgetUtils.getLoadingStates(states);
     if (loadingStates.isNotEmpty) {
       loadingStateListener?.call(
         loadingStates.first.message,
-        _ViewStateBase.getCombinedLoadingProgress(loadingStates),
+        _ViewStateWidgetUtils.getCombinedLoadingProgress(loadingStates),
       );
       return;
     }
-    final emptyStates = _ViewStateBase.getEmptyStates(states);
+    final emptyStates = _ViewStateWidgetUtils.getEmptyStates(states);
     if (emptyStates.isNotEmpty) {
       emptyStateListener?.call(emptyStates.first.message);
       return;

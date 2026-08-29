@@ -15,12 +15,23 @@ sealed class MutationState<T> {
   const MutationState._();
 
   /// {@template provider_kit.mutation_state.when}
-  /// Executes the callback corresponding to the current state.
+  /// Executes the callback corresponding to the current mutation state.
   ///
-  /// All possible mutation states must be handled.
+  /// All mutation state callbacks are required, so every possible state must be
+  /// handled.
   ///
-  /// This is useful when the UI or business logic needs to react
-  /// differently to each state.
+  /// Use [when] when you want to provide behavior for every mutation state.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final widget = state.when(
+  ///   idle: () => const Text('Ready'),
+  ///   loading: () => const CircularProgressIndicator(),
+  ///   success: (data) => Text('Success: $data'),
+  ///   error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
+  /// );
+  /// ```
   /// {@endtemplate}
   R when<R>({
     required R Function() idle,
@@ -44,13 +55,23 @@ sealed class MutationState<T> {
   }
 
   /// {@template provider_kit.mutation_state.maybe_when}
-  /// Executes the matching callback when one is provided.
+  /// Executes the callback corresponding to the current mutation state.
   ///
-  /// If no callback is provided for the current state, [orElse] is
-  /// executed instead.
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, [orElse] is invoked instead.
   ///
-  /// This is useful when only a subset of mutation states needs to
-  /// be handled.
+  /// Use [maybeWhen] to handle only specific mutation states while providing
+  /// a fallback through [orElse].
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final widget = state.maybeWhen(
+  ///   success: (data) => Text('Success: $data'),
+  ///   error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
+  ///   orElse: () => const Text('Waiting...'),
+  /// );
+  /// ```
   /// {@endtemplate}
   R maybeWhen<R>({
     required R Function() orElse,
@@ -75,11 +96,70 @@ sealed class MutationState<T> {
     };
   }
 
-  /// {@template provider_kit.mutation_state.map}
-  /// Maps the current mutation state to another value.
+  /// {@template provider_kit.mutation_state.when_or_null}
+  /// Executes the callback corresponding to the current mutation state.
   ///
-  /// Unlike [when], the callbacks receive the complete state object,
-  /// allowing access to state-specific properties.
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, this method returns `null`.
+  ///
+  /// Use [whenOrNull] when you want to handle only specific mutation states
+  /// without providing fallback behavior for the remaining states.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final message = state.whenOrNull(
+  ///   error: (errorInfo, error, stackTrace) => errorInfo.message,
+  /// );
+  /// ```
+  ///
+  /// For states without a matching callback, [whenOrNull] returns `null`.
+  /// {@endtemplate}
+  R? whenOrNull<R extends Object?>({
+    R Function()? idle,
+    R Function()? loading,
+    R Function(T data)? success,
+    R Function(
+      ErrorInfo errorInfo,
+      Object error,
+      StackTrace stackTrace,
+    )? error,
+  }) {
+    final state = this;
+
+    return switch (state) {
+      MutationIdle<T>() => idle?.call(),
+      MutationLoading<T>() => loading?.call(),
+      MutationSuccess<T>() => success?.call(state.data),
+      MutationError<T>() => error?.call(
+          state.errorInfo,
+          state.error,
+          state.stackTrace,
+        ),
+    };
+  }
+
+  /// {@template provider_kit.mutation_state.map}
+  /// Invokes the callback corresponding to the current mutation state.
+  ///
+  /// All mutation state callbacks are required, so every possible state must be
+  /// handled.
+  ///
+  /// The callbacks receive the complete mutation state object rather than
+  /// individual state values.
+  ///
+  /// Use [map] when you prefer to work with the complete mutation state object.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final widget = state.map(
+  ///   idle: (_) => const Text('Ready'),
+  ///   loading: (_) => const CircularProgressIndicator(),
+  ///   success: (state) => Text('Success: ${state.data}'),
+  ///   error: (state) => Text(state.errorInfo.message),
+  /// );
+  /// ```
   /// {@endtemplate}
   R map<R>({
     required R Function(MutationIdle<T> idle) idle,
@@ -98,12 +178,26 @@ sealed class MutationState<T> {
   }
 
   /// {@template provider_kit.mutation_state.maybe_map}
-  /// Maps the current mutation state when a matching mapper is provided.
+  /// Maps the current mutation state to a corresponding callback.
   ///
-  /// If no mapper is provided for the current state, [orElse] is
-  /// executed instead.
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, [orElse] is invoked instead.
   ///
-  /// Unlike [maybeWhen], the mapper receives the complete state object.
+  /// The callbacks receive the complete mutation state object rather than
+  /// individual state values.
+  ///
+  /// Use [maybeMap] to handle only specific mutation states while providing
+  /// a fallback through [orElse].
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final widget = state.maybeMap(
+  ///   success: (state) => Text('Result: ${state.data}'),
+  ///   error: (state) => Text(state.errorInfo.message),
+  ///   orElse: () => const Text('Waiting...'),
+  /// );
+  /// ```
   /// {@endtemplate}
   R maybeMap<R>({
     required R Function() orElse,
@@ -119,6 +213,44 @@ sealed class MutationState<T> {
       MutationLoading<T>() => loading != null ? loading(state) : orElse(),
       MutationSuccess<T>() => success != null ? success(state) : orElse(),
       MutationError<T>() => error != null ? error(state) : orElse(),
+    };
+  }
+
+  /// {@template provider_kit.mutation_state.map_or_null}
+  /// Maps the current mutation state to a corresponding callback.
+  ///
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, this method returns `null`.
+  ///
+  /// The callbacks receive the complete mutation state object rather than
+  /// individual state values.
+  ///
+  /// Use [mapOrNull] to handle only specific mutation states without providing
+  /// a fallback.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final message = state.mapOrNull(
+  ///   error: (state) => state.errorInfo.message,
+  /// );
+  /// ```
+  ///
+  /// For states without a matching callback, [mapOrNull] returns `null`.
+  /// {@endtemplate}
+  R? mapOrNull<R extends Object?>({
+    R Function(MutationIdle<T> idle)? idle,
+    R Function(MutationLoading<T> loading)? loading,
+    R Function(MutationSuccess<T> success)? success,
+    R Function(MutationError<T> error)? error,
+  }) {
+    final state = this;
+
+    return switch (state) {
+      MutationIdle<T>() => idle?.call(state),
+      MutationLoading<T>() => loading?.call(state),
+      MutationSuccess<T>() => success?.call(state),
+      MutationError<T>() => error?.call(state),
     };
   }
 

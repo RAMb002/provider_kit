@@ -94,7 +94,7 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
       LoadingStateBuilder? loadingBuilder,
       EmptyStateBuilder? emptyBuilder,
       MultiDataStateBuilder<List<DataState<T>>> dataBuilder) {
-    if (_ViewStateBase.hasErrorState(states)) {
+    if (_ViewStateWidgetUtils.hasErrorState(states)) {
       return _buildErrorWidget(
         providers,
         errorBuilder,
@@ -103,26 +103,26 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
         isSliver,
       );
     }
-    if (_ViewStateBase.hasInitialState(states)) {
-      return _ViewStateBase.buildInitialWidget(
+    if (_ViewStateWidgetUtils.hasInitialState(states)) {
+      return _ViewStateWidgetUtils.buildInitialWidget(
         context,
         initialBuilder,
         isSliver,
       );
     }
-    final loadingStates = _ViewStateBase.getLoadingStates(states);
+    final loadingStates = _ViewStateWidgetUtils.getLoadingStates(states);
     if (loadingStates.isNotEmpty) {
-      return _ViewStateBase.buildLoadingWidget(
+      return _ViewStateWidgetUtils.buildLoadingWidget(
         context,
         loadingBuilder,
         loadingStates.first.message,
-        _ViewStateBase.getCombinedLoadingProgress(loadingStates),
+        _ViewStateWidgetUtils.getCombinedLoadingProgress(loadingStates),
         isSliver,
       );
     }
-    final emptyStates = _ViewStateBase.getEmptyStates(states);
+    final emptyStates = _ViewStateWidgetUtils.getEmptyStates(states);
     if (emptyStates.isNotEmpty) {
-      return _ViewStateBase.buildEmptyWidget(
+      return _ViewStateWidgetUtils.buildEmptyWidget(
         context,
         emptyBuilder,
         emptyStates.first.message,
@@ -142,7 +142,7 @@ class MultiViewStateBuilder<T> extends MultiStateBuilder<ViewState<T>> {
     final errorStates = states.whereType<ErrorState<T>>().toList();
 
     void onRetry() {
-      _ViewStateBase.onRetry(providers);
+      _ViewStateWidgetUtils.onRetry(providers);
     }
 
     final errorInfo = errorStates.first.errorInfo;

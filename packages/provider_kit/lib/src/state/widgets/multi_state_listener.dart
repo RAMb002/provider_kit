@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
-import 'package:provider_kit/src/utils/type_definitions.dart';
 
 /// {@template provider_kit.multi_state_listener}
 /// A widget that listens to changes in the states of multiple [StateValueListenable]s and triggers callbacks.

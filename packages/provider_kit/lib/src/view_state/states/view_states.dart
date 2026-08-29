@@ -1,30 +1,46 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
+import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 
-/// A sealed class representing different states of a view.
+/// {@template provider_kit.view_state}
+/// A sealed class representing the different states of a view.
+///
+/// [ViewState] provides a common type for representing the lifecycle of
+/// view-related data, including initial, loading, data, empty, and error
+/// states.
+///
+/// Use the concrete state classes such as [InitialState], [LoadingState],
+/// [DataState], [EmptyState], and [ErrorState] to represent the current state.
+/// {@endtemplate}
 sealed class ViewState<T> {
+  /// {@macro provider_kit.view_state}
   const ViewState();
 
-  /// Executes the corresponding callback based on the current state.
+  /// Executes the callback corresponding to the current state.
   ///
-  /// - [initialState]: Callback for the initial state.
-  /// - [loadingState]: Callback for the loading state, with optional message and progress.
-  /// - [dataState]: Callback for the data state, with the data object.
-  /// - [emptyState]: Callback for the empty state, with an optional message.
-  /// - [errorState]: Callback for the error state, receiving the mapped
-  ///   [ErrorInfo], original error, stack trace, and optional retry callback.
+  /// All state callbacks are required, so every possible state must be handled.
+  ///
+  /// Use [when] when you want to provide behavior for every state.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final text = state.when(
+  ///   initialState: () => 'Initial',
+  ///   loadingState: (_, __) => 'Loading',
+  ///   dataState: (data) => 'Data: $data',
+  ///   emptyState: (_) => 'No data',
+  ///   errorState: (errorInfo, error, stackTrace, onRetry) =>
+  ///       errorInfo.message,
+  /// );
+  /// ```
   R when<R extends Object?>({
-    required R Function() initialState,
-    required R Function(String? message, double? progress) loadingState,
-    required R Function(T dataObject) dataState,
-    required R Function(String? message) emptyState,
-    required R Function(
-      ErrorInfo errorInfo,
-      Object error,
-      StackTrace stackTrace,
-      VoidCallback? onRetry,
-    ) errorState,
+    required InitialStateCallback<R> initialState,
+    required LoadingStateCallback<R> loadingState,
+    required DataStateCallback<T, R> dataState,
+    required EmptyStateCallback<R> emptyState,
+    required ErrorStateCallback<R> errorState,
   }) {
     final ViewState<T> state = this;
     return switch (state) {
@@ -41,34 +57,43 @@ sealed class ViewState<T> {
     };
   }
 
-  /// Executes the corresponding callback based on the current state, or executes [orElse] if no match is found.
+  /// Executes the callback corresponding to the current state.
   ///
-  /// - [orElse]: Callback to execute when no matching state callback is provided.
-  /// - [initialState]: Optional Callback for the initial state.
-  /// - [loadingState]: Optional Callback for the loading state, with optional message and progress.
-  /// - [dataState]: Optional Callback for the data state, with the data object.
-  /// - [emptyState]: Optional Callback for the empty state, with an optional message.
-  /// - [errorState]: Callback for the error state, receiving the mapped
-  ///   [ErrorInfo], original error, stack trace, and optional retry callback.
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, [orElse] is invoked instead.
+  ///
+  /// Use [maybeWhen] when you want to handle only specific states and provide
+  /// your own fallback behavior for all other states.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// state.maybeWhen(
+  ///   errorState: (errorInfo, error, stackTrace, onRetry) {
+  ///     showError(errorInfo.message);
+  ///   },
+  ///   orElse: () {
+  ///     showContent();
+  ///   },
+  /// );
+  /// ```
   R maybeWhen<R extends Object?>({
     required R Function() orElse,
-    R Function()? initialState,
-    R Function()? loadingState,
-    R Function(T dataObject)? dataState,
-    R Function()? emptyState,
-    R Function(
-      ErrorInfo errorInfo,
-      Object error,
-      StackTrace stackTrace,
-      VoidCallback? onRetry,
-    )? errorState,
+    InitialStateCallback<R>? initialState,
+    LoadingStateCallback<R>? loadingState,
+    DataStateCallback<T, R>? dataState,
+    EmptyStateCallback<R>? emptyState,
+    ErrorStateCallback<R>? errorState,
   }) {
     final ViewState<T> state = this;
     return switch (state) {
       InitialState<T>() => initialState == null ? orElse() : initialState(),
-      LoadingState<T>() => loadingState == null ? orElse() : loadingState(),
+      LoadingState<T>() => loadingState == null
+          ? orElse()
+          : loadingState(state.message, state.progress),
       DataState<T>() => dataState == null ? orElse() : dataState(state.data),
-      EmptyState<T>() => emptyState == null ? orElse() : emptyState(),
+      EmptyState<T>() =>
+        emptyState == null ? orElse() : emptyState(state.message),
       ErrorState<T>() => errorState == null
           ? orElse()
           : errorState(
@@ -80,19 +105,77 @@ sealed class ViewState<T> {
     };
   }
 
+  /// Executes the callback corresponding to the current state.
+  ///
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, this method returns `null`.
+  ///
+  /// Use [whenOrNull] when you want to handle only specific states and do not
+  /// need custom fallback behavior for the remaining states.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// state.whenOrNull(
+  ///   errorState: (errorInfo, error, stackTrace, onRetry) {
+  ///     showError(errorInfo.message);
+  ///   },
+  /// );
+  /// ```
+  ///
+  /// In this example, `errorState` is invoked only for [ErrorState].
+  /// For all other states, `whenOrNull` returns `null`.
+  R? whenOrNull<R extends Object?>({
+    InitialStateCallback<R>? initialState,
+    LoadingStateCallback<R>? loadingState,
+    DataStateCallback<T, R>? dataState,
+    EmptyStateCallback<R>? emptyState,
+    ErrorStateCallback<R>? errorState,
+  }) {
+    final ViewState<T> state = this;
+    return switch (state) {
+      InitialState<T>() => initialState?.call(),
+      LoadingState<T>() => loadingState?.call(
+          state.message,
+          state.progress,
+        ),
+      DataState<T>() => dataState?.call(state.data),
+      EmptyState<T>() => emptyState?.call(state.message),
+      ErrorState<T>() => errorState?.call(
+          state.errorInfo,
+          state.error,
+          state.stackTrace,
+          state.onRetry,
+        ),
+    };
+  }
+
   /// Maps the current state to a corresponding callback.
   ///
-  /// - [initialState]: Callback for the initial state.
-  /// - [loadingState]: Callback for the loading state.
-  /// - [dataState]: Callback for the data state.
-  /// - [emptyState]: Callback for the empty state.
-  /// - [errorState]: Callback for the error state.
+  /// All state callbacks are required, so every possible state must be handled.
+  ///
+  /// The callbacks receive the complete state object rather than individual
+  /// state values.
+  ///
+  /// Use [map] when you prefer to work with the complete state object.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final text = state.map(
+  ///   initialState: (_) => 'Initial',
+  ///   loadingState: (state) => 'Loading: ${state.message}',
+  ///   dataState: (state) => 'Data: ${state.data}',
+  ///   emptyState: (state) => 'No data',
+  ///   errorState: (state) => 'Error: ${state.errorInfo.message}',
+  /// );
+  /// ```
   R map<R extends Object?>({
-    required R Function(InitialState<T> initialState) initialState,
-    required R Function(LoadingState<T> loadingState) loadingState,
-    required R Function(DataState<T> succeedState) dataState,
-    required R Function(EmptyState<T> emptyState) emptyState,
-    required R Function(ErrorState<T> errorState) errorState,
+    required InitialStateMapper<R, T> initialState,
+    required LoadingStateMapper<R, T> loadingState,
+    required DataStateMapper<R, T> dataState,
+    required EmptyStateMapper<R, T> emptyState,
+    required ErrorStateMapper<R, T> errorState,
   }) {
     final ViewState<T> state = this;
     return switch (state) {
@@ -104,21 +187,33 @@ sealed class ViewState<T> {
     };
   }
 
-  /// Maps the current state to a corresponding callback, or executes [orElse] if no match is found.
+  /// Maps the current state to a corresponding callback.
   ///
-  /// - [orElse]: Callback to execute when no matching state callback is provided.
-  /// - [initialState]: Optional callback for the initial state.
-  /// - [loadingState]: Optional callback for the loading state.
-  /// - [dataState]: Optional callback for the data state.
-  /// - [emptyState]: Optional callback for the empty state.
-  /// - [errorState]: Optional callback for the error state.
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, [orElse] is invoked instead.
+  ///
+  /// The callbacks receive the complete state object rather than individual
+  /// state values.
+  ///
+  /// Use [maybeMap] to handle only specific states while providing a fallback
+  /// through [orElse].
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// final widget = state.maybeMap(
+  ///   dataState: (state) => Text('Data: ${state.data}'),
+  ///   errorState: (state) => Text(state.errorInfo.message),
+  ///   orElse: () => const CircularProgressIndicator(),
+  /// );
+  /// ```
   R maybeMap<R extends Object?>({
     required R Function() orElse,
-    R Function(InitialState<T> initialState)? initialState,
-    R Function(LoadingState<T> loadingState)? loadingState,
-    R Function(DataState<T> succeedState)? dataState,
-    R Function(EmptyState<T> emptyState)? emptyState,
-    R Function(ErrorState<T> errorState)? errorState,
+    InitialStateMapper<R, T>? initialState,
+    LoadingStateMapper<R, T>? loadingState,
+    DataStateMapper<R, T>? dataState,
+    EmptyStateMapper<R, T>? emptyState,
+    ErrorStateMapper<R, T>? errorState,
   }) {
     final ViewState<T> state = this;
     return switch (state) {
@@ -131,6 +226,59 @@ sealed class ViewState<T> {
       ErrorState<T>() => errorState == null ? orElse() : errorState(state),
     };
   }
+
+  /// Maps the current state to a corresponding callback.
+  ///
+  /// Only the callbacks you provide are invoked. If the current state does
+  /// not have a matching callback, this method returns `null`.
+  ///
+  /// The callbacks receive the complete state object rather than individual
+  /// state values.
+  ///
+  /// Use [mapOrNull] to handle only specific states without providing a
+  /// fallback.
+  ///
+  /// ### Example
+  ///
+  /// ```dart
+  /// state.mapOrNull(
+  ///   errorState: (state) => state.errorInfo.message,
+  /// );
+  /// ```
+  ///
+  /// In this example, the callback is invoked only for [ErrorState].
+  /// For all other states, `mapOrNull` returns `null`.
+  R? mapOrNull<R extends Object?>({
+    InitialStateMapper<R, T>? initialState,
+    LoadingStateMapper<R, T>? loadingState,
+    DataStateMapper<R, T>? dataState,
+    EmptyStateMapper<R, T>? emptyState,
+    ErrorStateMapper<R, T>? errorState,
+  }) {
+    final ViewState<T> state = this;
+    return switch (state) {
+      InitialState<T>() => initialState?.call(state),
+      LoadingState<T>() => loadingState?.call(state),
+      DataState<T>() => dataState?.call(state),
+      EmptyState<T>() => emptyState?.call(state),
+      ErrorState<T>() => errorState?.call(state),
+    };
+  }
+
+  /// Whether this view is in the initial state.
+  bool get isInitial => this is InitialState<T>;
+
+  /// Whether this view is currently loading.
+  bool get isLoading => this is LoadingState<T>;
+
+  /// Whether this view contains data.
+  bool get isData => this is DataState<T>;
+
+  /// Whether this view is empty.
+  bool get isEmpty => this is EmptyState<T>;
+
+  /// Whether this view represents an error.
+  bool get isError => this is ErrorState<T>;
 }
 
 /// Represents the initial state of a view.

@@ -6,6 +6,8 @@
 - Added `ErrorInfo` and `ErrorInfoMapper` for centralized error handling.
 - Added global `NotifierObserver` configuration through
   `ProviderKit.configure()`.
+- Added `whenOrNull()` and `mapOrNull()` to `ViewState` and `MutationState`
+  for handling selected states without requiring a fallback.
 
 **Breaking**
 

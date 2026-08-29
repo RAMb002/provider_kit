@@ -300,6 +300,57 @@ void main() {
       });
     });
 
+    group('whenOrNull', () {
+      test('executes the matching callback and returns its result', () {
+        final mutation = Mutation<int>();
+
+        final result = mutation.state.whenOrNull(
+          idle: () => 'idle',
+        );
+
+        expect(result, 'idle');
+
+        mutation.dispose();
+      });
+
+      test('passes the correct parameters for MutationError', () async {
+        final mutation = Mutation<int>();
+        final exception = StateError('failure');
+
+        try {
+          await mutation.run(() async {
+            throw exception;
+          });
+        } catch (_) {}
+
+        final result = mutation.state.whenOrNull(
+          error: (errorInfo, error, stackTrace) {
+            expect(errorInfo.message, exception.toString());
+            expect(error, same(exception));
+            expect(stackTrace.toString(), isNotEmpty);
+
+            return 'error';
+          },
+        );
+
+        expect(result, 'error');
+
+        mutation.dispose();
+      });
+
+      test('returns null when no callback matches the current state', () {
+        final mutation = Mutation<int>();
+
+        final result = mutation.state.whenOrNull(
+          success: (_) => 'success',
+          error: (_, __, ___) => 'error',
+        );
+
+        expect(result, isNull);
+
+        mutation.dispose();
+      });
+    });
     group('maybeMap', () {
       test('uses matching idle mapper', () {
         final mutation = Mutation<int>();
@@ -384,6 +435,60 @@ void main() {
       });
     });
 
+// -------------------------------------------------------------------------
+// mapOrNull
+// -------------------------------------------------------------------------
+    group('mapOrNull', () {
+      test('executes the matching mapper and returns its result', () {
+        final mutation = Mutation<int>();
+
+        final result = mutation.state.mapOrNull(
+          idle: (state) => state.isIdle,
+        );
+
+        expect(result, isTrue);
+
+        mutation.dispose();
+      });
+
+      test('passes the complete MutationError to the mapper', () async {
+        final mutation = Mutation<int>();
+        final exception = StateError('failure');
+
+        try {
+          await mutation.run(() async {
+            throw exception;
+          });
+        } catch (_) {}
+
+        final result = mutation.state.mapOrNull(
+          error: (state) {
+            expect(state.error, same(exception));
+            expect(state.errorInfo.message, exception.toString());
+            expect(state.stackTrace.toString(), isNotEmpty);
+
+            return state.errorInfo.message;
+          },
+        );
+
+        expect(result, exception.toString());
+
+        mutation.dispose();
+      });
+
+      test('returns null when no mapper matches the current state', () {
+        final mutation = Mutation<int>();
+
+        final result = mutation.state.mapOrNull(
+          success: (_) => 'success',
+          error: (_) => 'error',
+        );
+
+        expect(result, isNull);
+
+        mutation.dispose();
+      });
+    });
     group('state flags', () {
       test('idle flags are correct', () {
         final mutation = Mutation<int>();
