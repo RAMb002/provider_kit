@@ -40,5 +40,35 @@ void main() {
       notifier.state = const DataState<int>(10);
       expect(callCount, 1);
     });
+
+    test('data returns current data when state is DataState', () {
+      final notifier = TestNotifier(
+        const DataState<int>(42),
+      );
+
+      expect(notifier.data, 42);
+    });
+
+    test('data throws StateError when state is not DataState', () {
+      final states = <ViewState<int>>[
+        const InitialState<int>(),
+        const LoadingState<int>(),
+        const EmptyState<int>(),
+        ErrorState<int>(
+          StateError('error'),
+          StackTrace.empty,
+        ),
+      ];
+
+      for (final state in states) {
+        final notifier = TestNotifier(state);
+
+        expect(
+          () => notifier.data,
+          throwsA(isA<StateError>()),
+          reason: 'Expected StateError for ${state.runtimeType}',
+        );
+      }
+    });
   });
 }

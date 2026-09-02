@@ -1,3 +1,10 @@
+## Unreleased
+
+### Added
+- Added `data` getter to `ViewStateNotifier`.
+  - Returns the current data when the state is `DataState<T>`.
+  - Throws a `StateError` when accessed while the current state is not `DataState<T>`.
+
 ## 0.4.0
 
 **Added**

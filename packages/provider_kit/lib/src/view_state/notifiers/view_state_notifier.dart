@@ -33,4 +33,21 @@ abstract class ViewStateNotifier<State>
     extends StateNotifier<ViewState<State>> {
   /// {@macro provider_kit.view_state_notifier}
   ViewStateNotifier(super.state);
+
+  /// Returns the data from the current [DataState].
+  ///
+  /// Only use this getter when the current state is known to be a [DataState].
+  /// Throws a [StateError] otherwise.
+  State get data {
+    final currentState = state;
+
+    if (currentState is DataState<State>) {
+      return currentState.data;
+    }
+
+    throw StateError(
+      'Current state is ${currentState.runtimeType}, '
+      'not DataState<$State>.',
+    );
+  }
 }
