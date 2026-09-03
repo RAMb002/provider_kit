@@ -26,11 +26,12 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
 | **Enhanced Notifiers** | Provides specialized notifiers for managing state, async operations, and application logic. |
 | **Builders & Listeners** | Widgets that react to state changes and simplify UI updates and side effects. |
 | **Multi-State Support** | Combine and react to multiple provider states with a single widget. |
-| **Async State Handling** | Handles loading, error, empty, and data states for asynchronous operations. |
+| **Async State Handling** | Provides and handles initial, loading, error, empty, and data states for asynchronous operations. |
 | **Mutations** | Provides dedicated mutation handling for executing asynchronous operations and reacting to their loading, success, and error states. |
 | **State Caching** | Mixins for storing and restoring state when needed. |
 | **Provider Observation** | Observe provider lifecycle and state changes for better visibility and debugging. |
-| **Immutable State** | Provides immutable state objects for predictable state handling. |
+| **Error Mapping** | Provides a centralized way to map errors into consistent error messages and codes. |
+| **Debouncing** | Delays repeated operations so only the final call is executed after a specified duration. |
 | **VS Code Snippets** | [ProviderKit Snippets](https://marketplace.visualstudio.com/items?itemName=Ram-Prasanth.providerkit-snippets) provides ready-to-use Dart snippets for common ProviderKit boilerplate. |
 
 
@@ -52,7 +53,7 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
       - [Multi State Consumer](#multistateconsumer)
 - [View State](#viewstate)
     - [View State Notifier](#viewstatenotifier)
-    - [Async View State Notifier](#asyncviewstatenotifier)
+    - [Async View State Notifier (Async State Handling)](#asyncviewstatenotifier)
     - [View State Widgets Provider](#viewstatewidgetsprovider)
     - [View State Widgets](#view-state-widgets)
       - [View State Listener](#viewstatelistener)
@@ -85,6 +86,9 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
      - [Mutation vs MutationGroup](#mutation-vs-mutationgroup)
 - [Nested State Listener](#nestedstatelistener)
 - [Notifier Observer](#notifierobserver)
+- [Debounce](#debounce)
+    - [DebounceKey](#debouncekey)
+    - [DebounceMixin](#debouncemixin)
 - [VS Code Extension](#vs-code-extension)
 
 ---
@@ -1614,6 +1618,137 @@ class MyNotifierObserver extends NotifierObserver {
   }
 }
 ```
+---
+
+## Debounce
+
+`Debounce` is useful when an operation may be called multiple times within a short duration, but only the last call should be executed.
+
+For example, when a user is typing in a search field, the search operation may be called after every keystroke. Instead of making an API request for every character, debounce waits until the user stops typing before running the search.
+
+> **Note:** The default debounce duration is **300 milliseconds**.
+
+### Creating a Debounce with an instance
+
+~~~dart
+final debounce = Debounce();
+
+// Runs after the default 300ms delay.
+debounce.run(() {
+  searchUsers();
+});
+
+// Use a custom duration.
+debounce.run(
+  () {
+    searchUsers();
+  },
+  duration: const Duration(seconds: 1),
+);
+
+// Cancels the pending operation.
+// The debounce can still be used again.
+debounce.cancel();
+
+// Cancels any pending operation and permanently disposes the instance.
+debounce.dispose();
+~~~
+
+After calling `dispose()`, the instance cannot be used again.
+
+## DebounceKey
+
+Use `DebounceKey` when you want to debounce an operation without creating and managing a `Debounce` instance manually. Each key represents a globally shared debounce, so calling `run` with the same key from anywhere in the app uses the same debounce operation. Make sure to dispose a key when it is no longer needed.
+
+```dart
+// Runs after the default 300ms delay.
+// Calling run again with the same key replaces the pending operation
+// and restarts the delay.
+DebounceKey.run(
+  'search',
+  () {
+    searchUsers();
+  },
+);
+
+// Different keys use separate debounce operations.
+DebounceKey.run(
+  'movies',
+  () {
+    searchMovies();
+  },
+  duration: const Duration(milliseconds: 500),
+);
+
+// Cancels the pending operation.
+// The key can still be used again.
+DebounceKey.cancel('search');
+
+// Cancels the pending operation and removes the debounce for this key.
+DebounceKey.dispose('search');
+
+// Cancels pending operations and removes all keyed debounces.
+DebounceKey.disposeAll();
+```
+
+## DebounceMixin
+
+Mix `DebounceMixin` into a `ChangeNotifier` or ProviderKit notifier. All debounce operations are automatically disposed when the notifier is disposed.
+
+~~~dart
+class SearchNotifier extends ChangeNotifier with DebounceMixin {
+  void search(String query) {
+    // Uses the default debounce.
+    debounce(
+      () {
+        performSearch(query);
+      },
+    );
+
+    // Uses a custom duration.
+    debounce(
+      () {
+        performSearch(query);
+      },
+      duration: const Duration(milliseconds: 500),
+    );
+
+    // Uses a separate debounce identified by a key.
+    debounceKey(
+      'users',
+      () {
+        searchUsers();
+      },
+    );
+
+    // Multiple keys manage independent debounce operations.
+    debounceKey(
+      'movies',
+      () {
+        searchMovies();
+      },
+    );
+  }
+}
+~~~
+>**Note:** Keys are scoped to the notifier, so the same key used in different notifier instances creates separate debounce operations.
+
+If you need to manually cancel or dispose a debounce inside the mixin, you can use:
+
+```dart
+    // Cancels the pending default debounce.
+    cancelDebounce();
+
+    // Cancels the pending debounce for a specific key.
+    cancelDebounceKey('users');
+
+    // Cancels and removes the default debounce.
+    disposeDebounce();
+
+    // Cancels and removes the debounce for a specific key.
+    disposeDebounceKey('movies');
+```
+
 ---
 
 ## VS Code Extension
