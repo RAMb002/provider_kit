@@ -121,6 +121,135 @@ void main() {
       });
     });
 
+    test('default debounce reports pending status correctly', () {
+      fakeAsync((async) {
+        final notifier = _TestNotifier();
+        var called = false;
+
+        expect(notifier.isDebouncePending, isFalse);
+
+        notifier.debounce(
+          () {
+            called = true;
+          },
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(notifier.isDebouncePending, isTrue);
+
+        async.elapse(const Duration(milliseconds: 100));
+
+        expect(called, isTrue);
+        expect(notifier.isDebouncePending, isFalse);
+
+        notifier.dispose();
+      });
+    });
+
+    test('keyed debounce reports pending status correctly', () {
+      fakeAsync((async) {
+        final notifier = _TestNotifier();
+        var called = false;
+
+        expect(notifier.isDebounceKeyPending('search'), isFalse);
+
+        notifier.debounceKey(
+          'search',
+          () {
+            called = true;
+          },
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(notifier.isDebounceKeyPending('search'), isTrue);
+
+        async.elapse(const Duration(milliseconds: 100));
+
+        expect(called, isTrue);
+        expect(notifier.isDebounceKeyPending('search'), isFalse);
+
+        notifier.dispose();
+      });
+    });
+
+    test('default debounce is no longer pending after cancellation', () {
+      fakeAsync((async) {
+        final notifier = _TestNotifier();
+
+        notifier.debounce(
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(notifier.isDebouncePending, isTrue);
+
+        notifier.cancelDebounce();
+
+        expect(notifier.isDebouncePending, isFalse);
+
+        notifier.dispose();
+      });
+    });
+
+    test('default debounce is no longer pending after disposal', () {
+      fakeAsync((async) {
+        final notifier = _TestNotifier();
+
+        notifier.debounce(
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(notifier.isDebouncePending, isTrue);
+
+        notifier.disposeDebounce();
+
+        expect(notifier.isDebouncePending, isFalse);
+
+        notifier.dispose();
+      });
+    });
+
+    test('keyed debounce is no longer pending after cancellation', () {
+      fakeAsync((async) {
+        final notifier = _TestNotifier();
+
+        notifier.debounceKey(
+          'search',
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(notifier.isDebounceKeyPending('search'), isTrue);
+
+        notifier.cancelDebounceKey('search');
+
+        expect(notifier.isDebounceKeyPending('search'), isFalse);
+
+        notifier.dispose();
+      });
+    });
+
+    test('keyed debounce is no longer pending after disposal', () {
+      fakeAsync((async) {
+        final notifier = _TestNotifier();
+
+        notifier.debounceKey(
+          'search',
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(notifier.isDebounceKeyPending('search'), isTrue);
+
+        notifier.disposeDebounceKey('search');
+
+        expect(notifier.isDebounceKeyPending('search'), isFalse);
+
+        notifier.dispose();
+      });
+    });
+
     test('cancelDebounce prevents the default pending operation', () {
       fakeAsync((async) {
         final notifier = _TestNotifier();

@@ -1632,7 +1632,11 @@ For example, when a user is typing in a search field, the search operation may b
 
 ~~~dart
 final debounce = Debounce();
+~~~
 
+### Running a debounce
+
+~~~dart
 // Runs after the default 300ms delay.
 debounce.run(() {
   searchUsers();
@@ -1645,7 +1649,19 @@ debounce.run(
   },
   duration: const Duration(seconds: 1),
 );
+~~~
 
+### Checking pending status
+
+~~~dart
+if (debounce.isPending) {
+  // An operation is waiting to be executed.
+}
+~~~
+
+### Cancelling and disposing
+
+~~~dart
 // Cancels the pending operation.
 // The debounce can still be used again.
 debounce.cancel();
@@ -1653,12 +1669,13 @@ debounce.cancel();
 // Cancels any pending operation and permanently disposes the instance.
 debounce.dispose();
 ~~~
-
 After calling `dispose()`, the instance cannot be used again.
 
 ## DebounceKey
 
 Use `DebounceKey` when you want to debounce an operation without creating and managing a `Debounce` instance manually. Each key represents a globally shared debounce, so calling `run` with the same key from anywhere in the app uses the same debounce operation. Make sure to dispose a key when it is no longer needed.
+
+### Running a keyed debounce
 
 ```dart
 // Runs after the default 300ms delay.
@@ -1679,7 +1696,19 @@ DebounceKey.run(
   },
   duration: const Duration(milliseconds: 500),
 );
+```
 
+### Checking pending status
+
+```dart
+if (DebounceKey.isPending('search')) {
+  // An operation is waiting to be executed.
+}
+```
+
+### Cancelling and disposing
+
+```dart
 // Cancels the pending operation.
 // The key can still be used again.
 DebounceKey.cancel('search');
@@ -1733,9 +1762,20 @@ class SearchNotifier extends ChangeNotifier with DebounceMixin {
 ~~~
 >**Note:** Keys are scoped to the notifier, so the same key used in different notifier instances creates separate debounce operations.
 
-If you need to manually cancel or dispose a debounce inside the mixin, you can use:
+You can check whether a debounce is pending, or manually cancel or dispose a debounce inside the mixin:
 
 ```dart
+    // Whether the default debounce has an operation waiting to be executed.
+    if (isDebouncePending) {
+      // ...
+    }
+
+    // Whether the debounce for a specific key has an operation waiting to be
+    // executed.
+    if (isDebounceKeyPending('users')) {
+      // ...
+    }
+
     // Cancels the pending default debounce.
     cancelDebounce();
 

@@ -142,6 +142,101 @@ void main() {
       });
     });
 
+    test(
+        'isPending is true while an operation for a key is waiting to be executed',
+        () {
+      fakeAsync((async) {
+        DebounceKey.run('search', () {});
+
+        expect(DebounceKey.isPending('search'), isTrue);
+
+        async.elapse(const Duration(milliseconds: 300));
+
+        expect(DebounceKey.isPending('search'), isFalse);
+      });
+    });
+
+    test('isPending becomes false after the operation executes', () {
+      fakeAsync((async) {
+        var called = false;
+
+        DebounceKey.run(
+          'search',
+          () {
+            called = true;
+          },
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(DebounceKey.isPending('search'), isTrue);
+
+        async.elapse(const Duration(milliseconds: 100));
+
+        expect(called, isTrue);
+        expect(DebounceKey.isPending('search'), isFalse);
+      });
+    });
+
+    test('isPending is false for a key with no pending operation', () {
+      expect(DebounceKey.isPending('unknown'), isFalse);
+    });
+
+    test('isPending is false after an operation is cancelled', () {
+      fakeAsync((async) {
+        DebounceKey.run(
+          'search',
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(DebounceKey.isPending('search'), isTrue);
+
+        DebounceKey.cancel('search');
+
+        expect(DebounceKey.isPending('search'), isFalse);
+      });
+    });
+
+    test('isPending is false after a debounce is disposed', () {
+      fakeAsync((async) {
+        DebounceKey.run(
+          'search',
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(DebounceKey.isPending('search'), isTrue);
+
+        DebounceKey.dispose('search');
+
+        expect(DebounceKey.isPending('search'), isFalse);
+      });
+    });
+
+    test('isPending is false after disposeAll', () {
+      fakeAsync((async) {
+        DebounceKey.run(
+          'search',
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        DebounceKey.run(
+          'movies',
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(DebounceKey.isPending('search'), isTrue);
+        expect(DebounceKey.isPending('movies'), isTrue);
+
+        DebounceKey.disposeAll();
+
+        expect(DebounceKey.isPending('search'), isFalse);
+        expect(DebounceKey.isPending('movies'), isFalse);
+      });
+    });
+
     test('cancel prevents a pending operation from running', () {
       fakeAsync((async) {
         var called = false;

@@ -21,6 +21,10 @@ class _DebounceRegistry {
     );
   }
 
+  bool isPending(Object key) {
+    return _debounces[key]?.isPending ?? false;
+  }
+
   void cancel(Object key) {
     _debounces[key]?.cancel();
   }

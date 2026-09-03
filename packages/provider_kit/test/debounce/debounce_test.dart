@@ -115,6 +115,83 @@ void main() {
       });
     });
 
+    test('isPending is true while an operation is waiting to be executed', () {
+      fakeAsync((async) {
+        final debounce = Debounce();
+
+        expect(debounce.isPending, isFalse);
+
+        debounce.run(() {});
+
+        expect(debounce.isPending, isTrue);
+
+        async.elapse(const Duration(milliseconds: 300));
+
+        expect(debounce.isPending, isFalse);
+
+        debounce.dispose();
+      });
+    });
+
+    test('isPending becomes false after the operation executes', () {
+      fakeAsync((async) {
+        final debounce = Debounce();
+        var called = false;
+
+        debounce.run(
+          () {
+            called = true;
+          },
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(debounce.isPending, isTrue);
+
+        async.elapse(const Duration(milliseconds: 100));
+
+        expect(called, isTrue);
+        expect(debounce.isPending, isFalse);
+
+        debounce.dispose();
+      });
+    });
+
+    test('isPending is false after a pending operation is cancelled', () {
+      fakeAsync((async) {
+        final debounce = Debounce();
+
+        debounce.run(
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(debounce.isPending, isTrue);
+
+        debounce.cancel();
+
+        expect(debounce.isPending, isFalse);
+
+        debounce.dispose();
+      });
+    });
+
+    test('isPending is false after the debounce is disposed', () {
+      fakeAsync((async) {
+        final debounce = Debounce();
+
+        debounce.run(
+          () {},
+          duration: const Duration(milliseconds: 100),
+        );
+
+        expect(debounce.isPending, isTrue);
+
+        debounce.dispose();
+
+        expect(debounce.isPending, isFalse);
+      });
+    });
+
     test('cancel prevents a pending operation from running', () {
       fakeAsync((async) {
         final debounce = Debounce();

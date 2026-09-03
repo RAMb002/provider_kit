@@ -24,6 +24,9 @@ part 'internal/debounce_registry.dart';
 ///   search();
 /// });
 ///
+/// // Check whether an operation is waiting for the debounce delay.
+/// final isPending = debounce.isPending;
+///
 /// // Cancels the pending operation.
 /// debounce.cancel();
 ///
@@ -53,6 +56,9 @@ class Debounce {
       duration: duration,
     );
   }
+
+  /// Whether an operation is currently waiting to be executed.
+  bool get isPending => _impl.isPending;
 
   /// Cancels the pending operation.
   ///

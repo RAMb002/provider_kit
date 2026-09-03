@@ -31,7 +31,8 @@ part of 'debounce.dart';
 /// );
 /// ```
 ///
-/// Individual debounce operations can also be cancelled or disposed manually.
+/// Individual debounce operations can be checked for pending execution,
+/// cancelled, or disposed manually.
 mixin DebounceMixin on ChangeNotifier {
   final _DebounceRegistry _debounceRegistry = _DebounceRegistry();
 
@@ -68,6 +69,17 @@ mixin DebounceMixin on ChangeNotifier {
       operation,
       duration: duration,
     );
+  }
+
+  /// Whether the default debounce has an operation currently waiting to be
+  /// executed.
+  bool get isDebouncePending =>
+      _debounceRegistry.isPending(_defaultDebounceKey);
+
+  /// Whether the debounce associated with [key] has an operation currently
+  /// waiting to be executed.
+  bool isDebounceKeyPending(Object key) {
+    return _debounceRegistry.isPending(key);
   }
 
   /// Cancels the pending operation for the default debounce.

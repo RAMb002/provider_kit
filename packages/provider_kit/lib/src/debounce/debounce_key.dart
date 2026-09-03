@@ -26,6 +26,9 @@ part of 'debounce.dart';
 ///   },
 /// );
 ///
+/// // Check whether an operation is waiting to be executed.
+/// final isSearchPending = DebounceKey.isPending('search');
+///
 /// // Cancels the pending operation.
 /// DebounceKey.cancel('search');
 ///
@@ -69,6 +72,12 @@ class DebounceKey {
       operation,
       duration: duration,
     );
+  }
+
+  /// Whether the debounce associated with [key] has an operation waiting to
+  /// be executed.
+  static bool isPending(Object key) {
+    return _registry.isPending(key);
   }
 
   /// Cancels the pending operation associated with [key].

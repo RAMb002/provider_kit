@@ -5,6 +5,9 @@ class _DebounceImpl {
   Timer? _timer;
   bool _disposed = false;
 
+  /// Whether an operation is currently waiting to be executed.
+  bool get isPending => _timer?.isActive ?? false;
+
   /// Schedules [operation] to run after [duration].
   /// Replaces any pending operation and restarts the debounce delay.
   /// Throws in debug mode if this debounce has been disposed.
