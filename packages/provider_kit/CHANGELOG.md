@@ -1,6 +1,12 @@
 ## Unreleased
 
 ### Added
+- Added `Debounce` for managing individual debounce operations.
+- Added `DebounceKey` for globally keyed debounce operations.
+- Added `DebounceMixin` for debounce support in `ChangeNotifier` and ProviderKit notifiers.
+- Added support for custom debounce durations.
+- Added cancellation and disposal support for debounce operations.
+
 - Added `data` getter to `ViewStateNotifier`.
   - Returns the current data when the state is `DataState<T>`.
   - Throws a `StateError` when accessed while the current state is not `DataState<T>`.
