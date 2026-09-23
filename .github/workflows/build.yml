@@ -1,52 +1,148 @@
 name: Build
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: build-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 on:
-  push:
-    branches: [ main ]
-    paths-ignore:
-      - '**/README.md'
   pull_request:
-    branches: [ dev, main ]
+    branches:
+      - dev
+      - main
+
+  push:
+    branches:
+      - dev
+      - main
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  validate:
-    name: Validate & Test
+  build:
+    name: ${{ matrix.package }}
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        working-directory: packages/provider_kit
+    strategy:
+      fail-fast: false
+
+      matrix:
+        include:
+          - package: provider_kit
+            path: packages/provider_kit
+            type: flutter
+            flutter_version: '3.44'
+
+          - package: rate_kit
+            path: packages/rate_kit
+            type: dart
+            dart_version: '3.12.2'
 
     steps:
+      # ------------------------------------------------
+      # Checkout
+      # ------------------------------------------------
+
       - name: 📚 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+
+      # ------------------------------------------------
+      # Setup SDK
+      # ------------------------------------------------
 
       - name: 🐦 Setup Flutter
+        if: matrix.type == 'flutter'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44'
-          channel: 'stable'
+          flutter-version: ${{ matrix.flutter_version }}
+          channel: stable
           cache: true
+          pub-cache: true
 
-      - name: 📦 Install dependencies
+      - name: 🎯 Setup Dart
+        if: matrix.type == 'dart'
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.dart_version }}
+
+      # ------------------------------------------------
+      # Cache Dart pub dependencies
+      # ------------------------------------------------
+
+      - name: 💾 Cache Dart dependencies
+        if: matrix.type == 'dart'
+        uses: actions/cache@v5
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-dart-pub-${{ matrix.package }}-${{ hashFiles(format('{0}/pubspec.yaml', matrix.path)) }}
+          restore-keys: |
+            ${{ runner.os }}-dart-pub-${{ matrix.package }}-
+
+      # ------------------------------------------------
+      # Install dependencies
+      # ------------------------------------------------
+
+      - name: 📦 Install Flutter dependencies
+        if: matrix.type == 'flutter'
+        working-directory: ${{ matrix.path }}
         run: flutter pub get
 
-      - name: 🎨 Check formatting
-        run: dart format -o none --set-exit-if-changed .
+      - name: 📦 Install Dart dependencies
+        if: matrix.type == 'dart'
+        working-directory: ${{ matrix.path }}
+        run: dart pub get
 
-      - name: 🔍 Analyze code (strict)
+      # ------------------------------------------------
+      # Format
+      # ------------------------------------------------
+
+      - name: 🎨 Check formatting
+        working-directory: ${{ matrix.path }}
+        run: dart format --output=none --set-exit-if-changed .
+
+      # ------------------------------------------------
+      # Analyze
+      # ------------------------------------------------
+
+      - name: 🔍 Analyze Flutter package
+        if: matrix.type == 'flutter'
+        working-directory: ${{ matrix.path }}
         run: flutter analyze --fatal-infos --fatal-warnings
 
-      - name: 🧪 Run tests with coverage
+      - name: 🔍 Analyze Dart package
+        if: matrix.type == 'dart'
+        working-directory: ${{ matrix.path }}
+        run: dart analyze --fatal-infos --fatal-warnings
+
+      # ------------------------------------------------
+      # Tests + coverage
+      # ------------------------------------------------
+
+      - name: 🧪 Test Flutter package
+        if: matrix.type == 'flutter'
+        working-directory: ${{ matrix.path }}
         run: flutter test --coverage
 
+      - name: 🧰 Install Dart coverage tooling
+        if: matrix.type == 'dart'
+        run: dart pub global activate coverage 1.15.1
+
+      - name: 🧪 Test Dart package with coverage
+        if: matrix.type == 'dart'
+        working-directory: ${{ matrix.path }}
+        run: dart pub global run coverage:test_with_coverage
+
+      # ------------------------------------------------
+      # Codecov
+      # ------------------------------------------------
+
       - name: 📊 Upload coverage to Codecov
-        uses: codecov/codecov-action@v5
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v7
         with:
-          files: packages/provider_kit/coverage/lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ matrix.path }}/coverage/lcov.info
+          flags: ${{ matrix.package }}
+          disable_search: true
+          fail_ci_if_error: true
