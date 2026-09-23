@@ -1,0 +1,13 @@
+name: rate_kit
+description: Lightweight, pure-Dart utilities for controlling the timing and frequency of operations.
+version: 0.0.1
+repository: https://github.com/RAMb002/provider_kit/tree/main/packages/rate_kit
+issue_tracker: https://github.com/RAMb002/provider_kit/issues
+
+environment:
+  sdk: ^3.12.2
+
+dev_dependencies:
+  fake_async: ^1.3.3
+  lints: ^6.1.0
+  test: ^1.31.0
