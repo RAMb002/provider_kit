@@ -94,7 +94,7 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
 #### Add them to your `pubspec.yaml` file
 ```yaml
 dependencies:
-  provider_kit: ^0.3.0
+  provider_kit: ^0.4.0
   provider: ^6.1.5 # For dependency injection
   ```
 ### Provider integration
