@@ -86,6 +86,7 @@ Instead of repeatedly implementing state-management logic around `ChangeNotifier
      - [Mutation vs MutationGroup](#mutation-vs-mutationgroup)
 - [Nested State Listener](#nestedstatelistener)
 - [Notifier Observer](#notifierobserver)
+- [Automatic Resource Disposal](#automatic-resource-disposal)
 - [VS Code Extension](#vs-code-extension)
 
 ---
@@ -1615,6 +1616,125 @@ class MyNotifierObserver extends NotifierObserver {
   }
 }
 ```
+---
+
+## Automatic Resource Disposal
+
+ProviderKit automatically disposes resources created through its resource
+mixins when their owning `ChangeNotifier` or `State` is disposed.
+This means you can create and use `Mutation`, `MutationGroup`, `Debounce`, and
+`Throttle` resources without manually calling `dispose()` on each resource.
+
+Both mixins support:
+
+- `Mutation`
+- `MutationGroup`
+- `Debounce`
+- `Throttle`
+
+### NotifierResourcesMixin
+
+Use `NotifierResourcesMixin` with any `ChangeNotifier`. This also works with
+ProviderKit notifiers such as `StateNotifier`, `ViewStateNotifier`, and
+`AsyncViewStateNotifier`, since they are built on `ChangeNotifier`.
+
+Resources are disposed automatically when the notifier is disposed.
+
+```dart
+class SearchNotifier extends ChangeNotifier
+    with NotifierResourcesMixin {
+  late final searchMutation = mutation<List<Movie>>();
+  late final searchDebounce = debounce();
+
+  // ...
+}
+```
+
+When a notifier is created by `ChangeNotifierProvider`, its resources are
+disposed automatically as part of the notifier lifecycle.
+
+### `StateResourcesMixin`
+
+Use `StateResourcesMixin` with the `State` class of a `StatefulWidget`.
+Resources are disposed automatically when that `State` is disposed.
+
+```dart
+class _SearchPageState extends State<SearchPage>
+    with StateResourcesMixin<SearchPage> {
+  late final searchMutation = mutation<List<Movie>>();
+  late final searchDebounce = debounce();
+
+  // ...
+}
+```
+
+### Declaring resources
+
+Declare owned resources with `late final` so they are created lazily when
+first accessed and automatically managed by the mixin.
+
+```dart
+late final searchMutation = mutation<List<Movie>>();
+late final searchGroup = mutationGroup<Movie>();
+late final searchDebounce = debounce();
+late final searchThrottle = throttle();
+```
+
+Use the mixin's resource methods instead of creating `Mutation`, `MutationGroup`,
+`Debounce`, or `Throttle` instances directly. Resources created through the
+mixin are automatically owned and disposed with the notifier or `State`.
+
+### Shared helpers
+
+For simple debounced or throttled operations, use the shared helpers instead
+of creating a dedicated instance:
+
+```dart
+debounceRun(() {
+  search(query);
+});
+
+throttleRun(() {
+  submit();
+});
+```
+
+Each mixin manages one shared `Debounce` and one shared `Throttle`, created
+lazily on first use. Calls without a `key` share the same operation, while
+different keys maintain independent operations:
+
+```dart
+debounceRun(
+  () => searchUsers(query),
+  key: 'users',
+);
+
+debounceRun(
+  () => searchMovies(query),
+  key: 'movies',
+);
+```
+
+### Automatic disposal
+
+All resources created through these mixins are disposed automatically with
+their owner. No manual cleanup is required.
+
+The following is unnecessary:
+
+```dart
+// ❌ Not needed.
+@override
+void dispose() {
+  searchMutation.dispose();
+  searchDebounce.dispose();
+  super.dispose();
+}
+```
+
+For complete documentation on `Debounce` and `Throttle`, see
+[`rate_kit`](https://pub.dev/packages/rate_kit).
+
 ---
 
 ## VS Code Extension
