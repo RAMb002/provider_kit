@@ -1620,10 +1620,14 @@ class MyNotifierObserver extends NotifierObserver {
 
 ## Automatic Resource Disposal
 
-ProviderKit automatically disposes resources created through its resource
-mixins when their owning `ChangeNotifier` or `State` is disposed.
-This means you can create and use `Mutation`, `MutationGroup`, `Debounce`, and
-`Throttle` resources without manually calling `dispose()` on each resource.
+ProviderKit's resource mixins automatically dispose the resources you create
+through them when the owning `ChangeNotifier` or `State` is disposed.
+
+This only manages the lifecycle of `Mutation`, `MutationGroup`, `Debounce`, and
+`Throttle` resources created through the mixin. It does not automatically
+dispose or remove the notifier/provider itself.
+
+As a result, you do not need to manually call `dispose()` on each resource.
 
 Both mixins support:
 
