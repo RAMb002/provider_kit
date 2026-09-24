@@ -8,3 +8,4 @@ export 'src/mutation/index.dart';
 export 'src/observer/index.dart';
 export 'src/state/index.dart';
 export 'src/view_state/index.dart';
+export 'src/resources/index.dart';
