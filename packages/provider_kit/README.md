@@ -1392,7 +1392,7 @@ You can manually dispose of keyed mutations when you no longer need them.
 Pass a key to `dispose()` to remove and dispose of a specific mutation:
 
 ```dart
-deleteTodo.disposeKey(todo.id);
+deleteTodo.dispose(todo.id);
 ```
 
 Call `dispose()` without a key to dispose of all cached mutations in the group:
