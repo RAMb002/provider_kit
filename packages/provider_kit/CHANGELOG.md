@@ -2,8 +2,10 @@
 
 ### Added
 
+- Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
+
 - Added `NotifierResourcesMixin` for automatic lifecycle management of
-  `Mutation`, `MutationGroup`, `Debounce`, and `Throttle` resources created by
+  `StateField`, `Mutation`, `MutationGroup`, `Debounce`, and `Throttle` resources created by
   `ChangeNotifier` notifiers.
 
 - Added `StateResourcesMixin` for automatic lifecycle management of the same

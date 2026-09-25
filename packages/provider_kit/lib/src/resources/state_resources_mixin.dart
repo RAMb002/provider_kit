@@ -14,11 +14,13 @@ import 'package:rate_kit/rate_kit.dart';
 /// ```dart
 /// class _SearchPageState extends State<SearchPage>
 ///     with StateResourcesMixin<SearchPage> {
+///   late final searchQuery = field('');
 ///   late final searchMutation = mutation<bool>();
-///
+///   late final searchGroup = mutationGroup<bool>();
 ///   late final searchDebounce = debounce(
 ///     duration: const Duration(milliseconds: 300),
 ///   );
+///   late final searchThrottle = throttle();
 /// }
 /// ```
 ///
@@ -32,7 +34,17 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
   late final Debounce _defaultDebounce = debounce();
   late final Throttle _defaultThrottle = throttle();
 
-  /// Creates a [Mutation] owned by this state.
+  /// Creates a [StateField] owned by this state.
+  ///
+  /// The field is automatically disposed when the state is disposed.
+  StateField<TValue> field<TValue>(TValue initialState) {
+    return _resourceOwner.own(
+      StateField<TValue>(initialState),
+      onDispose: (resource) => resource.dispose(),
+    );
+  }
+
+  /// Creates a [Mutation] managed by this mixin.
   ///
   /// The mutation is automatically disposed when the state is disposed.
   Mutation<TValue> mutation<TValue>() {
@@ -42,7 +54,7 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// Creates a [MutationGroup] owned by this state.
+  /// Creates a [MutationGroup] managed by this mixin.
   ///
   /// The mutation group is automatically disposed when the state is disposed.
   MutationGroup<TValue> mutationGroup<TValue>({
@@ -56,7 +68,7 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// Creates a [Debounce] owned by this state.
+  /// Creates a [Debounce] managed by this mixin.
   ///
   /// {@macro provider_kit.resources_mixin.debounce_usage}
   ///
@@ -78,8 +90,6 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// Runs [operation] using a shared [Debounce] owned by this state.
-  ///
   /// {@macro provider_kit.resources_mixin.debounce_run_usage}
   ///
   /// The shared debounce is created lazily on first use and is automatically
@@ -96,7 +106,7 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// Creates a [Throttle] owned by this state.
+  /// Creates a [Throttle] managed by this mixin.
   ///
   /// {@macro provider_kit.resources_mixin.throttle_usage}
   ///
@@ -116,8 +126,6 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// Runs [operation] using a shared [Throttle] owned by this state.
-  ///
   /// {@macro provider_kit.resources_mixin.throttle_run_usage}
   ///
   /// The shared throttle is created lazily on first use and is automatically

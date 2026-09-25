@@ -33,6 +33,8 @@ void main() {
     group('resource ownership', () {
       test('disposes all owned resources when notifier is disposed', () {
         fakeAsync((async) {
+          final stateField = notifier.field("initialState");
+
           final mutation = notifier.mutation<void>();
 
           final group = notifier.mutationGroup<void>();
@@ -54,12 +56,21 @@ void main() {
           debounce.run(() => debounceCalls++);
           throttle.run(() => throttleCalls++);
 
+          expect(stateField.state, 'initialState');
+          expect(stateField.mounted, isTrue);
+
+          stateField.state = 'updatedState';
+
+          expect(stateField.state, 'updatedState');
+
           expect(debounce.isPending(), isTrue);
           expect(throttle.isTrailingPending(), isTrue);
 
           disposeNotifier();
 
           async.elapse(const Duration(seconds: 2));
+
+          expect(stateField.mounted, isFalse);
 
           expect(debounceCalls, 0);
           expect(throttleCalls, 0);
@@ -124,11 +135,32 @@ void main() {
           });
         },
       );
+
+      test('disposes all created state fields with the notifier', () {
+        final firstField = notifier.field('first');
+        final secondField = notifier.field(0);
+        final thirdField = notifier.field(false);
+
+        expect(firstField.mounted, isTrue);
+        expect(secondField.mounted, isTrue);
+        expect(thirdField.mounted, isTrue);
+
+        disposeNotifier();
+
+        expect(firstField.mounted, isFalse);
+        expect(secondField.mounted, isFalse);
+        expect(thirdField.mounted, isFalse);
+      });
     });
 
     group('resource factories', () {
       test('reject creation after notifier disposal', () {
         disposeNotifier();
+
+        expect(
+          () => notifier.field('initialState'),
+          throwsA(isA<StateError>()),
+        );
 
         expect(
           () => notifier.mutation<void>(),

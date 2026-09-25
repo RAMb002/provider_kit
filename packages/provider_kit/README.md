@@ -38,6 +38,8 @@ architecture you already know while writing less boilerplate.
 
 - **Enhanced Notifiers** — Specialized notifiers for managing structured state
   and asynchronous operations.
+- **Reactive Fields** — Independent reactive state fields for `ChangeNotifier`-style
+  state management.
 - **State Widgets** — Builders and listeners for reacting to state changes and
   handling side effects.
 - **View State** — Built-in initial, loading, empty, error, and data states for
@@ -71,6 +73,7 @@ architecture you already know while writing less boilerplate.
 - [Mutations](#mutations)
   - [MutationState](#mutationstate)
   - [MutationGroup](#mutationgroup)
+- [State Field](#state-field)
 - [Automatic Resource Disposal](#automatic-resource-disposal)
 - [Nested State Listener](#nestedstatelistener)
 - [Notifier Observer](#notifierobserver)
@@ -1415,6 +1418,45 @@ void dispose() {
   super.dispose();
 }
 ```
+---
+
+## State Field
+
+`StateField<T>` is a lightweight reactive state field for developers who prefer the traditional `ChangeNotifier` style.
+Instead of keeping all state in a single state object, you can keep individual variables and make them reactive.
+
+```dart id="am8noi"
+class LoginProvider extends ChangeNotifier {
+  final email = StateField('');
+  final password = StateField('');
+  final isLoading = StateField(false);
+}
+```
+
+Update a field through `state`:
+
+```dart id="vgtoat"
+email.state = 'user@example.com';
+isLoading.state = true;
+```
+
+Each `StateField` can be used directly with ProviderKit state widgets such as [`StateBuilder`](#statebuilder), [`StateListener`](#statelistener), and [`StateConsumer`](#stateconsumer), as well as their multi-provider variants [`MultiStateBuilder`](#multistatebuilder), [`MultiStateListener`](#multistatelistener), and [`MultiStateConsumer`](#multistateconsumer).
+
+
+```dart
+StateBuilder<String>(
+  provider: email,
+  builder: (context, state, child) {
+    return Text(state);
+  },
+);
+```
+
+`StateField` should be disposed when it is no longer needed. For fields owned by a `ChangeNotifier` or `State`, it is highly recommended to use ProviderKit's automatic resource disposal mixins to avoid manually disposing each field.
+
+See [Automatic Resource Disposal](#automatic-resource-disposal) for details.
+
+> **Tip:** Use `StateField` when you prefer independent reactive fields and a traditional `ChangeNotifier` style. Use `StateNotifier` when you prefer a single state architecture.
 
 ---
 
@@ -1425,6 +1467,7 @@ created through them when the owning `ChangeNotifier` or `State` is disposed.
 
 The mixins manage the lifecycle of:
 
+- `StateField`
 - `Mutation`
 - `MutationGroup`
 - `Debounce`
@@ -1443,6 +1486,7 @@ notifiers such as `StateNotifier`, `ViewStateNotifier`, and
 ```dart
 class SearchNotifier extends ChangeNotifier
     with NotifierResourcesMixin {
+  late final searchQuery = field("");
   late final searchMutation = mutation<List<Movie>>();
   late final searchDebounce = debounce();
 
@@ -1459,6 +1503,7 @@ Use `StateResourcesMixin` with the `State` of a `StatefulWidget`.
 ```dart
 class _SearchPageState extends State<SearchPage>
     with StateResourcesMixin<SearchPage> {
+  late final searchQuery = field("");
   late final searchMutation = mutation<List<Movie>>();
   late final searchDebounce = debounce();
 
@@ -1473,13 +1518,14 @@ Declare resources with `late final` so they are created lazily when first
 accessed and managed automatically by the mixin.
 
 ```dart
+late final searchQuery = field("");
 late final searchMutation = mutation<List<Movie>>();
 late final searchGroup = mutationGroup<Movie>();
 late final searchDebounce = debounce();
 late final searchThrottle = throttle();
 ```
 
-Use the mixin's resource methods instead of creating `Mutation`, `MutationGroup`,
+Use the mixin's resource methods instead of creating `StateField`, `Mutation`, `MutationGroup`,
 `Debounce`, or `Throttle` instances directly. Resources created through the
 mixin are automatically owned and disposed with the notifier or `State`.
 
@@ -1528,6 +1574,7 @@ The following is unnecessary:
 // ❌ Not needed.
 @override
 void dispose() {
+  searchQuery.dispose();
   searchMutation.dispose();
   searchDebounce.dispose();
   super.dispose();

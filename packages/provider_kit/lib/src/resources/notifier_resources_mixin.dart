@@ -15,6 +15,7 @@ import 'package:rate_kit/rate_kit.dart';
 ///
 /// Supported resources:
 ///
+/// - [StateField]
 /// - [Mutation]
 /// - [MutationGroup]
 /// - [Debounce]
@@ -28,11 +29,13 @@ import 'package:rate_kit/rate_kit.dart';
 /// ```dart
 /// class SearchProvider extends ChangeNotifier
 ///     with NotifierResourcesMixin {
+///   late final searchQuery = field('');
 ///   late final searchMutation = mutation<bool>();
-///
+///   late final searchGroup = mutationGroup<bool>();
 ///   late final searchDebounce = debounce(
 ///     duration: const Duration(milliseconds: 300),
 ///   );
+///   late final searchThrottle = throttle();
 /// }
 /// ```
 ///
@@ -43,8 +46,11 @@ import 'package:rate_kit/rate_kit.dart';
 /// // ❌ Not needed.
 /// @override
 /// void dispose() {
+///   searchQuery.dispose();
 ///   searchMutation.dispose();
+///   searchGroup.dispose();
 ///   searchDebounce.dispose();
+///   searchThrottle.dispose();
 ///   super.dispose();
 /// }
 /// ```
@@ -67,7 +73,17 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   late final Debounce _defaultDebounce = debounce();
   late final Throttle _defaultThrottle = throttle();
 
-  /// Creates a [Mutation] owned by this notifier.
+  /// Creates a [StateField] managed by this mixin.
+  ///
+  /// The field is automatically disposed when the notifier is disposed.
+  StateField<T> field<T>(T initialState) {
+    return _resourceOwner.own(
+      StateField<T>(initialState),
+      onDispose: (resource) => resource.dispose(),
+    );
+  }
+
+  /// Creates a [Mutation] managed by this mixin.
   ///
   /// The mutation is automatically disposed when the notifier is disposed.
   Mutation<T> mutation<T>() {
@@ -77,7 +93,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
     );
   }
 
-  /// Creates a [MutationGroup] owned by this notifier.
+  /// Creates a [MutationGroup] managed by this mixin.
   ///
   /// The mutation group is automatically disposed when the notifier is
   /// disposed.
@@ -106,7 +122,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   /// to the [Debounce] instance.
   /// {@endtemplate}
   ///
-  /// Creates a [Debounce] owned by this notifier.
+  /// Creates a [Debounce] managed by this mixin.
   ///
   /// The debounce is automatically disposed when the notifier is disposed.
   ///
@@ -129,7 +145,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   }
 
   /// {@template provider_kit.resources_mixin.debounce_run_usage}
-  /// Runs [operation] using a shared [Debounce].
+  /// Runs [operation] using a shared [Debounce] managed by this mixin..
   ///
   /// Use this for simple debounce operations when you do not need direct
   /// access to a [Debounce] instance.
@@ -170,7 +186,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   /// to the [Throttle] instance.
   /// {@endtemplate}
   ///
-  /// Creates a [Throttle] owned by this notifier.
+  /// Creates a [Throttle] managed by this mixin.
   ///
   /// The throttle is automatically disposed when the notifier is disposed.
   ///
@@ -191,7 +207,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   }
 
   /// {@template provider_kit.resources_mixin.throttle_run_usage}
-  /// Runs [operation] using a shared [Throttle].
+  /// Runs [operation] using a shared [Throttle] managed by this mixin..
   ///
   /// Use this for simple throttle operations when you do not need direct
   /// access to a [Throttle] instance.

@@ -18,6 +18,8 @@ void main() {
 
           final state = key.currentState!;
 
+          final stateField = state.field("initialState");
+
           final mutation = state.mutation<void>();
 
           final group = state.mutationGroup<void>();
@@ -39,12 +41,21 @@ void main() {
           debounce.run(() => debounceCalls++);
           throttle.run(() => throttleCalls++);
 
+          expect(stateField.state, 'initialState');
+          expect(stateField.mounted, isTrue);
+
+          stateField.state = 'updatedState';
+
+          expect(stateField.state, 'updatedState');
+
           expect(debounce.isPending(), isTrue);
           expect(throttle.isTrailingPending(), isTrue);
 
           await tester.pumpWidget(const SizedBox());
 
           await tester.pump(const Duration(seconds: 2));
+
+          expect(stateField.mounted, isFalse);
 
           expect(debounceCalls, 0);
           expect(throttleCalls, 0);
@@ -112,6 +123,30 @@ void main() {
           );
         },
       );
+
+      testWidgets('disposes all created state fields with the notifier',
+          (tester) async {
+        final key = GlobalKey<_TestState>();
+
+        await tester.pumpWidget(
+          _TestWidget(key: key),
+        );
+
+        final state = key.currentState!;
+        final firstField = state.field('first');
+        final secondField = state.field(0);
+        final thirdField = state.field(false);
+
+        expect(firstField.mounted, isTrue);
+        expect(secondField.mounted, isTrue);
+        expect(thirdField.mounted, isTrue);
+
+        await tester.pumpWidget(const SizedBox());
+
+        expect(firstField.mounted, isFalse);
+        expect(secondField.mounted, isFalse);
+        expect(thirdField.mounted, isFalse);
+      });
     });
 
     group('resource factories', () {
@@ -127,6 +162,11 @@ void main() {
           final state = key.currentState!;
 
           await tester.pumpWidget(const SizedBox());
+
+          expect(
+            () => state.field('initialState'),
+            throwsA(isA<StateError>()),
+          );
 
           expect(
             () => state.mutation<void>(),
