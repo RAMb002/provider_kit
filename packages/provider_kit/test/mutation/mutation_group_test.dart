@@ -129,7 +129,7 @@ void main() {
 
         final first = group('key');
 
-        group.disposeKey('key');
+        group.dispose('key');
 
         expect(first.mounted, isFalse);
 
@@ -458,7 +458,7 @@ void main() {
       test('does nothing when key does not exist', () {
         final group = MutationGroup<int>();
 
-        expect(() => group.disposeKey('missing'), returnsNormally);
+        expect(() => group.dispose('missing'), returnsNormally);
 
         group.dispose();
       });
@@ -472,7 +472,7 @@ void main() {
 
         mutation.addListener(listener);
 
-        group.disposeKey('key');
+        group.dispose('key');
 
         expect(mutation.mounted, isFalse);
 
@@ -495,7 +495,7 @@ void main() {
 
         expect(mutation.mounted, isTrue);
 
-        group.disposeKey('key');
+        group.dispose('key');
 
         expect(mutation.mounted, isFalse);
 
@@ -520,7 +520,7 @@ void main() {
 
         expect(mutation.mounted, isTrue);
 
-        group.disposeKey('key');
+        group.dispose('key');
 
         expect(mutation.mounted, isFalse);
 
@@ -537,7 +537,7 @@ void main() {
         expect(mutation.isLoading, isTrue);
         expect(mutation.mounted, isTrue);
 
-        group.disposeKey('key');
+        group.dispose('key');
 
         expect(mutation.mounted, isFalse);
 
@@ -554,7 +554,7 @@ void main() {
         final group = MutationGroup<int>();
         final first = group('key');
 
-        group.disposeKey('key');
+        group.dispose('key');
 
         final second = group('key');
 
@@ -568,7 +568,7 @@ void main() {
         final group = MutationGroup<int>();
 
         final first = group('key');
-        group.disposeKey('key');
+        group.dispose('key');
 
         final second = group('key');
 

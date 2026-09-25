@@ -2,14 +2,26 @@
 
 ### Added
 
-  - Added `NotifierResourcesMixin` for automatic lifecycle management of `Mutation`, `MutationGroup`, `Debounce`, and `Throttle` resources created by `ChangeNotifier` notifiers.
-  - Added `StateResourcesMixin` for automatic lifecycle management of the same resources created by the `State` of a     `StatefulWidget`.
-  - Added shared `debounceRun()` and `throttleRun()` helpers with lazy resource creation.
-  - Added automatic resource disposal when the owning notifier or `State` is disposed.
+- Added `NotifierResourcesMixin` for automatic lifecycle management of
+  `Mutation`, `MutationGroup`, `Debounce`, and `Throttle` resources created by
+  `ChangeNotifier` notifiers.
 
-  - Added `data` getter to `ViewStateNotifier`.
-  - Returns the current data when the state is `DataState<T>`.
-  - Throws a `StateError` when accessed while the current state is not `DataState<T>`.
+- Added `StateResourcesMixin` for automatic lifecycle management of the same
+  resources created by the `State` of a `StatefulWidget`.
+
+- Added shared `debounceRun()` and `throttleRun()` helpers with lazy resource
+  creation.
+
+- Added automatic resource disposal when the owning notifier or `State` is
+  disposed.
+
+- Added `data` getter to `ViewStateNotifier`, which returns the current data
+  when the state is `DataState<T>` and throws a `StateError` otherwise.
+
+- Updated `MutationGroup.dispose()` to optionally accept a key for disposing a
+  specific keyed mutation.
+
+- Removed the separate `disposeKey()` API.
 
 ## 0.4.0
 

@@ -1386,13 +1386,13 @@ group, so use it carefully for large or long-lived groups.
 
 You can manually dispose of keyed mutations when you no longer need them.
 
-Use `disposeKey()` to remove and dispose a specific mutation:
+Pass a key to `dispose()` to remove and dispose of a specific mutation:
 
 ```dart
 deleteTodo.disposeKey(todo.id);
 ```
 
-Use `dispose()` to dispose all cached mutations in the group:
+Call `dispose()` without a key to dispose of all cached mutations in the group:
 
 ```dart
 deleteTodo.dispose();
@@ -1400,6 +1400,21 @@ deleteTodo.dispose();
 
 Manual disposal immediately disposes the selected mutations, including mutations
 that are currently loading.
+
+> **Note:** `MutationGroup` automatically disposes individual keyed mutations
+> when they become eligible for automatic disposal. However, you must manually
+> dispose the `MutationGroup` itself when its owning provider or widget is
+> disposed.
+
+For example:
+
+```dart
+@override
+void dispose() {
+  group.dispose();
+  super.dispose();
+}
+```
 
 ---
 

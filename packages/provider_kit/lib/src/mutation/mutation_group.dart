@@ -135,24 +135,16 @@ part of 'mutation.dart';
 ///
 /// ### Manual disposal
 ///
-/// A single keyed mutation can be explicitly disposed with [disposeKey]:
+/// Disposes a mutation associated with [key], or all cached mutations when
+/// no key is provided.
+///
+/// Pass a key to dispose only the mutation associated with that key:
 ///
 /// ```dart
-/// deleteTodo.disposeKey(todo.id);
+/// group.dispose(todo.id);
 /// ```
 ///
-/// The entire group can be disposed when its owner is disposed:
-///
-/// ```dart
-/// @override
-/// void dispose() {
-///   deleteTodo.dispose();
-///   super.dispose();
-/// }
-/// ```
-///
-/// Disposing the group immediately disposes all currently cached mutations,
-/// including mutations that are still loading.
+/// Call without a key to dispose all cached mutations:
 ///
 /// ### When should I use MutationGroup?
 ///
@@ -276,19 +268,15 @@ class MutationGroup<T> {
     };
   }
 
-  /// Disposes the mutation associated with [key].
-  ///
-  /// If no mutation exists for [key], this method does nothing.
-  ///
-  /// This forces disposal even if the mutation is currently loading.
-  void disposeKey(Object key) {
-    _cleanup(key, force: true);
-  }
-
   /// Disposes all mutations currently managed by this group.
   ///
   /// This also disposes mutations that are currently loading.
-  void dispose() {
+  void dispose([Object? key]) {
+    if (key != null) {
+      _cleanup(key, force: true);
+      return;
+    }
+
     while (_cache.isNotEmpty) {
       final key = _cache.keys.first;
       _cleanup(key, force: true);
