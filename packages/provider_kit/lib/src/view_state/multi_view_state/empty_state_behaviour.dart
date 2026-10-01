@@ -1,0 +1,4 @@
+enum EmptyStateBehavior {
+  anyEmpty,
+  allEmpty,
+}

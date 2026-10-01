@@ -50,4 +50,14 @@ abstract class ViewStateNotifier<State>
       'not DataState<$State>.',
     );
   }
+
+  State? get dataOrNull {
+    final currentState = state;
+
+    if (currentState is DataState<State>) {
+      return currentState.data;
+    }
+
+    return null;
+  }
 }

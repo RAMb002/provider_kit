@@ -62,8 +62,8 @@ void main() {
                 stateListenerCalls++;
               },
             ),
-            MultiStateListener<int>(
-              providers: [secondProvider],
+            MultiStateListener(
+              providers: () => secondProvider.watch,
               listener: (_, __) {
                 secondListenerCalls++;
               },
@@ -93,10 +93,7 @@ void main() {
       await tester.pumpWidget(
         NestedStateListener(
           listeners: [
-            StateListener<int>(
-              provider: provider,
-              listener: (_, __) {},
-            ),
+            StateListener<int>(provider: provider, listener: (_, __) {}),
           ],
           child: const SizedBox(key: childKey),
         ),
@@ -105,8 +102,9 @@ void main() {
       expect(find.byKey(childKey), findsOneWidget);
     });
 
-    testWidgets('removes nested listeners when removed from the tree',
-        (tester) async {
+    testWidgets('removes nested listeners when removed from the tree', (
+      tester,
+    ) async {
       final provider1 = CounterProvider();
       final provider2 = CounterProvider();
 

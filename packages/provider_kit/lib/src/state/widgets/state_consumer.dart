@@ -72,13 +72,37 @@ class StateConsumer<T> extends StateConsumerBase<StateValueListenable<T>, T> {
   const StateConsumer({
     super.key,
     required StateValueListenable<T> provider,
-    required super.builder,
+    required this.builder,
     super.rebuildWhen,
-    required super.listener,
+    required this.listener,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super(provider: provider);
+
+  /// {@macro provider_kit.state_builder.builder}
+  final StateWidgetBuilder<T> builder;
+
+  /// {@macro provider_kit.state_listener.listener}
+  final ListenerCallback<T> listener;
+
+  @override
+  Widget build(BuildContext context, T state, Widget? child) {
+    return builder(context, state, child);
+  }
+
+  @override
+  void onStateChange(BuildContext context, T state) {
+    listener(context, state);
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder))
+      ..add(ObjectFlagProperty<ListenerCallback<T>>.has('listener', listener));
+  }
 
   /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
   ///
@@ -120,52 +144,67 @@ class _StateConsumerOf<P extends StateValueListenable<T>, T>
     extends StateConsumerBase<P, T> {
   const _StateConsumerOf({
     super.key,
-    required super.builder,
+    required this.builder,
     super.rebuildWhen,
-    required super.listener,
+    required this.listener,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super(provider: null);
+
+  final StateWidgetBuilder<T> builder;
+  final ListenerCallback<T> listener;
+
+  @override
+  Widget build(BuildContext context, T state, Widget? child) {
+    return builder(context, state, child);
+  }
+
+  @override
+  void onStateChange(BuildContext context, T state) {
+    listener(context, state);
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder))
+      ..add(ObjectFlagProperty<ListenerCallback<T>>.has('listener', listener));
+  }
 }
 
 abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
     extends StatefulWidget {
   const StateConsumerBase({
     super.key,
-    required this.builder,
     this.rebuildWhen,
-    required this.listener,
     this.listenWhen,
     this.provider,
     this.callListenerOnInit = false,
     this.child,
   });
 
-  /// The provider whose state should be listened to.
-  ///
-  /// When null, the provider is resolved from the current [BuildContext].
+  /// {@macro provider_kit.state_listener.provider}
   final P? provider;
 
-  /// The function that builds the widget tree based on the current state.
-  final StateWidgetBuilder<T> builder;
-
-  /// A function that determines whether the builder should be called based on
-  /// the previous and current state.
+  /// {@macro provider_kit.state_builder.rebuild_when}
   final RebuildWhen<T>? rebuildWhen;
 
-  /// A function that determines whether the listener should be called based on
-  /// the previous and current state.
+  /// {@macro provider_kit.state_listener.listen_when}
   final ListenWhen<T>? listenWhen;
 
-  /// The listener function that is called when the state changes.
-  final ListenerCallback<T> listener;
-
-  /// Whether the listener should be called when the widget is first initialized.
+  /// {@macro provider_kit.state_listener.call_listener_on_init}
   final bool callListenerOnInit;
 
-  /// An optional child widget that does not depend on the state and will not be rebuilt.
+  /// {@macro provider_kit.state_builder.child}
   final Widget? child;
+
+  /// Builds the widget tree using the current state.
+  Widget build(BuildContext context, T state, Widget? child);
+
+  /// Handles a state change after [listenWhen] allows the notification.
+  void onStateChange(BuildContext context, T state);
 
   @override
   State<StateConsumerBase<P, T>> createState() =>
@@ -176,25 +215,15 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
     super.debugFillProperties(properties);
     properties
       ..add(DiagnosticsProperty<P?>('provider', provider))
-      ..add(ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder))
-      ..add(ObjectFlagProperty<ListenerCallback<T>>.has('listener', listener))
+      ..add(ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen))
+      ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen))
       ..add(
-        ObjectFlagProperty<RebuildWhen<T>?>.has(
-          'rebuildWhen',
-          rebuildWhen,
+        DiagnosticsProperty<bool>(
+          'callListenerOnInit',
+          callListenerOnInit,
+          defaultValue: false,
         ),
       )
-      ..add(
-        ObjectFlagProperty<ListenWhen<T>?>.has(
-          'listenWhen',
-          listenWhen,
-        ),
-      )
-      ..add(DiagnosticsProperty<bool>(
-        'callListenerOnInit',
-        callListenerOnInit,
-        defaultValue: false,
-      ))
       ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
   }
 }
@@ -202,19 +231,23 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
 class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
     extends State<StateConsumerBase<P, T>> {
   late P _provider;
+  bool _initialListenerPending = false;
+  final List<T> _pendingListenerStates = <T>[];
 
   @override
   void initState() {
     super.initState();
     _provider = widget.provider ?? _readProvider;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.callListenerOnInit) {
-        widget.listener(
-          context,
-          _provider.state,
-        );
-      }
-    });
+    if (widget.callListenerOnInit) {
+      final initialState = _provider.state;
+      final initialListener = widget.onStateChange;
+
+      _initialListenerPending = true;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _callInitialListener(initialState, initialListener);
+      });
+    }
   }
 
   @override
@@ -234,26 +267,66 @@ class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
     if (_provider != provider) _provider = provider;
   }
 
+  @override
+  void dispose() {
+    _pendingListenerStates.clear();
+    _initialListenerPending = false;
+    super.dispose();
+  }
+
+  void _callInitialListener(
+    T initialState,
+    ListenerCallback<T> initialListener,
+  ) {
+    try {
+      if (!mounted) {
+        return;
+      }
+      initialListener(context, initialState);
+      for (var index = 0; index < _pendingListenerStates.length; index++) {
+        if (!mounted) {
+          return;
+        }
+        final state = _pendingListenerStates[index];
+        initialListener(context, state);
+      }
+    } finally {
+      _pendingListenerStates.clear();
+      _initialListenerPending = false;
+    }
+  }
+
+  bool _handleStateChange(T previous, T current) {
+    final shouldListen = ObjectKit.isNotEqual<T>(
+      widget.listenWhen,
+      previous,
+      current,
+    );
+
+    if (shouldListen) {
+      if (_initialListenerPending) {
+        _pendingListenerStates.add(current);
+      } else {
+        widget.onStateChange(context, current);
+      }
+    }
+
+    return ObjectKit.isNotEqual<T>(widget.rebuildWhen, previous, current);
+  }
+
   /// Gets the provider from the context.
   P get _readProvider => context.read<P>();
 
   @override
   Widget build(BuildContext context) {
     if (widget.provider == null) {
-      context.select<P, bool>(
-        (provider) => identical(_provider, provider),
-      );
+      context.select<P, bool>((provider) => identical(_provider, provider));
     }
     return StateBuilder<T>(
       provider: _provider,
-      builder: widget.builder,
+      builder: widget.build,
+      rebuildWhen: _handleStateChange,
       child: widget.child,
-      rebuildWhen: (previous, next) {
-        if (ObjectKit.isNotEqual<T>(widget.listenWhen, previous, next)) {
-          widget.listener(context, next);
-        }
-        return (ObjectKit.isNotEqual<T>(widget.rebuildWhen, previous, next));
-      },
     );
   }
 }
