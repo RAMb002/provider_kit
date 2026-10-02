@@ -148,14 +148,14 @@ class MultiStateConsumer<T> extends MultiStateConsumerBase<T> {
 /// The actual dependency tracking, state collection, subscriptions,
 /// equality checks, rebuild handling, and listener invocation are handled by
 /// the internal [_MultiStateBase] implementation.
-abstract class MultiStateConsumerBase<T> extends SingleChildStatefulWidget {
+abstract class MultiStateConsumerBase<T> extends StatefulWidget {
   const MultiStateConsumerBase({
     super.key,
     required this.providers,
     this.rebuildWhen,
     this.listenWhen,
     this.callListenerOnInit = false,
-    super.child,
+    this.child,
   }) : _onDependenciesUpdate = null;
 
   /// {@macro provider_kit.multi_state.internal_constructor}
@@ -166,7 +166,7 @@ abstract class MultiStateConsumerBase<T> extends SingleChildStatefulWidget {
     this.listenWhen,
     this.callListenerOnInit = false,
     required this._onDependenciesUpdate,
-    super.child,
+    this.child,
   });
 
   /// {@macro provider_kit.multi_state.provider_param}
@@ -183,6 +183,9 @@ abstract class MultiStateConsumerBase<T> extends SingleChildStatefulWidget {
 
   /// {@macro provider_kit.multi_state.call_listener_on_init_param}
   final bool callListenerOnInit;
+
+  /// {@macro provider_kit.multi_state_builder.child_param}
+  final Widget? child;
 
   /// {@macro provider_kit.multi_state.on_dependencies_update_param}
   final _DependenciesUpdateCallback? _onDependenciesUpdate;
@@ -212,14 +215,14 @@ abstract class MultiStateConsumerBase<T> extends SingleChildStatefulWidget {
           callListenerOnInit,
           defaultValue: false,
         ),
-      );
+      )
+      ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
   }
 }
 
-class _MultiStateConsumerBaseState<T>
-    extends SingleChildState<MultiStateConsumerBase<T>> {
+class _MultiStateConsumerBaseState<T> extends State<MultiStateConsumerBase<T>> {
   @override
-  Widget buildWithChild(BuildContext context, Widget? child) {
+  Widget build(BuildContext context) {
     return _MultiStateBase<T>(
       providers: widget.providers,
       builder: widget.build,
@@ -229,7 +232,7 @@ class _MultiStateConsumerBaseState<T>
       callListenerOnInit: widget.callListenerOnInit,
       widgetName: widget.runtimeType.toString(),
       onDependenciesUpdate: widget._onDependenciesUpdate,
-      child: child,
+      child: widget.child,
     );
   }
 }

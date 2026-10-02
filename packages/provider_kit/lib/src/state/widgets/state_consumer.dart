@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/state/widgets/state_builder.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
@@ -231,22 +232,21 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
 class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
     extends State<StateConsumerBase<P, T>> {
   late P _provider;
-  bool _initialListenerPending = false;
-  final List<T> _pendingListenerStates = <T>[];
+  final ListenerQueue _listenerQueue = ListenerQueue();
 
   @override
   void initState() {
     super.initState();
     _provider = widget.provider ?? _readProvider;
     if (widget.callListenerOnInit) {
-      final initialState = _provider.state;
-      final initialListener = widget.onStateChange;
-
-      _initialListenerPending = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _callInitialListener(initialState, initialListener);
-      });
+      if (widget.callListenerOnInit) {
+        final T initialState = _provider.state;
+        final ListenerCallback<T> initialListener = widget.onStateChange;
+        _listenerQueue.scheduleInitialListener(
+          initialCallback: () => initialListener(context, initialState),
+          isMounted: () => mounted,
+        );
+      }
     }
   }
 
@@ -269,31 +269,8 @@ class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
 
   @override
   void dispose() {
-    _pendingListenerStates.clear();
-    _initialListenerPending = false;
+    _listenerQueue.clear();
     super.dispose();
-  }
-
-  void _callInitialListener(
-    T initialState,
-    ListenerCallback<T> initialListener,
-  ) {
-    try {
-      if (!mounted) {
-        return;
-      }
-      initialListener(context, initialState);
-      for (var index = 0; index < _pendingListenerStates.length; index++) {
-        if (!mounted) {
-          return;
-        }
-        final state = _pendingListenerStates[index];
-        initialListener(context, state);
-      }
-    } finally {
-      _pendingListenerStates.clear();
-      _initialListenerPending = false;
-    }
   }
 
   bool _handleStateChange(T previous, T current) {
@@ -304,11 +281,7 @@ class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
     );
 
     if (shouldListen) {
-      if (_initialListenerPending) {
-        _pendingListenerStates.add(current);
-      } else {
-        widget.onStateChange(context, current);
-      }
+      _listenerQueue.dispatch(() => widget.onStateChange(context, current));
     }
 
     return ObjectKit.isNotEqual<T>(widget.rebuildWhen, previous, current);

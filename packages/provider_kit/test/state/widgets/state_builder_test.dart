@@ -522,6 +522,43 @@ void main() {
       expect(states, [0, 3]);
       expect(find.text('3'), findsOneWidget);
     });
+
+    testWidgets('does not rebuild after disposal when a rebuild was deferred', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateBuilder<int>(
+            provider: field,
+            builder: (_, state, child) {
+              states.add(state);
+
+              return Column(children: [Text('$state'), child!]);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(states, [0]);
+
+      // Dispose before the deferred rebuild callback executes.
+      await tester.pumpWidget(const SizedBox());
+
+      // Process the previously scheduled post-frame callback.
+      await tester.pump();
+
+      expect(states, [0]);
+      expect(tester.takeException(), isNull);
+    });
     testWidgets(
       'with rebuildWhen only rebuilds when rebuildWhen evaluates to true',
       (tester) async {

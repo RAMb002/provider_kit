@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
+import '../../shared/mocks/view_state_notifiers.dart';
+
 class TestNotifier extends ViewStateNotifier<int> {
   TestNotifier(super.state);
 }
@@ -23,10 +25,7 @@ void main() {
 
       final error = StateError('error');
 
-      notifier.state = ErrorState<int>(
-        error,
-        StackTrace.current,
-      );
+      notifier.state = ErrorState<int>(error, StackTrace.current);
       expect(notifier.state, isA<ErrorState<int>>());
 
       notifier.state = const EmptyState<int>();
@@ -42,9 +41,7 @@ void main() {
     });
 
     test('data returns current data when state is DataState', () {
-      final notifier = TestNotifier(
-        const DataState<int>(42),
-      );
+      final notifier = TestNotifier(const DataState<int>(42));
 
       expect(notifier.data, 42);
     });
@@ -54,10 +51,7 @@ void main() {
         const InitialState<int>(),
         const LoadingState<int>(),
         const EmptyState<int>(),
-        ErrorState<int>(
-          StateError('error'),
-          StackTrace.empty,
-        ),
+        ErrorState<int>(StateError('error'), StackTrace.empty),
       ];
 
       for (final state in states) {
@@ -69,6 +63,17 @@ void main() {
           reason: 'Expected StateError for ${state.runtimeType}',
         );
       }
+    });
+    test('data delegates to current state', () {
+      final notifier = TestViewStateNotifier<String>(const DataState('hello'));
+
+      expect(notifier.data, 'hello');
+    });
+
+    test('dataOrNull delegates to current state', () {
+      final notifier = TestViewStateNotifier<String>(const DataState('hello'));
+
+      expect(notifier.dataOrNull, 'hello');
     });
   });
 }

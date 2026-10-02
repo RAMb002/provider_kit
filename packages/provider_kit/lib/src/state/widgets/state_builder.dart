@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/state/widgets/state_listener.dart';
 
@@ -188,7 +189,7 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
   ///
   /// This prevents multiple deferred rebuild callbacks from being registered
   /// when several dependency notifications occur during the same build phase.
-  bool _rebuildScheduled = false;
+  final RebuildScheduler _rebuildScheduler = RebuildScheduler();
 
   @override
   void initState() {
@@ -229,30 +230,10 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
   void _requestRebuild(T state) {
     _state = state;
 
-    if (!mounted) {
-      return;
-    }
-
-    if (SchedulerBinding.instance.schedulerPhase ==
-        SchedulerPhase.persistentCallbacks) {
-      if (_rebuildScheduled) {
-        return;
-      }
-
-      _rebuildScheduled = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _rebuildScheduled = false;
-
-        if (mounted) {
-          setState(() {});
-        }
-      });
-
-      return;
-    }
-
-    setState(() {});
+    _rebuildScheduler.request(
+      isMounted: () => mounted,
+      rebuild: () => setState(() {}),
+    );
   }
 
   /// Gets the provider from the context.
@@ -260,12 +241,6 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
 
   /// Gets the current state from the provider.
   T get _currentState => _provider.state;
-
-  @override
-  void dispose() {
-    _rebuildScheduled = false;
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {

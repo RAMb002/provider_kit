@@ -26,8 +26,6 @@ part of '../../../state/multi_state/multi_state.dart';
 /// - **[emptyStateListener]** — Handles the combined empty state.
 /// - **[dataStateListener]** — Handles the combined data state and receives
 ///   the exact value returned by [providers].
-/// - **[emptyBehavior]** — Determines when the combined state is considered
-///   empty. Defaults to [EmptyStateBehavior.allEmpty].
 /// - **[listenWhen]** — Determines whether the listener should be called when
 ///   the combined state changes.
 /// - **[callListenerOnInit]** — Determines whether the listener should be
@@ -97,7 +95,6 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
     LoadingStateListener? loadingStateListener,
     EmptyStateListener? emptyStateListener,
     DataStateListener<T>? dataStateListener,
-    EmptyStateBehavior emptyBehavior = EmptyStateBehavior.allEmpty,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit = false,
     Widget? child,
@@ -110,7 +107,6 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
       loadingStateListener: loadingStateListener,
       emptyStateListener: emptyStateListener,
       dataStateListener: dataStateListener,
-      emptyBehavior: emptyBehavior,
       listenWhen: listenWhen,
       callListenerOnInit: callListenerOnInit,
       delegate: _MultiViewStateDependencyDelegate(),
@@ -127,7 +123,6 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
     this.loadingStateListener,
     this.emptyStateListener,
     this.dataStateListener,
-    this.emptyBehavior = EmptyStateBehavior.allEmpty,
     super.listenWhen,
     super.callListenerOnInit,
     required super.child,
@@ -175,13 +170,6 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
   /// {@endtemplate}
   final DataStateListener<T>? dataStateListener;
 
-  /// {@template provider_kit.multi_view_state.empty_behavior}
-  /// Determines when the combined state is considered [EmptyState].
-  ///
-  /// Defaults to [EmptyStateBehavior.allEmpty].
-  /// {@endtemplate}
-  final EmptyStateBehavior emptyBehavior;
-
   @override
   void onStateChange(BuildContext context, T state) {
     MultiViewStateWidgetUtils.handleListener(
@@ -192,7 +180,6 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
       loadingStateListener,
       emptyStateListener,
       dataStateListener,
-      emptyBehavior: emptyBehavior,
     );
   }
 
@@ -228,13 +215,6 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
         ObjectFlagProperty<DataStateListener<T>?>.has(
           'dataStateListener',
           dataStateListener,
-        ),
-      )
-      ..add(
-        EnumProperty<EmptyStateBehavior>(
-          'emptyBehavior',
-          emptyBehavior,
-          defaultValue: EmptyStateBehavior.allEmpty,
         ),
       );
   }

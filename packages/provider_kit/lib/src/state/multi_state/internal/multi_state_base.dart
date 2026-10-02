@@ -99,74 +99,43 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
   /// comparisons.
   late T _state;
 
-  /// Currently subscribed dependencies.
-  ///
-  /// An identity set is used because dependencies are objects, and two
-  /// different listenables should never be treated as equal merely because
-  /// they implement value equality.
-  Set<StateValueListenable> _dependencies =
-      Set<StateValueListenable>.identity();
+  /// Manages subscriptions to the dependencies discovered by [providers].
+  late final _DependencySubscription _dependencySubscription;
 
-  /// Whether the initial listener callback has not completed yet.
-  ///
-  /// While this is true, normal listener callbacks are queued so that
-  /// [callListenerOnInit] always runs first.
-  bool _initialListenerPending = false;
+  /// Manages deferred listener delivery during initialization.
+  final ListenerQueue _listenerQueue = ListenerQueue();
 
-  /// Listener states that were produced before the initial listener callback
-  /// completed.
-  final List<({ListenerCallback<T> listener, T state})> _pendingListenerCalls =
-      <({ListenerCallback<T> listener, T state})>[];
-
-  /// Whether a rebuild has already been scheduled for the current frame.
-  ///
-  /// This prevents multiple deferred rebuild callbacks from being registered
-  /// when several dependency notifications occur during the same build phase.
-  bool _rebuildScheduled = false;
+  /// Manages immediate and deferred rebuild requests.
+  final RebuildScheduler _rebuildScheduler = RebuildScheduler();
 
   @override
   void initState() {
     super.initState();
 
+    _dependencySubscription = _DependencySubscription(onChange: _handleChange);
+
     // Collect the initial state and dependencies together. Keeping these
     // operations in one collection ensures the state value and subscriptions
     // always correspond to the same providers() evaluation.
-    final collection = _collect();
+    final _DependencyCollection<T> collection = _collect();
 
     _state = collection.value;
 
     _syncDependencies(collection.dependencies);
 
     if (widget.callListenerOnInit && widget.listener != null) {
-      final initialState = _state;
-      final initialListener = widget.listener!;
-
-      _initialListenerPending = true;
-
-      // Delay the initial callback until after the first frame. This avoids
-      // invoking user listener code while the widget is still being mounted.
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        try {
-          if (!mounted) {
-            return;
-          }
-          initialListener(context, initialState);
-
-          for (var index = 0; index < _pendingListenerCalls.length; index++) {
-            if (!mounted) {
-              return;
-            }
-
-            final call = _pendingListenerCalls[index];
-
-            call.listener(context, call.state);
-          }
-        } finally {
-          _pendingListenerCalls.clear();
-          _initialListenerPending = false;
-        }
-      });
+      _scheduleInitialListener();
     }
+  }
+
+  void _scheduleInitialListener() {
+    final T initialState = _state;
+    final ListenerCallback<T> initialListener = widget.listener!;
+
+    _listenerQueue.scheduleInitialListener(
+      initialCallback: () => initialListener(context, initialState),
+      isMounted: () => mounted,
+    );
   }
 
   @override
@@ -177,46 +146,11 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
     // because the set of dependencies may itself depend on widget values.
     //
     // The new value becomes the new baseline without invoking either callback.
-    final collection = _collect();
+    final _DependencyCollection<T> collection = _collect();
 
     _state = collection.value;
 
     _syncDependencies(collection.dependencies, notifyDependencyHook: true);
-  }
-
-  /// Requests a rebuild of this widget.
-  ///
-  /// If the widget is currently being built, the rebuild is deferred until after
-  /// the current frame to avoid calling [setState] while the widget tree is
-  /// being built. Multiple rebuild requests during the same build phase are
-  /// coalesced into a single deferred rebuild.
-  ///
-  /// Otherwise, the rebuild is requested immediately.
-  void _requestRebuild() {
-    if (!mounted) {
-      return;
-    }
-
-    if (SchedulerBinding.instance.schedulerPhase ==
-        SchedulerPhase.persistentCallbacks) {
-      if (_rebuildScheduled) {
-        return;
-      }
-
-      _rebuildScheduled = true;
-
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _rebuildScheduled = false;
-
-        if (mounted) {
-          setState(() {});
-        }
-      });
-
-      return;
-    }
-
-    setState(() {});
   }
 
   /// Handles notifications from any currently subscribed dependency.
@@ -233,11 +167,11 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
       return;
     }
 
-    final previous = _state;
+    final T previous = _state;
 
     // `providers` is evaluated exactly once for this state change.
-    final collection = _collect();
-    final current = collection.value;
+    final _DependencyCollection<T> collection = _collect();
+    final T current = collection.value;
 
     // The new collection may contain a different set of dependencies.
     _syncDependencies(collection.dependencies);
@@ -253,20 +187,17 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
         ObjectKit.shouldNotify(previous, current, widget.listenWhen);
 
     if (shouldRebuild) {
-      _requestRebuild();
+      _rebuildScheduler.request(
+        isMounted: () => mounted,
+        rebuild: () => setState(() {}),
+      );
     }
 
     if (shouldListen) {
-      final listener = widget.listener;
+      final ListenerCallback<T>? listener = widget.listener;
 
       if (listener != null) {
-        if (_initialListenerPending) {
-          // Preserve listener notifications until the initialization
-          // callback has been delivered.
-          _pendingListenerCalls.add((listener: listener, state: current));
-        } else {
-          listener(context, current);
-        }
+        _listenerQueue.dispatch(() => listener(context, current));
       }
     }
   }
@@ -294,42 +225,19 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
     Set<StateValueListenable> nextDependencies, {
     bool notifyDependencyHook = false,
   }) {
-    final previousDependencies = _dependencies;
-
-    bool dependenciesChanged =
-        previousDependencies.length != nextDependencies.length;
-
-    for (final dependency in previousDependencies) {
-      if (!nextDependencies.contains(dependency)) {
-        dependenciesChanged = true;
-        dependency.removeListener(_handleChange);
-      }
-    }
-
-    for (final dependency in nextDependencies) {
-      if (!previousDependencies.contains(dependency)) {
-        dependenciesChanged = true;
-        dependency.addListener(_handleChange);
-      }
-    }
-
-    _dependencies = nextDependencies;
+    final bool dependenciesChanged = _dependencySubscription.sync(
+      nextDependencies,
+    );
 
     if (dependenciesChanged || notifyDependencyHook) {
-      widget.onDependenciesUpdate?.call(_dependencies);
+      widget.onDependenciesUpdate?.call(_dependencySubscription.dependencies);
     }
   }
 
   @override
   void dispose() {
-    // Every active subscription must be removed before the State is disposed.
-    // This prevents the listenables from retaining this State instance.
-    for (final dependency in _dependencies) {
-      dependency.removeListener(_handleChange);
-    }
-
-    _dependencies.clear();
-    _pendingListenerCalls.clear();
+    _dependencySubscription.dispose();
+    _listenerQueue.clear();
     super.dispose();
   }
 
@@ -352,6 +260,5 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
   }
 }
 
-typedef _DependenciesUpdateCallback = void Function(
-  Iterable<StateValueListenable> dependencies,
-);
+typedef _DependenciesUpdateCallback =
+    void Function(Iterable<StateValueListenable> dependencies);

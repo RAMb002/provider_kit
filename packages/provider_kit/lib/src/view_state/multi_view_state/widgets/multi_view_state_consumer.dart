@@ -32,8 +32,6 @@ part of '../../../state/multi_state/multi_state.dart';
 ///   retry callback for all currently errored providers.
 /// - **[dataStateListener]** — Handles the combined data state and receives
 ///   the exact value returned by [providers].
-/// - **[emptyBehavior]** — Determines when the combined state is considered
-///   empty. Defaults to [EmptyStateBehavior.allEmpty].
 /// - **[rebuildWhen]** — Determines whether the widget should rebuild when the
 ///   combined state changes.
 /// - **[listenWhen]** — Determines whether the listener should be called when
@@ -132,7 +130,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
     EmptyStateListener? emptyStateListener,
     ErrorStateListener? errorStateListener,
     DataStateListener<T>? dataStateListener,
-    EmptyStateBehavior emptyBehavior = EmptyStateBehavior.allEmpty,
     RebuildWhen<T>? rebuildWhen,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit = false,
@@ -151,7 +148,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
       emptyStateListener: emptyStateListener,
       errorStateListener: errorStateListener,
       dataStateListener: dataStateListener,
-      emptyBehavior: emptyBehavior,
       rebuildWhen: rebuildWhen,
       listenWhen: listenWhen,
       callListenerOnInit: callListenerOnInit,
@@ -174,7 +170,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
     required this.emptyStateListener,
     required this.errorStateListener,
     required this.dataStateListener,
-    required this.emptyBehavior,
     required this.isSliver,
     super.rebuildWhen,
     super.listenWhen,
@@ -215,9 +210,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
   /// {@macro provider_kit.multi_view_state.data_listener}
   final DataStateListener<T>? dataStateListener;
 
-  /// {@macro provider_kit.multi_view_state.empty_behavior}
-  final EmptyStateBehavior emptyBehavior;
-
   /// {@macro provider_kit.multi_view_state.is_sliver}
   final bool isSliver;
 
@@ -233,7 +225,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
       loadingBuilder,
       emptyBuilder,
       dataBuilder,
-      emptyBehavior: emptyBehavior,
     );
   }
 
@@ -247,7 +238,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
       loadingStateListener,
       emptyStateListener,
       dataStateListener,
-      emptyBehavior: emptyBehavior,
     );
   }
 
@@ -310,13 +300,6 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
         ObjectFlagProperty<DataStateListener<T>?>.has(
           'dataStateListener',
           dataStateListener,
-        ),
-      )
-      ..add(
-        EnumProperty<EmptyStateBehavior>(
-          'emptyBehavior',
-          emptyBehavior,
-          defaultValue: EmptyStateBehavior.allEmpty,
         ),
       )
       ..add(

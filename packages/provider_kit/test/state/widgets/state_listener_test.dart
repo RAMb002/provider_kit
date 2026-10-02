@@ -483,6 +483,96 @@ void main() {
       },
     );
 
+    testWidgets('clears queued notifications when initial listener throws', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        StateListener<int>(
+          provider: field,
+          callListenerOnInit: true,
+          listener: (_, state) {
+            if (state == 0) {
+              throw StateError('initial listener failed');
+            }
+
+            states.add(state);
+          },
+          child: StateChangeDuringInit(
+            onInit: () {
+              field
+                ..state = 1
+                ..state = 2;
+            },
+          ),
+        ),
+      );
+
+      final exception = tester.takeException();
+
+      expect(exception, isA<StateError>());
+      expect((exception as StateError).message, 'initial listener failed');
+
+      await tester.pumpWidget(
+        StateListener<int>(
+          provider: field,
+          listener: (_, state) => states.add(state),
+          child: const SizedBox(),
+        ),
+      );
+
+      field.state = 3;
+      await tester.pump();
+
+      expect(states, [3]);
+    });
+
+    testWidgets('clears queued notifications when a queued listener throws', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        StateListener<int>(
+          provider: field,
+          callListenerOnInit: true,
+          listener: (_, state) {
+            if (state == 1) {
+              throw StateError('queued listener failed');
+            }
+
+            states.add(state);
+          },
+          child: StateChangeDuringInit(
+            onInit: () {
+              field.state = 1;
+            },
+          ),
+        ),
+      );
+
+      final exception = tester.takeException();
+
+      expect(exception, isA<StateError>());
+      expect((exception as StateError).message, 'queued listener failed');
+
+      await tester.pumpWidget(
+        StateListener<int>(
+          provider: field,
+          listener: (_, state) => states.add(state),
+          child: const SizedBox(),
+        ),
+      );
+
+      field.state = 2;
+      await tester.pump();
+
+      expect(states, [0, 2]);
+    });
+
     testWidgets(
       'does not call listener when listenWhen returns false on single state '
       'change',

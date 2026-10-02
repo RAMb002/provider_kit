@@ -145,8 +145,10 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
   /// {@endtemplate}
   final RebuildWhen<T>? rebuildWhen;
 
+  /// {@template provider_kit.multi_state_builder.child_param}
   /// An optional widget that does not depend on the combined state.
   /// This widget is preserved when the builder rebuilds.
+  /// {@endtemplate}
   final Widget? child;
 
   /// {@macro provider_kit.multi_state.onDependenciesUpdate_param}

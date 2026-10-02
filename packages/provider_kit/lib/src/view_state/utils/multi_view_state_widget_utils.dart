@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/view_state/multi_view_state/empty_state_behaviour.dart';
 import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
@@ -19,29 +18,18 @@ import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
 ///    [InitialState].
 /// 3. **Loading** — when no error or initial state exists and any provider is
 ///    in [LoadingState].
-/// 4. **Empty** — when no error, initial, or loading state exists and the
-///    [emptyBehavior] rules are satisfied.
+/// 4. **Empty** — when no error, initial, or loading state exists and any
+///    provider is in [EmptyState].
 /// 5. **Data** — when none of the above conditions applies.
 ///
 /// ### Empty state
 ///
 /// A provider can use [EmptyState] when its data represents an empty
-/// [Iterable] result. The [emptyBehavior] parameter determines how empty
-/// providers contribute to the combined state.
+/// [Iterable] result.
 ///
-/// - [EmptyStateBehavior.allEmpty] — when all watched providers are in [EmptyState].
-/// - [EmptyStateBehavior.anyEmpty] — when at least one watched provider is
-///   in [EmptyState].
-///
-/// For example:
-///
-/// ```text
-/// Data + Empty → Data   // allEmpty
-/// Data + Empty → Empty  // anyEmpty
-/// Empty + Empty → Empty
-/// ```
-///
-/// Defaults to [EmptyStateBehavior.allEmpty].
+/// If any watched provider is in [EmptyState], the combined state is
+/// [EmptyState]. This guarantees that the data callback is only invoked when
+/// all watched providers are in [DataState].
 ///
 /// ### Multiple providers in the same state
 ///
@@ -73,15 +61,12 @@ import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
 abstract class MultiViewStateWidgetUtils {
   static _MultiViewStateAggregate _aggregate(
     List<ViewStateNotifier<dynamic>> providers,
-    EmptyStateBehavior emptyBehavior,
   ) {
     ErrorState<dynamic>? firstErrorState;
     LoadingState<dynamic>? firstLoadingState;
     EmptyState<dynamic>? firstEmptyState;
 
     bool hasInitialState = false;
-    bool hasEmptyState = false;
-    bool allProvidersEmpty = providers.isNotEmpty;
 
     double loadingProgressTotal = 0.0;
     int loadingProgressCount = 0;
@@ -96,13 +81,11 @@ abstract class MultiViewStateWidgetUtils {
 
       if (state is InitialState<dynamic>) {
         hasInitialState = true;
-        allProvidersEmpty = false;
         continue;
       }
 
       if (state is LoadingState<dynamic>) {
         firstLoadingState ??= state;
-        allProvidersEmpty = false;
 
         final double? progress = state.progress;
 
@@ -116,11 +99,8 @@ abstract class MultiViewStateWidgetUtils {
 
       if (state is EmptyState<dynamic>) {
         firstEmptyState ??= state;
-        hasEmptyState = true;
         continue;
       }
-
-      allProvidersEmpty = false;
     }
 
     if (firstErrorState != null) {
@@ -142,29 +122,41 @@ abstract class MultiViewStateWidgetUtils {
       );
     }
 
-    final bool isEmpty = switch (emptyBehavior) {
-      EmptyStateBehavior.anyEmpty => hasEmptyState,
-      EmptyStateBehavior.allEmpty => allProvidersEmpty,
-    };
-
-    if (isEmpty) {
-      return _MultiViewStateAggregate.empty(firstEmptyState!);
+    if (firstEmptyState != null) {
+      return _MultiViewStateAggregate.empty(firstEmptyState);
     }
+
     return const _MultiViewStateAggregate.data();
   }
 
-  static void _onRetryProviders(List<ViewStateNotifier<dynamic>> providers) {
+  static VoidCallback? _createRetryCallback(
+    List<ViewStateNotifier<dynamic>> providers,
+  ) {
+    final List<VoidCallback> retryCallbacks = <VoidCallback>[];
+
     for (final ViewStateNotifier<dynamic> provider in providers) {
       final ViewState<dynamic> state = provider.state;
 
-      if (state is ErrorState<dynamic>) {
-        if (state.onRetry != null) {
-          state.onRetry!.call();
-        } else if (provider is AsyncViewStateNotifier) {
-          provider.refresh();
-        }
+      if (state is! ErrorState<dynamic>) {
+        continue;
+      }
+
+      if (state.onRetry != null) {
+        retryCallbacks.add(state.onRetry!);
+      } else if (provider is AsyncViewStateNotifier) {
+        retryCallbacks.add(provider.refresh);
       }
     }
+
+    if (retryCallbacks.isEmpty) {
+      return null;
+    }
+
+    return () {
+      for (final VoidCallback retry in retryCallbacks) {
+        retry();
+      }
+    };
   }
 
   static void handleListener<T>(
@@ -174,21 +166,14 @@ abstract class MultiViewStateWidgetUtils {
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,
     EmptyStateListener? emptyStateListener,
-    DataStateListener<T>? dataStateListener, {
-    EmptyStateBehavior emptyBehavior = EmptyStateBehavior.allEmpty,
-  }) {
-    final _MultiViewStateAggregate aggregate = _aggregate(
-      providers,
-      emptyBehavior,
-    );
+    DataStateListener<T>? dataStateListener,
+  ) {
+    final _MultiViewStateAggregate aggregate = _aggregate(providers);
 
     switch (aggregate.status) {
       case _MultiViewStateStatus.error:
         final ErrorState<dynamic> errorState = aggregate.errorState!;
-
-        void onRetry() {
-          _onRetryProviders(providers);
-        }
+        final VoidCallback? onRetry = _createRetryCallback(providers);
 
         errorStateListener?.call(
           errorState.errorInfo,
@@ -227,13 +212,9 @@ abstract class MultiViewStateWidgetUtils {
     InitialStateBuilder? initialBuilder,
     LoadingStateBuilder? loadingBuilder,
     EmptyStateBuilder? emptyBuilder,
-    DataStateBuilder<T> dataBuilder, {
-    EmptyStateBehavior emptyBehavior = EmptyStateBehavior.allEmpty,
-  }) {
-    final _MultiViewStateAggregate aggregate = _aggregate(
-      providers,
-      emptyBehavior,
-    );
+    DataStateBuilder<T> dataBuilder,
+  ) {
+    final _MultiViewStateAggregate aggregate = _aggregate(providers);
 
     switch (aggregate.status) {
       case _MultiViewStateStatus.error:
@@ -285,10 +266,7 @@ abstract class MultiViewStateWidgetUtils {
     BuildContext context,
     bool isSliver,
   ) {
-    void onRetry() {
-      _onRetryProviders(providers);
-    }
-
+    final VoidCallback? onRetry = _createRetryCallback(providers);
     return errorBuilder?.call(
           errorState.errorInfo,
           errorState.error,

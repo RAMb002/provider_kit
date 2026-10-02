@@ -1,4 +1,0 @@
-enum EmptyStateBehavior {
-  anyEmpty,
-  allEmpty,
-}

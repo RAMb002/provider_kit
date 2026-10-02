@@ -252,6 +252,83 @@ void main() {
       },
     );
 
+    testWidgets('clears queued notifications when initial listener throws', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        MultiStateListener<int>(
+          providers: () => field.watch,
+          callListenerOnInit: true,
+          listener: (_, state) {
+            if (state == 0) {
+              throw StateError('initial listener failed');
+            }
+
+            states.add(state);
+          },
+          child: StateChangeDuringInit(
+            onInit: () {
+              field.state = 1;
+              field.state = 2;
+            },
+          ),
+        ),
+      );
+
+      final exception = tester.takeException();
+
+      expect(exception, isA<StateError>());
+      expect((exception as StateError).message, 'initial listener failed');
+
+      field.state = 3;
+      await tester.pump();
+
+      // Queued 1 and 2 were cleared after the initial listener failed.
+      expect(states, [3]);
+    });
+
+    testWidgets(
+      'clears remaining queued notifications when a queued listener throws',
+      (tester) async {
+        final field = StateField(0);
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () => field.watch,
+            callListenerOnInit: true,
+            listener: (_, state) {
+              if (state == 1) {
+                throw StateError('queued listener failed');
+              }
+
+              states.add(state);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
+                field.state = 2;
+              },
+            ),
+          ),
+        );
+
+        final exception = tester.takeException();
+
+        expect(exception, isA<StateError>());
+        expect((exception as StateError).message, 'queued listener failed');
+
+        field.state = 3;
+        await tester.pump();
+
+        // Initial 0 ran, 1 threw, and remaining queued 2 was cleared.
+        expect(states, [0, 3]);
+      },
+    );
+
     testWidgets('queues state changes triggered by the initial listener', (
       tester,
     ) async {
@@ -542,6 +619,30 @@ void main() {
       () {
         final provider = CounterProvider();
 
+        expect(() => provider.watch, throwsA(isA<AssertionError>()));
+      },
+    );
+
+    testWidgets(
+      'cleans dependency collection scope when providers evaluation throws',
+      (tester) async {
+        final provider = CounterProvider();
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () {
+              provider.watch;
+              throw StateError('providers evaluation failed');
+            },
+            listener: (_, __) {},
+            child: const SizedBox(),
+          ),
+        );
+
+        expect(tester.takeException(), isA<StateError>());
+
+        // A failed collection must not leave its dependency scope active.
+        // If the scope leaked, `.watch` would incorrectly succeed here.
         expect(() => provider.watch, throwsA(isA<AssertionError>()));
       },
     );

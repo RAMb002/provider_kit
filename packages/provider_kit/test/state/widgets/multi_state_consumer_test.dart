@@ -261,6 +261,80 @@ void main() {
       },
     );
 
+    testWidgets(
+      'preserves multiple listener notifications received before initial callback',
+      (tester) async {
+        final field = StateField(0);
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          MultiStateConsumer<int>(
+            providers: () => field.watch,
+            callListenerOnInit: true,
+            builder: (_, state, __) {
+              return StateChangeDuringInit(
+                onInit: () {
+                  field
+                    ..state = 1
+                    ..state = 2
+                    ..state = 3;
+                },
+              );
+            },
+            listener: (_, state) {
+              states.add(state);
+            },
+          ),
+        );
+
+        await tester.pump();
+
+        expect(states, [0, 1, 2, 3]);
+      },
+    );
+
+    testWidgets('clears queued notifications when initial listener throws', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        MultiStateConsumer<int>(
+          providers: () => field.watch,
+          callListenerOnInit: true,
+          builder: (_, __, ___) {
+            return StateChangeDuringInit(
+              onInit: () {
+                field
+                  ..state = 1
+                  ..state = 2;
+              },
+            );
+          },
+          listener: (_, state) {
+            if (state == 0) {
+              throw StateError('initial listener failed');
+            }
+
+            states.add(state);
+          },
+        ),
+      );
+
+      final exception = tester.takeException();
+
+      expect(exception, isA<StateError>());
+      expect((exception as StateError).message, 'initial listener failed');
+
+      field.state = 3;
+      await tester.pump();
+
+      // 1 and 2 were queued before the initial listener, but the initial
+      // listener failed, so scheduleInitialListener clears the queue.
+      expect(states, [3]);
+    });
+
     // =========================================================================
     // SECTION 3: BUILDER & LISTENER STATE FLOW
     // =========================================================================
@@ -797,9 +871,9 @@ void main() {
 
     testWidgets('overrides debugFillProperties correctly', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
-
+      final provider = CounterProvider();
       MultiStateConsumer<int>(
-        providers: () => CounterProvider().watch,
+        providers: () => provider.watch,
         builder: (_, __, ___) => const SizedBox(),
         listener: (_, __) {},
         listenWhen: (previous, current) => previous != current,

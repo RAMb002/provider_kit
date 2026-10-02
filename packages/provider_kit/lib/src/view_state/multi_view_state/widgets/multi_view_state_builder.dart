@@ -22,8 +22,6 @@ part of '../../../state/multi_state/multi_state.dart';
 ///   error and receives a retry callback for all currently errored providers.
 /// - **[dataBuilder]** — Builds the UI when the combined state is data and
 ///   receives the exact value returned by [providers].
-/// - **[emptyBehavior]** — Determines when the combined state is considered
-///   empty. Defaults to [EmptyStateBehavior.allEmpty].
 /// - **[rebuildWhen]** — Determines whether the widget should rebuild when the
 ///   combined state changes.
 /// - **[isSliver]** — Determines whether the default state widgets are built
@@ -104,7 +102,6 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
     EmptyStateBuilder? emptyBuilder,
     ErrorStateBuilder? errorBuilder,
     required DataStateBuilder<T> dataBuilder,
-    EmptyStateBehavior emptyBehavior = EmptyStateBehavior.allEmpty,
     RebuildWhen<T>? rebuildWhen,
     bool isSliver = false,
     Widget? child,
@@ -117,7 +114,6 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
       emptyBuilder: emptyBuilder,
       errorBuilder: errorBuilder,
       dataBuilder: dataBuilder,
-      emptyBehavior: emptyBehavior,
       rebuildWhen: rebuildWhen,
       isSliver: isSliver,
       delegate: _MultiViewStateDependencyDelegate(),
@@ -134,7 +130,6 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
     required this.emptyBuilder,
     required this.errorBuilder,
     required this.dataBuilder,
-    required this.emptyBehavior,
     required this.isSliver,
     super.rebuildWhen,
     super.child,
@@ -185,9 +180,6 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
   /// {@endtemplate}
   final DataStateBuilder<T> dataBuilder;
 
-  /// {@macro provider_kit.multi_view_state.empty_behavior}
-  final EmptyStateBehavior emptyBehavior;
-
   /// {@template provider_kit.multi_view_state.is_sliver}
   /// Whether the default state widgets are built for use in a sliver.
   /// {@endtemplate}
@@ -205,7 +197,6 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
       loadingBuilder,
       emptyBuilder,
       dataBuilder,
-      emptyBehavior: emptyBehavior,
     );
   }
 
@@ -239,12 +230,6 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
       )
       ..add(
         ObjectFlagProperty<DataStateBuilder<T>>.has('dataBuilder', dataBuilder),
-      )
-      ..add(
-        ObjectFlagProperty<EmptyStateBehavior>.has(
-          'emptyBehavior',
-          emptyBehavior,
-        ),
       )
       ..add(
         DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false),

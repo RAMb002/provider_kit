@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -42,7 +43,7 @@ void main() {
       Widget? child,
     }) {
       return wrap(
-        MultiViewStateListener<ViewState<String>>(
+        MultiViewStateListener(
           providers: providers,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
@@ -65,11 +66,10 @@ void main() {
       DataStateListener<TwoStates>? dataStateListener,
       ListenWhen<TwoStates>? listenWhen,
       bool callListenerOnInit = false,
-      EmptyStateBehavior emptyBehavior = EmptyStateBehavior.allEmpty,
       Widget? child,
     }) {
       return wrap(
-        MultiViewStateListener<TwoStates>(
+        MultiViewStateListener(
           providers: providers,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
@@ -78,7 +78,6 @@ void main() {
           dataStateListener: dataStateListener,
           listenWhen: listenWhen,
           callListenerOnInit: callListenerOnInit,
-          emptyBehavior: emptyBehavior,
           child: child ?? const SizedBox(),
         ),
       );
@@ -232,7 +231,7 @@ void main() {
         buildListener(
           providers: singleProvider(provider),
           dataStateListener: (ViewState<String> state) {
-            capturedData = (state as DataState<String>).data;
+            capturedData = state.data;
           },
         ),
       );
@@ -349,101 +348,75 @@ void main() {
       expect(emptyCalls, 0);
     });
 
-    // -----------------------------------------------------------------------
-    // 4. EmptyStateBehavior
-    // -----------------------------------------------------------------------
+    testWidgets(
+      'dataStateListener runs only when every watched provider is DataState',
+      (tester) async {
+        final provider1 = TestViewStateNotifier<String>(const DataState('one'));
 
-    testWidgets('allEmpty keeps aggregate as Data when one provider is Empty', (
-      tester,
-    ) async {
-      final TestViewStateNotifier<String> provider1 =
-          TestViewStateNotifier<String>(const DataState<String>('one'));
-      final TestViewStateNotifier<String> provider2 =
-          TestViewStateNotifier<String>(const DataState<String>('two'));
+        final provider2 = TestViewStateNotifier<String>(const DataState('two'));
 
-      int dataCalls = 0;
-      int emptyCalls = 0;
+        int dataCalls = 0;
+        String? firstData;
+        String? secondData;
 
-      await tester.pumpWidget(
-        buildTwoProviderListener(
-          providers: twoProviders(provider1, provider2),
-          emptyBehavior: EmptyStateBehavior.allEmpty,
-          dataStateListener: (_) {
-            dataCalls++;
-          },
-          emptyStateListener: (_) {
-            emptyCalls++;
-          },
-        ),
-      );
+        await tester.pumpWidget(
+          buildTwoProviderListener(
+            providers: twoProviders(provider1, provider2),
+            dataStateListener: (state) {
+              dataCalls++;
 
-      provider2.emit(const EmptyState<String>('empty'));
+              firstData = state.first.data;
+              secondData = state.second.data;
+            },
+          ),
+        );
 
-      await tester.pump();
+        // Initial Data + Data does not invoke the listener.
+        expect(dataCalls, 0);
 
-      expect(dataCalls, 1);
-      expect(emptyCalls, 0);
-    });
+        // Data + Loading.
+        provider2.emit(const LoadingState<String>('loading'));
+        await tester.pump();
 
-    testWidgets('allEmpty emits Empty only when every provider is Empty', (
-      tester,
-    ) async {
-      final TestViewStateNotifier<String> provider1 =
-          TestViewStateNotifier<String>(const DataState<String>('one'));
-      final TestViewStateNotifier<String> provider2 =
-          TestViewStateNotifier<String>(const DataState<String>('two'));
+        expect(dataCalls, 0);
 
-      String? capturedMessage;
+        // Data + Empty.
+        provider2.emit(const EmptyState<String>('empty'));
+        await tester.pump();
 
-      await tester.pumpWidget(
-        buildTwoProviderListener(
-          providers: twoProviders(provider1, provider2),
-          emptyBehavior: EmptyStateBehavior.allEmpty,
-          emptyStateListener: (message) {
-            capturedMessage = message;
-          },
-        ),
-      );
+        expect(dataCalls, 0);
 
-      provider1.emit(const EmptyState<String>('Empty A'));
+        // Data + Initial.
+        provider2.emit(const InitialState<String>());
+        await tester.pump();
 
-      await tester.pump();
+        expect(dataCalls, 0);
 
-      expect(capturedMessage, isNull);
+        // Data + Error.
+        provider2.emit(
+          ErrorState<String>(StateError('error'), StackTrace.current),
+        );
+        await tester.pump();
 
-      provider2.emit(const EmptyState<String>('Empty B'));
+        expect(dataCalls, 0);
 
-      await tester.pump();
+        // Back to Data + Data.
+        provider2.emit(const DataState<String>('two-new'));
+        await tester.pump();
 
-      expect(capturedMessage, 'Empty A');
-    });
+        expect(dataCalls, 1);
+        expect(firstData, 'one');
+        expect(secondData, 'two-new');
 
-    testWidgets('anyEmpty emits Empty when any provider is Empty', (
-      tester,
-    ) async {
-      final TestViewStateNotifier<String> provider1 =
-          TestViewStateNotifier<String>(const DataState<String>('one'));
-      final TestViewStateNotifier<String> provider2 =
-          TestViewStateNotifier<String>(const DataState<String>('two'));
+        // Another data change.
+        provider1.emit(const DataState<String>('one-new'));
+        await tester.pump();
 
-      String? capturedMessage;
-
-      await tester.pumpWidget(
-        buildTwoProviderListener(
-          providers: twoProviders(provider1, provider2),
-          emptyBehavior: EmptyStateBehavior.anyEmpty,
-          emptyStateListener: (message) {
-            capturedMessage = message;
-          },
-        ),
-      );
-
-      provider2.emit(const EmptyState<String>('Empty B'));
-
-      await tester.pump();
-
-      expect(capturedMessage, 'Empty B');
-    });
+        expect(dataCalls, 2);
+        expect(firstData, 'one-new');
+        expect(secondData, 'two-new');
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 5. Callback parameter ordering
@@ -732,7 +705,7 @@ void main() {
     });
 
     testWidgets(
-      'retry does nothing for non-async provider without ErrorState retry',
+      'provides null onRetry for non-async provider without ErrorState retry',
       (tester) async {
         final TestViewStateNotifier<String> provider =
             TestViewStateNotifier<String>(
@@ -757,11 +730,7 @@ void main() {
           ),
         );
 
-        expect(capturedOnRetry, isNotNull);
-
-        capturedOnRetry!();
-
-        expect(provider.state, isA<ErrorState<String>>());
+        expect(capturedOnRetry, isNull);
       },
     );
 
@@ -1271,5 +1240,64 @@ void main() {
       // ignore: invalid_use_of_protected_member
       expect(provider.hasListeners, isFalse);
     });
+
+    testWidgets(
+      'debugFillProperties exposes MultiViewStateListener properties',
+      (tester) async {
+        final diagnostics = DiagnosticPropertiesBuilder();
+
+        MultiViewStateListener<ViewState<String>>(
+          providers: singleProvider(
+            TestViewStateNotifier<String>(const DataState<String>('data')),
+          ),
+          initialStateListener: () {},
+          loadingStateListener: (_, __) {},
+          emptyStateListener: (_) {},
+          errorStateListener: (_, __, ___, ____) {},
+          dataStateListener: (_) {},
+          listenWhen: (_, __) => true,
+          callListenerOnInit: true,
+          child: const SizedBox(),
+        ).debugFillProperties(diagnostics);
+
+        final description = diagnostics.properties
+            .where((node) => !node.isFiltered(DiagnosticLevel.info))
+            .map((node) => node.toString())
+            .toList();
+
+        expect(description.any((value) => value.contains('providers')), isTrue);
+        expect(
+          description.any((value) => value.contains('listenWhen')),
+          isTrue,
+        );
+        expect(
+          description.any(
+            (value) =>
+                value.contains('callListenerOnInit') && value.contains('true'),
+          ),
+          isTrue,
+        );
+        expect(
+          description.any((value) => value.contains('initialStateListener')),
+          isTrue,
+        );
+        expect(
+          description.any((value) => value.contains('loadingStateListener')),
+          isTrue,
+        );
+        expect(
+          description.any((value) => value.contains('emptyStateListener')),
+          isTrue,
+        );
+        expect(
+          description.any((value) => value.contains('errorStateListener')),
+          isTrue,
+        );
+        expect(
+          description.any((value) => value.contains('dataStateListener')),
+          isTrue,
+        );
+      },
+    );
   });
 }
