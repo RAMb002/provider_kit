@@ -28,7 +28,7 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
   final DemoCounterNotifier _firstNotifier = DemoCounterNotifier();
   final DemoCounterNotifier _secondNotifier = DemoCounterNotifier();
 
-  List<int> _previousStates = [0, 0];
+  ({int first, int second}) _previousStates = (first: 0, second: 0);
 
   @override
   void dispose() {
@@ -37,22 +37,22 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
     super.dispose();
   }
 
-  String _getChangedProvider(List<int> states) {
-    if (states[0] != _previousStates[0]) {
+  String _getChangedProvider(({int first, int second}) states) {
+    if (states.first != _previousStates.first) {
       return 'Counter A';
     }
 
-    if (states[1] != _previousStates[1]) {
+    if (states.second != _previousStates.second) {
       return 'Counter B';
     }
 
     return 'State';
   }
 
-  void _handleStateChange(List<int> states) {
+  void _handleStateChange(({int first, int second}) states) {
     final changedProvider = _getChangedProvider(states);
 
-    _previousStates = List<int>.from(states);
+    _previousStates = states;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -62,26 +62,26 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
   }
 
   Widget _content() {
-    final providers = <DemoCounterNotifier>[
-      _firstNotifier,
-      _secondNotifier,
-    ];
+    ({int first, int second}) providers() => (
+          first: _firstNotifier.watch,
+          second: _secondNotifier.watch,
+        );
 
     return switch (widget.mode) {
-      MultiStateDemoMode.builder => MultiStateBuilder<int>(
+      MultiStateDemoMode.builder => MultiStateBuilder(
           providers: providers,
-          builder: (_, states, __) {
+          builder: (_, states, child) {
             return DemoCard(
               child: _MultiCounterContent(
-                firstCount: states[0],
-                secondCount: states[1],
+                firstCount: states.first,
+                secondCount: states.second,
                 onFirstIncrement: _firstNotifier.increment,
                 onSecondIncrement: _secondNotifier.increment,
               ),
             );
           },
         ),
-      MultiStateDemoMode.listener => MultiStateListener<int>(
+      MultiStateDemoMode.listener => MultiStateListener(
           providers: providers,
           listener: (_, states) {
             _handleStateChange(states);
@@ -97,18 +97,18 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
             ),
           ),
         ),
-      MultiStateDemoMode.consumer => MultiStateConsumer<int>(
+      MultiStateDemoMode.consumer => MultiStateConsumer(
           providers: providers,
           listener: (_, states) {
             _handleStateChange(states);
           },
-          builder: (_, states, __) {
+          builder: (_, states, child) {
             return DemoCard(
               showStatus: showStatus,
               statusText: statusText,
               child: _MultiCounterContent(
-                firstCount: states[0],
-                secondCount: states[1],
+                firstCount: states.first,
+                secondCount: states.second,
                 onFirstIncrement: _firstNotifier.increment,
                 onSecondIncrement: _secondNotifier.increment,
               ),

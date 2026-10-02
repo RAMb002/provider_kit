@@ -1,4 +1,3 @@
-import 'package:example/example_kits/providers/1_view_state_notifier.dart';
 import 'package:example/example_kits/providers/2_async_view_state_notifier.dart';
 import 'package:example/scaffold_with_button.dart';
 import 'package:flutter/material.dart';
@@ -12,31 +11,44 @@ class MultiViewStateBuilderExample extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ItemsProvider()),
-        ChangeNotifierProvider(create: (_) => ViewStateProviderOne()),
-        ChangeNotifierProvider(create: (_) => ViewStateProviderTwo()),
+        ChangeNotifierProvider(create: (_) => MovieProvider()),
+        ChangeNotifierProvider(create: (_) => SimilarMoviesProvider()),
+        ChangeNotifierProvider(create: (_) => TrailersProvider()),
       ],
-      child: Builder(
-        builder: (context) {
-          final providers = [
-            context.read<ItemsProvider>(),
-            context.read<ViewStateProviderOne>(),
-            context.read<ViewStateProviderTwo>(),
-          ];
-          return ScaffoldWithButton(
-            title: "Multi View State Builder",
-            child: MultiViewStateBuilder(
-              providers: providers,
-              loadingBuilder: (message, progress, isSliver) {
-                return const CircularProgressIndicator();
-              },
-              dataBuilder: (data) {
-                return Text(data.toString());
-              },
+      builder: (context, child) {
+        final movieProvider = context.read<MovieProvider>();
+        final similarMoviesProvider = context.read<SimilarMoviesProvider>();
+        final trailersProvider = context.read<TrailersProvider>();
+
+        return ScaffoldWithButton(
+          title: 'Multi View State Builder',
+          child: MultiViewStateBuilder(
+            providers: () => (
+              movie: movieProvider.watch,
+              similarMovies: similarMoviesProvider.watch,
+              trailers: trailersProvider.watch,
             ),
-          );
-        },
-      ),
+            loadingBuilder: (message, progress, isSliver) {
+              return const CircularProgressIndicator();
+            },
+            dataBuilder: (state) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Movie: ${state.movie.data.title}'),
+                  Text(
+                    'Similar movies: '
+                    '${state.similarMovies.data.length}',
+                  ),
+                  Text(
+                    'Trailers: ${state.trailers.data.length}',
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

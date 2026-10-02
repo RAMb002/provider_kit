@@ -1,4 +1,4 @@
-import 'package:example/example_kits/0_single_state/1_state_builder.dart';
+import 'package:example/example_kits/providers/0_state_notifier.dart';
 import 'package:example/scaffold_with_multi_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -12,37 +12,62 @@ class MultiStateBuilderExample extends StatefulWidget {
 }
 
 class _MultiStateBuilderExampleState extends State<MultiStateBuilderExample> {
-  late ExampleProvider provider1;
-  late ExampleProvider provider2;
-  late ExampleProvider provider3;
+  late ProfileProvider profileProvider;
+  late CartProvider cartProvider;
+  late NotificationProvider notificationProvider;
 
   @override
   void initState() {
     super.initState();
-    provider1 = ExampleProvider(1);
-    provider2 = ExampleProvider(100);
-    provider3 = ExampleProvider(200);
+    profileProvider = ProfileProvider();
+    cartProvider = CartProvider();
+    notificationProvider = NotificationProvider();
   }
 
   @override
   void dispose() {
-    provider1.dispose();
-    provider2.dispose();
-    provider3.dispose();
+    profileProvider.dispose();
+    cartProvider.dispose();
+    notificationProvider.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldWithMultiButton(
-      title: "Multi State Builder",
-      onTap1: () => provider1.increment(),
-      onTap2: () => provider2.increment(),
-      onTap3: () => provider3.increment(),
-      child: MultiStateBuilder<int>(
-        providers: [provider1, provider2, provider3],
-        builder: (context, states, child) => Text(states.toString()),
+    return _buildScaffold(
+      MultiStateBuilder(
+        providers: () => (
+          profile: profileProvider.watch,
+          cart: cartProvider.watch,
+          notifications: notificationProvider.watch,
+        ),
+        builder: (context, state, child) {
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Profile: ${state.profile}'),
+              Text('Cart items: ${state.cart}'),
+              Text('Unread notifications: ${state.notifications}'),
+            ],
+          );
+        },
       ),
+    );
+  }
+
+  Widget _buildScaffold(Widget child) {
+    return ScaffoldWithMultiButton(
+      title: 'Multi State Builder',
+      onTap1: cartProvider.addItem,
+      onTap2: notificationProvider.addNotification,
+      onTap3: profileProvider.updateName,
+      label1: 'Cart',
+      label2: 'Notifications',
+      label3: 'Profile',
+      icon1: Icons.shopping_cart,
+      icon2: Icons.notifications,
+      icon3: Icons.person,
+      child: child,
     );
   }
 }

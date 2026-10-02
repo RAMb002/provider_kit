@@ -4,10 +4,10 @@ import 'package:provider_kit/provider_kit.dart';
 
 class DemoMultiViewStateNotifier extends ViewStateNotifier<String> {
   DemoMultiViewStateNotifier({
-    required this.data,
+    required this.currentData,
   }) : super(const LoadingState<String>());
 
-  final String data;
+  final String currentData;
 
   Timer? _timer;
 
@@ -22,7 +22,7 @@ class DemoMultiViewStateNotifier extends ViewStateNotifier<String> {
       () {
         if (!mounted) return;
 
-        state = DataState<String>(data);
+        state = DataState<String>(currentData);
       },
     );
   }
