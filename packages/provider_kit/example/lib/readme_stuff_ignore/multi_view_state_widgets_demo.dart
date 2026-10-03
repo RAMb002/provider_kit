@@ -30,11 +30,11 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
     super.initState();
 
     _providerOne = DemoMultiViewStateNotifier(
-      data: 'Flutter',
+      currentData: 'Flutter',
     );
 
     _providerTwo = DemoMultiViewStateNotifier(
-      data: 'ProviderKit',
+      currentData: 'ProviderKit',
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

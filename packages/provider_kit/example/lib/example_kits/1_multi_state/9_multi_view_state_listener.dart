@@ -47,9 +47,9 @@ class _MultiViewStateListenerExampleState
           trailers: trailersProvider.watch,
         ),
         initialStateListener: () => context.showToast('Initial state'),
+        emptyStateListener: (message) => context.showToast('Empty state'),
         loadingStateListener: (message, progress) =>
             context.showToast('Loading state'),
-        emptyStateListener: (message) => context.showToast('Empty state'),
         dataStateListener: (state) {
           context.showToast(
             'Movie: ${state.movie.data.title}\n'

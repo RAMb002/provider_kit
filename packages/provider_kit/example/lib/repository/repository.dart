@@ -37,7 +37,7 @@ class Repository {
   }
 
   Future<List<Trailer>> getTrailers() async {
-    return await Future.delayed(const Duration(seconds: 2)).then(
+    return await Future.delayed(const Duration(seconds: 3)).then(
       (_) => const [
         Trailer(
           title: 'Official Trailer',
