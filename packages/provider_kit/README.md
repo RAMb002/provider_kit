@@ -38,22 +38,23 @@ architecture you already know while writing less boilerplate.
 
 - **Enhanced Notifiers** — Specialized notifiers for managing structured state
   and asynchronous operations.
-- **Reactive Fields** — Independent reactive state fields for `ChangeNotifier`-style
-  state management.
+- **Reactive Fields** — Independent reactive state fields for `ChangeNotifier`-
+  style state management.
 - **State Widgets** — Builders and listeners for reacting to state changes and
   handling side effects.
 - **View State** — Built-in initial, loading, empty, error, and data states for
   asynchronous UI flows.
-- **Reusable State Widgets** — Define default view-state widgets once and reuse
-  them across your application.
+- **Reusable ViewState Widgets** — Configure default widgets for loading, error,
+  empty, and other view states once and reuse them across your app.
+- **Multi-State Support** — Combine multiple state sources and use their values
+  together in one widget.
 - **Mutations** — Dedicated handling for user-triggered operations with loading,
   success, and error states.
-- **Multi-State Support** — Combine multiple state sources in a single widget.
 - **State Caching** — Save and restore view state data when needed.
 - **Notifier Observation** — Observe notifier lifecycle events and state changes.
-- **Error Mapping** — Map application errors into consistent error messages and codes.
-- **Resource Lifecycle** — Automatically manage resources such as mutations,
-  debounces, and throttles.
+- **Error Mapping** — Map application errors into consistent error messages and
+  codes.
+- **Automatic Resource Disposal** — Automatically dispose owned resources with their lifecycle.
 
 ## Contents
 
