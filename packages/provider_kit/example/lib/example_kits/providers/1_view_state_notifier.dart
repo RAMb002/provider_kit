@@ -36,7 +36,7 @@ class ViewStateProviderOne extends ViewStateNotifier<List<Item>> {
 }
 
 class ViewStateProviderTwo extends ViewStateNotifier<List<Item>>
-    with DataStateCopyCacheMixin, ExViewStateCacheMixin {
+    with DataStateCacheMixin, ExViewStateCacheMixin {
   final Repository _repo = Repository();
 
   ViewStateProviderTwo([super.state = const InitialState()]) {
@@ -55,8 +55,10 @@ class ViewStateProviderTwo extends ViewStateNotifier<List<Item>>
         state = const EmptyState();
         return;
       }
-      state = DataState(items);
-      saveDataStateCopy(state);
+      final dataState = DataState(items);
+
+      cacheDataState(dataState);
+      state = dataState;
     } catch (e, s) {
       state = ErrorState(
         e,

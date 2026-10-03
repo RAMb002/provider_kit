@@ -980,11 +980,6 @@ as [`ViewStateNotifier`](#viewstatenotifier) and
 It keeps track of the most recent state of each `ViewState` type and provides
 access to the cached states.
 
-#### Features
-
-- Stores the last known state for each `ViewState` type.
-- Provides access to cached states through getters.
-- Clears cached states when the provider is disposed.
 
 ```dart
 class MyViewStateProvider extends ViewStateNotifier<MyDataType> with ExViewStateCacheMixin {
@@ -1004,45 +999,48 @@ class MyViewStateProvider extends ViewStateNotifier<MyDataType> with ExViewState
 | `clearCache()` | `void`     | Clears all cached states. |
 
 
-### DataStateCopyCacheMixin
+### DataStateCacheMixin
 
-`DataStateCopyCacheMixin` can be used with providers that support `ViewState`,
+It can be used with providers that support `ViewState`,
 such as [`ViewStateNotifier`](#viewstatenotifier) and
 [`AsyncViewStateNotifier`](#asyncviewstatenotifier).
+It lets you cache a `DataState` so you can temporarily change the current
+data and restore the cached data later.
+This is useful for operations such as filtering, searching, or locally
+modifying data while keeping the original data available.
 
-It allows you to save a copy of the current `DataState` so the original data
-can be restored later.
-
-This is useful when temporarily modifying data locally, such as applying a
-filter, and then restoring the original data when the filter is removed.
-
-#### Features:
-- Stores the latest `DataState<T>` when `saveDataStateCopy()` is called.
-- Provides access to the cached `DataState<T>` and its data object.
-- Allows the cached data to be restored when needed.
-- Clears the cached state through `clearDataStateCopy()`.
+#### Example with `AsyncViewStateNotifier`:
 
 ```dart
-class MyViewStateProvider extends AsyncViewStateNotifier<List<String>> with DataStateCopyCacheMixin {
-  void updateDataState(List<String> newData) {
-    final newState = DataState(newData);
-    saveDataStateCopy(newState);
-    state = newState;
+class MyViewStateProvider extends AsyncViewStateNotifier<List<String>>
+    with DataStateCacheMixin<List<String>> {
+
+  @override
+  Future<List<String>> fetchData() async {
+    final data = await repository.getData();
+
+    // Cache the original data before applying local changes.
+    cacheDataState(DataState(data));
+    return data;
   }
 
-  void clearFilter(){
-    state = dataStateCopy!; 
+  void clearFilter() {
+    final cachedState = cachedDataState;
+
+    if (cachedState != null) {
+      state = cachedState;
+      clearDataStateCache();
+    }
   }
 }
 ```
 
-
-| Name                 | Type                         | Description |
-|----------------------|----------------------------------|-------------|
-| `dataStateCopy`      | `DataState<T>?`                 | Returns the copy of the saved `DataState<T>`. |
-| `dataObjectCopy`     | `T?`                            | Returns the copy of the saved data object from `DataState<T>`. |
-| `saveDataStateCopy`  | `(ViewState<T>? newDataState)`  | Saves the given `DataState<T>` and its associated data. |
-| `clearDataStateCopy` | `void`                            | Clears the stored `DataState<T>` and its associated data. |
+| Name | Type | Description |
+|---|---|---|
+| `cachedDataState` | `DataState<T>?` | Returns the cached `DataState<T>`. |
+| `cachedData` | `T?` | Returns the data from the cached `DataState<T>`. |
+| `cacheDataState()` | `(DataState<T> dataState)` | Caches the given `DataState<T>` for later use. |
+| `clearDataStateCache()` | `void` | Clears the cached `DataState<T>` and its data. |
 
 ---
 <br>

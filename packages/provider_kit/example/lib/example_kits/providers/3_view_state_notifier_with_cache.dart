@@ -2,7 +2,7 @@ import 'package:example/repository/repository.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 class ViewStateProvider extends ViewStateNotifier<List<Item>>
-    with DataStateCopyCacheMixin, ExViewStateCacheMixin {
+    with DataStateCacheMixin, ExViewStateCacheMixin {
   final Repository _repo = Repository();
 
   ViewStateProvider([super.state = const InitialState()]) {
@@ -18,8 +18,10 @@ class ViewStateProvider extends ViewStateNotifier<List<Item>>
         state = const EmptyState();
         return;
       }
-      state = DataState(items);
-      saveDataStateCopy(state);
+      final dataState = DataState(items);
+
+      cacheDataState(dataState);
+      state = dataState;
     } catch (e, s) {
       state = ErrorState(
         e,

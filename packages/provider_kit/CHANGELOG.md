@@ -20,6 +20,8 @@ created by `ChangeNotifier` notifiers.
 created by the `State` of a `StatefulWidget`.
 - Added shared `debounceRun()` and `throttleRun()` helpers with lazy resource
 creation.
+- Renamed `DataStateCopyCacheMixin` to `DataStateCacheMixin` and updated
+its API names for caching and restoring `DataState`.
 
 **Mutations**
 
