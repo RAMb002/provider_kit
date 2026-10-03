@@ -156,17 +156,6 @@ abstract class MultiStateConsumerBase<T> extends StatefulWidget {
     this.listenWhen,
     this.callListenerOnInit = false,
     this.child,
-  }) : _onDependenciesUpdate = null;
-
-  /// {@macro provider_kit.multi_state.internal_constructor}
-  const MultiStateConsumerBase._internal({
-    super.key,
-    required this.providers,
-    this.rebuildWhen,
-    this.listenWhen,
-    this.callListenerOnInit = false,
-    required this._onDependenciesUpdate,
-    this.child,
   });
 
   /// {@macro provider_kit.multi_state.provider_param}
@@ -186,9 +175,6 @@ abstract class MultiStateConsumerBase<T> extends StatefulWidget {
 
   /// {@macro provider_kit.multi_state_builder.child_param}
   final Widget? child;
-
-  /// {@macro provider_kit.multi_state.on_dependencies_update_param}
-  final _DependenciesUpdateCallback? _onDependenciesUpdate;
 
   /// Builds the widget tree from the current combined state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -231,7 +217,6 @@ class _MultiStateConsumerBaseState<T> extends State<MultiStateConsumerBase<T>> {
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
       widgetName: widget.runtimeType.toString(),
-      onDependenciesUpdate: widget._onDependenciesUpdate,
       child: widget.child,
     );
   }

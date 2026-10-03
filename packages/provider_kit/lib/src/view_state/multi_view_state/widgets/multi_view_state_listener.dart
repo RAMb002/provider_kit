@@ -5,7 +5,7 @@ part of '../../../state/multi_state/multi_state.dart';
 /// ViewState.
 /// {@endtemplate}
 ///
-/// {@macro provider_kit.multi_state.provider_param}
+/// {@macro provider_kit.multi_view_state.provider_param}
 ///
 /// {@template provider_kit.multi_view_state.provider_requirement}
 /// Each provider accessed through `.watch` must be a [ViewStateNotifier] or
@@ -18,7 +18,8 @@ part of '../../../state/multi_state/multi_state.dart';
 ///
 /// - **[providers]** — Builds the combined state from one or more providers.
 /// - **[errorStateListener]** — Handles the first error state and receives a
-///   retry callback for all currently errored providers.
+///   retry callback for all currently errored providers that have a retry
+///   operation available.
 /// - **[initialStateListener]** — Handles the combined initial state.
 /// - **[loadingStateListener]** — Handles the combined loading state and
 ///   receives the first loading message and the average of the available
@@ -80,56 +81,51 @@ part of '../../../state/multi_state/multi_state.dart';
 /// );
 /// ```
 /// {@endtemplate}
-class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
+class MultiViewStateListener<T> extends SingleChildStatelessWidget {
   /// {@macro provider_kit.multi_view_state_listener.description}
   ///
-  /// {@macro provider_kit.multi_state.provider_param}
+  /// {@macro provider_kit.multi_view_state.provider_param}
   /// {@macro provider_kit.multi_view_state.provider_requirement}
   /// {@macro provider_kit.multi_view_state.aggregation}
   /// {@macro provider_kit.multi_view_state_listener.details}
-  factory MultiViewStateListener({
-    Key? key,
-    required MultiStateProviders<T> providers,
-    ErrorStateListener? errorStateListener,
-    InitialStateListener? initialStateListener,
-    LoadingStateListener? loadingStateListener,
-    EmptyStateListener? emptyStateListener,
-    DataStateListener<T>? dataStateListener,
-    ListenWhen<T>? listenWhen,
-    bool callListenerOnInit = false,
-    Widget? child,
-  }) {
-    return MultiViewStateListener._withDelegate(
-      key: key,
-      providers: providers,
-      errorStateListener: errorStateListener,
-      initialStateListener: initialStateListener,
-      loadingStateListener: loadingStateListener,
-      emptyStateListener: emptyStateListener,
-      dataStateListener: dataStateListener,
-      listenWhen: listenWhen,
-      callListenerOnInit: callListenerOnInit,
-      delegate: _MultiViewStateDependencyDelegate(),
-      child: child,
-    );
-  }
-
-  MultiViewStateListener._withDelegate({
+  const MultiViewStateListener({
     super.key,
-    required super.providers,
-    required _MultiViewStateDependencyDelegate delegate,
+    required this.providers,
     this.errorStateListener,
     this.initialStateListener,
     this.loadingStateListener,
     this.emptyStateListener,
     this.dataStateListener,
-    super.listenWhen,
-    super.callListenerOnInit,
-    required super.child,
-  }) : _delegate = delegate,
-       super._internal(onDependenciesUpdate: delegate.updateDependencies);
+    this.listenWhen,
+    this.callListenerOnInit = false,
+    super.child,
+  });
 
-  final _MultiViewStateDependencyDelegate _delegate;
+  /// {@template provider_kit.multi_view_state.provider_param}
+  /// Builds a combined state from one or more watched [ViewStateNotifier]
+  /// providers.
+  /// Providers can be watched using `.watch`. Watched providers are
+  /// automatically tracked, so the widget updates when any of their states
+  /// change.
+  ///
+  /// Each provider accessed through `.watch` must be a [ViewStateNotifier] or
+  /// one of its subclasses, such as [AsyncViewStateNotifier].
+  ///
+  /// ```dart
+  /// providers: () => (
+  ///   user: userProvider.watch,
+  ///   profile: profileProvider.watch,
+  ///   settings: settingsProvider.watch,
+  /// )
+  /// ```
+  ///
+  /// The return type can be any Dart type, including a record, list, or custom
+  /// object.
+  /// {@endtemplate}
+  ///
+  /// The returned value becomes the combined state passed to [dataStateListener] and
+  /// [listenWhen].
+  final MultiStateProviders<T> providers;
 
   /// {@template provider_kit.multi_view_state.error_listener}
   /// Handles the first error state when the combined state contains an
@@ -139,7 +135,7 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
   /// retry callback.
   ///
   /// The retry callback retries every watched provider that is currently in
-  /// [ErrorState].
+  /// [ErrorState] and has a retry operation available.
   /// {@endtemplate}
   final ErrorStateListener? errorStateListener;
 
@@ -170,23 +166,39 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
   /// {@endtemplate}
   final DataStateListener<T>? dataStateListener;
 
-  @override
-  void onStateChange(BuildContext context, T state) {
-    MultiViewStateWidgetUtils.handleListener(
-      state,
-      _delegate.providers,
-      errorStateListener,
-      initialStateListener,
-      loadingStateListener,
-      emptyStateListener,
-      dataStateListener,
-    );
-  }
+  /// {@template provider_kit.multi_view_state.listen_when_param}
+  /// Determines whether the listener should be called after ProviderKit
+  /// determines that a meaningful Multi View State change has occurred.
+  ///
+  /// The callback receives the previous and current combined states returned
+  /// by [providers].
+  ///
+  /// Returning `true` allows the listener to be invoked. Returning `false`
+  /// suppresses the listener for that change.
+  ///
+  /// When omitted, the listener is invoked whenever ProviderKit detects a
+  /// meaningful Multi View State change.
+  /// {@endtemplate}
+  final ListenWhen<T>? listenWhen;
+
+  /// {@template provider_kit.multi_view_state.call_listener_on_init_param}
+  /// Whether the listener should be called once after the widget is initialized.
+  ///
+  /// When enabled, the listener receives the initial combined state after the
+  /// first frame.
+  ///
+  /// Defaults to `false`.
+  /// {@endtemplate}
+  final bool callListenerOnInit;
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
+
     properties
+      ..add(
+        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      )
       ..add(
         ObjectFlagProperty<ErrorStateListener?>.has(
           'errorStateListener',
@@ -216,6 +228,42 @@ class MultiViewStateListener<T> extends MultiStateListenerBase<T> {
           'dataStateListener',
           dataStateListener,
         ),
+      )
+      ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen))
+      ..add(
+        DiagnosticsProperty<bool>(
+          'callListenerOnInit',
+          callListenerOnInit,
+          defaultValue: false,
+        ),
       );
+  }
+
+  @override
+  Widget buildWithChild(BuildContext context, Widget? child) {
+    return _MultiViewStateBase<T>(
+      providers: providers,
+      widgetName: runtimeType.toString(),
+      listenWhen: listenWhen,
+      callListenerOnInit: callListenerOnInit,
+      listener: _handleStateChange,
+      child: child,
+    );
+  }
+
+  void _handleStateChange(
+    BuildContext context,
+    T state,
+    _MultiViewStateAggregate aggregate,
+  ) {
+    _MultiViewStateUtils.handleListener(
+      state,
+      aggregate,
+      errorStateListener,
+      initialStateListener,
+      loadingStateListener,
+      emptyStateListener,
+      dataStateListener,
+    );
   }
 }

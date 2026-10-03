@@ -1,11 +1,4 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
-import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
-import 'package:provider_kit/src/view_state/states/view_states.dart';
-import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
-import 'package:provider_kit/src/view_state/utils/view_state_widget_utils.dart';
-import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+part of '../../../state/multi_state/multi_state.dart';
 
 /// {@template provider_kit.multi_view_state.aggregation}
 /// ### State priority
@@ -44,7 +37,7 @@ import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
 /// the details passed to its callback.
 ///
 /// When the retry callback is invoked, it retries every watched provider
-/// that is currently in [ErrorState].
+/// that is currently in [ErrorState] and has a retry operation available.
 ///
 /// ### Loading progress
 ///
@@ -55,16 +48,55 @@ import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
 ///
 /// The combined value returned by [providers] is passed unchanged to
 /// corresponding data callback, preserving its original type.
+///
+/// ### Change detection
+///
+/// Multi View State widgets do not react to every notification from a watched
+/// provider. A listener or builder is processed only when the combined ViewState
+/// exposed by the widget changes.
+///
+/// ProviderKit compares the previous and current combined state according to
+/// the aggregated state:
+///
+/// - **Error** — a change is detected when the error information from the
+///   first provider in [providers] that is in [ErrorState] changes, or when
+///   the set of providers with an available retry operation changes.
+/// - **Initial** — a change is detected when the combined state enters
+///   [InitialState]. Repeated [InitialState] values do not trigger the listener
+///   or builder.
+/// - **Loading** — a change is detected when the loading message from the
+///   first provider in [providers] that is in [LoadingState] changes, or when
+///   the aggregated loading progress changes.
+/// - **Empty** — a change is detected when the message from the first provider
+///   in [providers] that is in [EmptyState] changes.
+/// - **Data** — a change is detected when the combined value returned by
+///   [providers] changes.
+///
+/// Providers are considered in the order in which they are accessed through
+/// `.watch`.
+///
+/// A notification from a provider does not trigger the listener or builder
+/// when it does not change the combined state exposed by Multi View State.
+///
+/// For example, when multiple providers are in [LoadingState], changing the
+/// message of a later loading provider does not trigger the listener or builder
+/// if the first loading provider's message and the aggregated loading progress
+/// remain unchanged.
+///
+/// After ProviderKit detects a combined-state change, [listenWhen] and
+/// [rebuildWhen] are evaluated as additional user-defined filters.
 /// {@endtemplate}
 
-@internal
-abstract class MultiViewStateWidgetUtils {
+abstract class _MultiViewStateUtils {
   static _MultiViewStateAggregate _aggregate(
     List<ViewStateNotifier<dynamic>> providers,
   ) {
     ErrorState<dynamic>? firstErrorState;
     LoadingState<dynamic>? firstLoadingState;
     EmptyState<dynamic>? firstEmptyState;
+
+    final List<ViewStateNotifier<dynamic>> retryableProviders =
+        <ViewStateNotifier<dynamic>>[];
 
     bool hasInitialState = false;
 
@@ -75,8 +107,12 @@ abstract class MultiViewStateWidgetUtils {
       final ViewState<dynamic> state = provider.state;
 
       if (state is ErrorState<dynamic>) {
-        firstErrorState = state;
-        break;
+        firstErrorState ??= state;
+
+        if (state.onRetry != null || provider is AsyncViewStateNotifier) {
+          retryableProviders.add(provider);
+        }
+        continue;
       }
 
       if (state is InitialState<dynamic>) {
@@ -104,7 +140,12 @@ abstract class MultiViewStateWidgetUtils {
     }
 
     if (firstErrorState != null) {
-      return _MultiViewStateAggregate.error(firstErrorState);
+      return _MultiViewStateAggregate.error(
+        errorInfo: firstErrorState.errorInfo,
+        error: firstErrorState.error,
+        stackTrace: firstErrorState.stackTrace,
+        retryableProviders: List.unmodifiable(retryableProviders),
+      );
     }
 
     if (hasInitialState) {
@@ -112,18 +153,18 @@ abstract class MultiViewStateWidgetUtils {
     }
 
     if (firstLoadingState != null) {
-      final double loadingProgress = loadingProgressCount == 0
-          ? 0.0
+      final double? loadingProgress = loadingProgressCount == 0
+          ? null
           : loadingProgressTotal / loadingProgressCount;
 
       return _MultiViewStateAggregate.loading(
-        firstLoadingState,
-        loadingProgress,
+        message: firstLoadingState.message,
+        progress: loadingProgress,
       );
     }
 
     if (firstEmptyState != null) {
-      return _MultiViewStateAggregate.empty(firstEmptyState);
+      return _MultiViewStateAggregate.empty(message: firstEmptyState.message);
     }
 
     return const _MultiViewStateAggregate.data();
@@ -132,53 +173,53 @@ abstract class MultiViewStateWidgetUtils {
   static VoidCallback? _createRetryCallback(
     List<ViewStateNotifier<dynamic>> providers,
   ) {
-    final List<VoidCallback> retryCallbacks = <VoidCallback>[];
-
-    for (final ViewStateNotifier<dynamic> provider in providers) {
+    final bool hasRetry = providers.any((provider) {
       final ViewState<dynamic> state = provider.state;
 
-      if (state is! ErrorState<dynamic>) {
-        continue;
-      }
+      return state is ErrorState<dynamic> &&
+          (state.onRetry != null || provider is AsyncViewStateNotifier);
+    });
 
-      if (state.onRetry != null) {
-        retryCallbacks.add(state.onRetry!);
-      } else if (provider is AsyncViewStateNotifier) {
-        retryCallbacks.add(provider.refresh);
-      }
-    }
-
-    if (retryCallbacks.isEmpty) {
+    if (!hasRetry) {
       return null;
     }
 
     return () {
-      for (final VoidCallback retry in retryCallbacks) {
-        retry();
+      for (final ViewStateNotifier<dynamic> provider in providers) {
+        final ViewState<dynamic> state = provider.state;
+
+        if (state is! ErrorState<dynamic>) {
+          continue;
+        }
+
+        if (state.onRetry != null) {
+          state.onRetry!.call();
+        } else if (provider is AsyncViewStateNotifier) {
+          provider.refresh();
+        }
       }
     };
   }
 
   static void handleListener<T>(
     T state,
-    List<ViewStateNotifier<dynamic>> providers,
+    _MultiViewStateAggregate aggregate,
     ErrorStateListener? errorStateListener,
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,
     EmptyStateListener? emptyStateListener,
     DataStateListener<T>? dataStateListener,
   ) {
-    final _MultiViewStateAggregate aggregate = _aggregate(providers);
-
     switch (aggregate.status) {
       case _MultiViewStateStatus.error:
-        final ErrorState<dynamic> errorState = aggregate.errorState!;
-        final VoidCallback? onRetry = _createRetryCallback(providers);
+        final VoidCallback? onRetry = _createRetryCallback(
+          aggregate.retryableProviders ?? const [],
+        );
 
         errorStateListener?.call(
-          errorState.errorInfo,
-          errorState.error,
-          errorState.stackTrace,
+          aggregate.errorInfo!,
+          aggregate.error!,
+          aggregate.stackTrace!,
           onRetry,
         );
 
@@ -186,17 +227,13 @@ abstract class MultiViewStateWidgetUtils {
         initialStateListener?.call();
 
       case _MultiViewStateStatus.loading:
-        final LoadingState<dynamic> loadingState = aggregate.loadingState!;
-
         loadingStateListener?.call(
-          loadingState.message,
+          aggregate.loadingMessage,
           aggregate.loadingProgress,
         );
 
       case _MultiViewStateStatus.empty:
-        final EmptyState<dynamic> emptyState = aggregate.emptyState!;
-
-        emptyStateListener?.call(emptyState.message);
+        emptyStateListener?.call(aggregate.emptyMessage);
 
       case _MultiViewStateStatus.data:
         dataStateListener?.call(state);
@@ -205,7 +242,7 @@ abstract class MultiViewStateWidgetUtils {
 
   static Widget handleBuilder<T>(
     T state,
-    List<ViewStateNotifier<dynamic>> providers,
+    _MultiViewStateAggregate aggregate,
     ErrorStateBuilder? errorBuilder,
     BuildContext context,
     bool isSliver,
@@ -214,17 +251,9 @@ abstract class MultiViewStateWidgetUtils {
     EmptyStateBuilder? emptyBuilder,
     DataStateBuilder<T> dataBuilder,
   ) {
-    final _MultiViewStateAggregate aggregate = _aggregate(providers);
-
     switch (aggregate.status) {
       case _MultiViewStateStatus.error:
-        return _buildErrorWidget(
-          providers,
-          errorBuilder,
-          aggregate.errorState!,
-          context,
-          isSliver,
-        );
+        return _buildErrorWidget(aggregate, errorBuilder, context, isSliver);
 
       case _MultiViewStateStatus.initial:
         return ViewStateWidgetUtils.buildInitialWidget(
@@ -234,23 +263,19 @@ abstract class MultiViewStateWidgetUtils {
         );
 
       case _MultiViewStateStatus.loading:
-        final LoadingState<dynamic> loadingState = aggregate.loadingState!;
-
         return ViewStateWidgetUtils.buildLoadingWidget(
           context,
           loadingBuilder,
-          loadingState.message,
+          aggregate.loadingMessage,
           aggregate.loadingProgress,
           isSliver,
         );
 
       case _MultiViewStateStatus.empty:
-        final EmptyState<dynamic> emptyState = aggregate.emptyState!;
-
         return ViewStateWidgetUtils.buildEmptyWidget(
           context,
           emptyBuilder,
-          emptyState.message,
+          aggregate.emptyMessage,
           isSliver,
         );
 
@@ -260,65 +285,28 @@ abstract class MultiViewStateWidgetUtils {
   }
 
   static Widget _buildErrorWidget(
-    List<ViewStateNotifier<dynamic>> providers,
+    _MultiViewStateAggregate aggregate,
     ErrorStateBuilder? errorBuilder,
-    ErrorState<dynamic> errorState,
     BuildContext context,
     bool isSliver,
   ) {
-    final VoidCallback? onRetry = _createRetryCallback(providers);
+    final VoidCallback? onRetry = _createRetryCallback(
+      aggregate.retryableProviders ?? const [],
+    );
+
     return errorBuilder?.call(
-          errorState.errorInfo,
-          errorState.error,
-          errorState.stackTrace,
+          aggregate.errorInfo!,
+          aggregate.error!,
+          aggregate.stackTrace!,
           onRetry,
           isSliver,
         ) ??
         context.errorStateWidget(
-          errorState.errorInfo,
-          errorState.error,
-          errorState.stackTrace,
+          aggregate.errorInfo!,
+          aggregate.error!,
+          aggregate.stackTrace!,
           onRetry,
           isSliver,
         );
   }
-}
-
-enum _MultiViewStateStatus { error, initial, loading, empty, data }
-
-class _MultiViewStateAggregate {
-  const _MultiViewStateAggregate._({
-    required this.status,
-    this.errorState,
-    this.loadingState,
-    this.loadingProgress = 0.0,
-    this.emptyState,
-  });
-
-  const _MultiViewStateAggregate.error(ErrorState<dynamic> state)
-    : this._(status: _MultiViewStateStatus.error, errorState: state);
-
-  const _MultiViewStateAggregate.initial()
-    : this._(status: _MultiViewStateStatus.initial);
-
-  const _MultiViewStateAggregate.loading(
-    LoadingState<dynamic> state,
-    double progress,
-  ) : this._(
-        status: _MultiViewStateStatus.loading,
-        loadingState: state,
-        loadingProgress: progress,
-      );
-
-  const _MultiViewStateAggregate.empty(EmptyState<dynamic> state)
-    : this._(status: _MultiViewStateStatus.empty, emptyState: state);
-
-  const _MultiViewStateAggregate.data()
-    : this._(status: _MultiViewStateStatus.data);
-
-  final _MultiViewStateStatus status;
-  final ErrorState<dynamic>? errorState;
-  final LoadingState<dynamic>? loadingState;
-  final double loadingProgress;
-  final EmptyState<dynamic>? emptyState;
 }

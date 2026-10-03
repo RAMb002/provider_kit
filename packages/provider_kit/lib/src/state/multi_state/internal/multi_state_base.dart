@@ -3,21 +3,19 @@ part of '../multi_state.dart';
 /// Internal implementation shared by the multi-state listener, builder,
 /// and consumer widgets.
 ///
-/// This widget owns the actual dependency-tracking and subscription logic.
-/// Public multi-state widgets only configure this base with the behavior they
-/// need, such as listening, rebuilding, or both.
+/// This widget coordinates the shared [_MultiStateCore] with the specific
+/// behavior required by each multi-state widget, such as listening,
+/// rebuilding, or both.
+///
+/// The shared core owns dependency tracking, subscriptions, state collection,
+/// listener scheduling, and rebuild scheduling. This base is responsible for
+/// applying the widget-specific callback and state-change behavior around that
+/// shared functionality.
 ///
 /// The important invariant is that [providers] is collected exactly once
 /// for each dependency notification handled by this widget. The returned
 /// value becomes the combined state, while every `.watch` accessed during
 /// the collection becomes a dependency.
-///
-/// This allows ProviderKit to:
-/// - automatically discover the state sources used by the widget,
-/// - subscribe only to those sources,
-/// - dynamically update subscriptions when the dependencies change,
-/// - compare previous and current combined state values,
-/// - independently trigger rebuilding and/or listening.
 class _MultiStateBase<T> extends StatefulWidget {
   const _MultiStateBase({
     required this.providers,
@@ -28,7 +26,6 @@ class _MultiStateBase<T> extends StatefulWidget {
     this.builder,
     this.child,
     required this.widgetName,
-    this.onDependenciesUpdate,
   });
 
   /// Produces the combined state for the widget and declares its
@@ -72,67 +69,46 @@ class _MultiStateBase<T> extends StatefulWidget {
   /// errors refer to the actual public widget rather than this private base.
   final String widgetName;
 
-  /// Called when the collected dependencies are updated.
-  ///
-  /// The callback is invoked when the dependency set changes and when the
-  /// widget configuration is replaced, even if the dependency objects remain
-  /// the same.
-  final void Function(Iterable<StateValueListenable> dependencies)?
-  onDependenciesUpdate;
-
   @override
   State<_MultiStateBase<T>> createState() => _MultiStateBaseState<T>();
 }
 
 /// State implementation for [_MultiStateBase].
 ///
-/// The state keeps the last collected combined value and the exact set of
-/// [StateValueListenable] dependencies discovered from the most recent [providers]
-/// evaluation.
+/// The shared dependency, state, listener, and rebuild mechanics are owned
+/// by [_MultiStateCore]. This state coordinates those mechanics with the
+/// widget-specific callback behavior.
 ///
 /// Dependency subscriptions are updated incrementally so that sources which
 /// are no longer used are unsubscribed and newly used sources are subscribed.
 class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
-  /// The most recently collected combined state.
-  ///
-  /// This acts as the baseline for both [ListenWhen] and [RebuildWhen]
-  /// comparisons.
-  late T _state;
-
-  /// Manages subscriptions to the dependencies discovered by [providers].
-  late final _DependencySubscription _dependencySubscription;
-
-  /// Manages deferred listener delivery during initialization.
-  final ListenerQueue _listenerQueue = ListenerQueue();
-
-  /// Manages immediate and deferred rebuild requests.
-  final RebuildScheduler _rebuildScheduler = RebuildScheduler();
-
+  late final _MultiStateCore<T> _core;
   @override
   void initState() {
     super.initState();
 
-    _dependencySubscription = _DependencySubscription(onChange: _handleChange);
+    _core = _MultiStateCore<T>(onDependencyChange: _handleChange);
 
     // Collect the initial state and dependencies together. Keeping these
     // operations in one collection ensures the state value and subscriptions
     // always correspond to the same providers() evaluation.
-    final _DependencyCollection<T> collection = _collect();
+    final _DependencyCollection<T> collection = _core.collect(
+      providers: widget.providers,
+      widgetName: widget.widgetName,
+    );
 
-    _state = collection.value;
-
+    _core.state = collection.value;
     _syncDependencies(collection.dependencies);
-
     if (widget.callListenerOnInit && widget.listener != null) {
       _scheduleInitialListener();
     }
   }
 
   void _scheduleInitialListener() {
-    final T initialState = _state;
+    final T initialState = _core.state;
     final ListenerCallback<T> initialListener = widget.listener!;
 
-    _listenerQueue.scheduleInitialListener(
+    _core.listenerQueue.scheduleInitialListener(
       initialCallback: () => initialListener(context, initialState),
       isMounted: () => mounted,
     );
@@ -145,12 +121,13 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
     // Re-collect when the widget configuration changes. This is important
     // because the set of dependencies may itself depend on widget values.
     //
-    // The new value becomes the new baseline without invoking either callback.
+    // The new value becomes the new baseline without invoking listener or
+    // rebuild callbacks.
     final _DependencyCollection<T> collection = _collect();
 
-    _state = collection.value;
+    _core.state = collection.value;
 
-    _syncDependencies(collection.dependencies, notifyDependencyHook: true);
+    _syncDependencies(collection.dependencies);
   }
 
   /// Handles notifications from any currently subscribed dependency.
@@ -167,7 +144,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
       return;
     }
 
-    final T previous = _state;
+    final T previous = _core.state;
 
     // `providers` is evaluated exactly once for this state change.
     final _DependencyCollection<T> collection = _collect();
@@ -176,7 +153,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
     // The new collection may contain a different set of dependencies.
     _syncDependencies(collection.dependencies);
 
-    _state = current;
+    _core.state = current;
 
     final shouldRebuild =
         widget.builder != null &&
@@ -187,7 +164,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
         ObjectKit.shouldNotify(previous, current, widget.listenWhen);
 
     if (shouldRebuild) {
-      _rebuildScheduler.request(
+      _core.rebuildScheduler.request(
         isMounted: () => mounted,
         rebuild: () => setState(() {}),
       );
@@ -197,7 +174,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
       final ListenerCallback<T>? listener = widget.listener;
 
       if (listener != null) {
-        _listenerQueue.dispatch(() => listener(context, current));
+        _core.listenerQueue.dispatch(() => listener(context, current));
       }
     }
   }
@@ -208,8 +185,8 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
   /// collection scope. Every `.watch` encountered during that execution is
   /// recorded and returned together with the resulting state value.
   _DependencyCollection<T> _collect() {
-    return _DependencyTracker.collect(
-      widget.providers,
+    return _core.collect(
+      providers: widget.providers,
       widgetName: widget.widgetName,
     );
   }
@@ -221,23 +198,13 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
   /// - dependencies missing from the new set are unsubscribed,
   /// - newly discovered dependencies are subscribed,
   /// - unchanged dependencies remain subscribed.
-  void _syncDependencies(
-    Set<StateValueListenable> nextDependencies, {
-    bool notifyDependencyHook = false,
-  }) {
-    final bool dependenciesChanged = _dependencySubscription.sync(
-      nextDependencies,
-    );
-
-    if (dependenciesChanged || notifyDependencyHook) {
-      widget.onDependenciesUpdate?.call(_dependencySubscription.dependencies);
-    }
+  void _syncDependencies(Set<StateValueListenable> nextDependencies) {
+    _core.syncDependencies(nextDependencies);
   }
 
   @override
   void dispose() {
-    _dependencySubscription.dispose();
-    _listenerQueue.clear();
+    _core.dispose();
     super.dispose();
   }
 
@@ -246,7 +213,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
     final builder = widget.builder;
 
     if (builder != null) {
-      return builder(context, _state, widget.child);
+      return builder(context, _core.state, widget.child);
     }
 
     // Listener-only variants do not build from state. They simply preserve
@@ -259,6 +226,3 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
     return widget.child!;
   }
 }
-
-typedef _DependenciesUpdateCallback =
-    void Function(Iterable<StateValueListenable> dependencies);

@@ -160,8 +160,8 @@ abstract class StateListenerBase<P extends StateValueListenable<T>, T>
   ///
   /// The callback receives the previous and current states.
   ///
-  /// When omitted, ProviderKit uses its default equality comparison, including
-  /// deep comparison for collections.
+  /// When omitted, ProviderKit uses the state's `!=` comparison to determine
+  /// whether the state has changed.
   /// {@endtemplate}
   final ListenWhen<T>? listenWhen;
 
@@ -261,10 +261,10 @@ class _StateListenerState<P extends StateValueListenable<T>, T>
   void _listener() {
     final currentState = _currentState;
 
-    final shouldCallListener = ObjectKit.isNotEqual<T>(
-      widget.listenWhen,
+    final shouldCallListener = ObjectKit.shouldNotify<T>(
       _previousState,
       currentState,
+      widget.listenWhen,
     );
 
     _previousState = currentState;

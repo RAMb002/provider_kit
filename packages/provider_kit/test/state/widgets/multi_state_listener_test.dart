@@ -1252,42 +1252,7 @@ void main() {
       ]);
     });
 
-    // =========================================================================
-    // SECTION 7: COLLECTION EQUALITY
-    // =========================================================================
-
-    testWidgets(
-      'uses deep equality for collection combined states by default',
-      (tester) async {
-        final receivedStates = <List<String>>[];
-
-        final provider = StateNotifier<List<String>>(['initial']);
-
-        await tester.pumpWidget(
-          MultiStateListener<List<String>>(
-            providers: () => provider.watch,
-            listener: (_, current) {
-              receivedStates.add(current);
-            },
-            child: const SizedBox(),
-          ),
-        );
-
-        provider.state = ['initial'];
-        await tester.pump();
-
-        expect(receivedStates, isEmpty);
-
-        provider.state = ['changed'];
-        await tester.pump();
-
-        expect(receivedStates, [
-          ['changed'],
-        ]);
-      },
-    );
-
-    testWidgets('allows listenWhen to override default collection equality', (
+    testWidgets('uses listenWhen to filter collection state changes', (
       tester,
     ) async {
       final states = <List<String>>[];

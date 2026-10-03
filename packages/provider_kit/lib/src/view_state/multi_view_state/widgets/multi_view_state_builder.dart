@@ -5,7 +5,7 @@ part of '../../../state/multi_state/multi_state.dart';
 /// providers.
 /// {@endtemplate}
 ///
-/// {@macro provider_kit.multi_state.provider_param}
+/// {@macro provider_kit.multi_view_state.provider_param}
 ///
 /// {@macro provider_kit.multi_view_state.provider_requirement}
 ///
@@ -26,8 +26,6 @@ part of '../../../state/multi_state/multi_state.dart';
 ///   combined state changes.
 /// - **[isSliver]** — Determines whether the default state widgets are built
 ///   for use in a sliver.
-/// - **[child]** — An optional widget passed to the builder that can be
-///   preserved across rebuilds.
 ///
 /// **Note:** If a builder for a particular state is not provided, ProviderKit
 /// uses the corresponding default widget from [ViewStateWidgetsProvider].
@@ -87,56 +85,27 @@ part of '../../../state/multi_state/multi_state.dart';
 /// );
 /// ```
 /// {@endtemplate}
-class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
+class MultiViewStateBuilder<T> extends StatelessWidget {
   /// {@macro provider_kit.multi_view_state_builder.description}
   ///
-  /// {@macro provider_kit.multi_state.provider_param}
+  /// {@macro provider_kit.multi_view_state.provider_param}
   /// {@macro provider_kit.multi_view_state.provider_requirement}
   /// {@macro provider_kit.multi_view_state.aggregation}
   /// {@macro provider_kit.multi_view_state_builder.details}
-  factory MultiViewStateBuilder({
-    Key? key,
-    required MultiStateProviders<T> providers,
-    InitialStateBuilder? initialBuilder,
-    LoadingStateBuilder? loadingBuilder,
-    EmptyStateBuilder? emptyBuilder,
-    ErrorStateBuilder? errorBuilder,
-    required DataStateBuilder<T> dataBuilder,
-    RebuildWhen<T>? rebuildWhen,
-    bool isSliver = false,
-    Widget? child,
-  }) {
-    return MultiViewStateBuilder._withDelegate(
-      key: key,
-      providers: providers,
-      initialBuilder: initialBuilder,
-      loadingBuilder: loadingBuilder,
-      emptyBuilder: emptyBuilder,
-      errorBuilder: errorBuilder,
-      dataBuilder: dataBuilder,
-      rebuildWhen: rebuildWhen,
-      isSliver: isSliver,
-      delegate: _MultiViewStateDependencyDelegate(),
-      child: child,
-    );
-  }
-
-  MultiViewStateBuilder._withDelegate({
+  const MultiViewStateBuilder({
     super.key,
-    required super.providers,
-    required _MultiViewStateDependencyDelegate delegate,
-    required this.initialBuilder,
-    required this.loadingBuilder,
-    required this.emptyBuilder,
-    required this.errorBuilder,
+    required this.providers,
+    this.initialBuilder,
+    this.loadingBuilder,
+    this.emptyBuilder,
+    this.errorBuilder,
     required this.dataBuilder,
-    required this.isSliver,
-    super.rebuildWhen,
-    super.child,
-  }) : _delegate = delegate,
-       super._internal(onDependenciesUpdate: delegate.updateDependencies);
+    this.rebuildWhen,
+    this.isSliver = false,
+  });
 
-  final _MultiViewStateDependencyDelegate _delegate;
+  /// {@macro provider_kit.multi_view_state.provider_param}
+  final MultiStateProviders<T> providers;
 
   /// {@template provider_kit.multi_view_state.initial_builder}
   /// Builds the UI when the combined state is [InitialState].
@@ -180,30 +149,34 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
   /// {@endtemplate}
   final DataStateBuilder<T> dataBuilder;
 
+  /// {@template provider_kit.multi_view_state.rebuild_when}
+  /// Determines whether the widget should rebuild after ProviderKit detects
+  /// that the combined ViewState has changed.
+  ///
+  /// The callback receives the previous and current combined states returned
+  /// by [providers].
+  ///
+  /// Returning `true` allows the widget to rebuild. Returning `false` skips
+  /// the rebuild for that change.
+  ///
+  /// When omitted, the widget rebuilds whenever ProviderKit detects a
+  /// combined ViewState change.
+  /// {@endtemplate}
+  final RebuildWhen<T>? rebuildWhen;
+
   /// {@template provider_kit.multi_view_state.is_sliver}
   /// Whether the default state widgets are built for use in a sliver.
   /// {@endtemplate}
   final bool isSliver;
 
   @override
-  Widget build(BuildContext context, T state, Widget? child) {
-    return MultiViewStateWidgetUtils.handleBuilder(
-      state,
-      _delegate.providers,
-      errorBuilder,
-      context,
-      isSliver,
-      initialBuilder,
-      loadingBuilder,
-      emptyBuilder,
-      dataBuilder,
-    );
-  }
-
-  @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
+
     properties
+      ..add(
+        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      )
       ..add(
         ObjectFlagProperty<InitialStateBuilder?>.has(
           'initialBuilder',
@@ -231,8 +204,38 @@ class MultiViewStateBuilder<T> extends MultiStateBuilderBase<T> {
       ..add(
         ObjectFlagProperty<DataStateBuilder<T>>.has('dataBuilder', dataBuilder),
       )
+      ..add(ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen))
       ..add(
         DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false),
       );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _MultiViewStateBase<T>(
+      providers: providers,
+      widgetName: runtimeType.toString(),
+      rebuildWhen: rebuildWhen,
+      builder: _buildState,
+    );
+  }
+
+  Widget _buildState(
+    BuildContext context,
+    T state,
+    _MultiViewStateAggregate aggregate,
+    Widget? child,
+  ) {
+    return _MultiViewStateUtils.handleBuilder(
+      state,
+      aggregate,
+      errorBuilder,
+      context,
+      isSliver,
+      initialBuilder,
+      loadingBuilder,
+      emptyBuilder,
+      dataBuilder,
+    );
   }
 }

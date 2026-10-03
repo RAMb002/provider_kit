@@ -115,20 +115,6 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
     this.listenWhen,
     this.callListenerOnInit = false,
     super.child,
-  }) : _onDependenciesUpdate = null;
-
-  /// {@template provider_kit.multi_state.internal_constructor}
-  /// Internal constructor used by specialized widgets in this library.
-  /// This constructor is only available to specialized widgets within this
-  /// library.
-  /// {@endtemplate}
-  const MultiStateListenerBase._internal({
-    super.key,
-    required this.providers,
-    this.listenWhen,
-    this.callListenerOnInit = false,
-    required this._onDependenciesUpdate,
-    super.child,
   });
 
   /// {@template provider_kit.multi_state.provider_param}
@@ -153,15 +139,16 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
   /// [listenWhen].
   final MultiStateProviders<T> providers;
 
-  /// {@template provider_kit.multi_state.listen_when_param}
-  /// Determines whether [listener] should be called when the combined state
-  /// changes.
-  /// The callback receives the previous and current combined states returned
-  /// by [providers].
-  ///
-  /// When omitted, ProviderKit uses its default equality comparison, including
-  /// deep comparison for collections.
-  /// {@endtemplate}
+/// {@template provider_kit.multi_state.listen_when_param}
+/// Determines whether [listener] should be called when the combined state
+/// changes.
+///
+/// The callback receives the previous and current combined states returned
+/// by [providers].
+///
+/// When omitted, ProviderKit uses the combined state's `!=` comparison to
+/// determine whether the state has changed.
+/// {@endtemplate}
   final ListenWhen<T>? listenWhen;
 
   /// {@template provider_kit.multi_state.call_listener_on_init_param}
@@ -171,15 +158,6 @@ abstract class MultiStateListenerBase<T> extends SingleChildStatefulWidget {
   /// Defaults to `false`.
   /// {@endtemplate}
   final bool callListenerOnInit;
-
-  /// {@template provider_kit.multi_state.on_dependencies_update_param}
-  /// Internal callback used by specialized widgets that need access to the
-  /// currently collected dependency objects.
-  ///
-  /// This is intentionally private and is never exposed through the public
-  /// widget constructors.
-  /// {@endtemplate}
-  final _DependenciesUpdateCallback? _onDependenciesUpdate;
 
   /// Handles a listener notification for the current combined state.
   ///
@@ -225,7 +203,6 @@ class _MultiStateListenerBaseState<T>
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
       widgetName: widget.runtimeType.toString(),
-      onDependenciesUpdate: widget._onDependenciesUpdate,
       child: child,
     );
   }

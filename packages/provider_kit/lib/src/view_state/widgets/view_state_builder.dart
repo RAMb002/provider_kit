@@ -128,7 +128,6 @@ class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
 
 abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     extends StateBuilderBase<P, ViewState<T>> {
-
   /// {@template provider_kit.view_state.initial_builder}
   /// Builds the UI when the provider is in [InitialState].
   ///

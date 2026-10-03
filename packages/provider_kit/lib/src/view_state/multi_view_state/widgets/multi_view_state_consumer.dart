@@ -5,7 +5,7 @@ part of '../../../state/multi_state/multi_state.dart';
 /// their combined ViewState.
 /// {@endtemplate}
 ///
-/// {@macro provider_kit.multi_state.provider_param}
+/// {@macro provider_kit.multi_view_state.provider_param}
 ///
 /// {@macro provider_kit.multi_view_state.provider_requirement}
 ///
@@ -20,7 +20,8 @@ part of '../../../state/multi_state/multi_state.dart';
 /// - **[loadingBuilder]** — Builds the UI when the combined state is loading.
 /// - **[emptyBuilder]** — Builds the UI when the combined state is empty.
 /// - **[errorBuilder]** — Builds the UI when the combined state contains an
-///   error and receives a retry callback for all currently errored providers.
+///   error and receives a retry callback for all currently errored providers
+///   that have a retry operation available.
 /// - **[dataBuilder]** — Builds the UI when the combined state is data and
 ///   receives the exact value returned by [providers].
 /// - **[initialStateListener]** — Handles the combined initial state.
@@ -29,7 +30,8 @@ part of '../../../state/multi_state/multi_state.dart';
 ///   loading progress values.
 /// - **[emptyStateListener]** — Handles the combined empty state.
 /// - **[errorStateListener]** — Handles the first error state and receives a
-///   retry callback for all currently errored providers.
+///   retry callback for all currently errored providers that have a retry
+///   operation available.
 /// - **[dataStateListener]** — Handles the combined data state and receives
 ///   the exact value returned by [providers].
 /// - **[rebuildWhen]** — Determines whether the widget should rebuild when the
@@ -110,75 +112,34 @@ part of '../../../state/multi_state/multi_state.dart';
 /// );
 /// ```
 /// {@endtemplate}
-class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
+class MultiViewStateConsumer<T> extends StatelessWidget {
   /// {@macro provider_kit.multi_view_state_consumer.description}
   ///
-  /// {@macro provider_kit.multi_state.provider_param}
+  /// {@macro provider_kit.multi_view_state.provider_param}
   /// {@macro provider_kit.multi_view_state.provider_requirement}
   /// {@macro provider_kit.multi_view_state.aggregation}
   /// {@macro provider_kit.multi_view_state_consumer.details}
-  factory MultiViewStateConsumer({
-    Key? key,
-    required MultiStateProviders<T> providers,
-    InitialStateBuilder? initialBuilder,
-    LoadingStateBuilder? loadingBuilder,
-    EmptyStateBuilder? emptyBuilder,
-    ErrorStateBuilder? errorBuilder,
-    required DataStateBuilder<T> dataBuilder,
-    InitialStateListener? initialStateListener,
-    LoadingStateListener? loadingStateListener,
-    EmptyStateListener? emptyStateListener,
-    ErrorStateListener? errorStateListener,
-    DataStateListener<T>? dataStateListener,
-    RebuildWhen<T>? rebuildWhen,
-    ListenWhen<T>? listenWhen,
-    bool callListenerOnInit = false,
-    bool isSliver = false,
-  }) {
-    return MultiViewStateConsumer._withDelegate(
-      key: key,
-      providers: providers,
-      initialBuilder: initialBuilder,
-      loadingBuilder: loadingBuilder,
-      emptyBuilder: emptyBuilder,
-      errorBuilder: errorBuilder,
-      dataBuilder: dataBuilder,
-      initialStateListener: initialStateListener,
-      loadingStateListener: loadingStateListener,
-      emptyStateListener: emptyStateListener,
-      errorStateListener: errorStateListener,
-      dataStateListener: dataStateListener,
-      rebuildWhen: rebuildWhen,
-      listenWhen: listenWhen,
-      callListenerOnInit: callListenerOnInit,
-      isSliver: isSliver,
-      delegate: _MultiViewStateDependencyDelegate(),
-    );
-  }
-
-  MultiViewStateConsumer._withDelegate({
+  const MultiViewStateConsumer({
     super.key,
-    required super.providers,
-    required _MultiViewStateDependencyDelegate delegate,
-    required this.initialBuilder,
-    required this.loadingBuilder,
-    required this.emptyBuilder,
-    required this.errorBuilder,
+    required this.providers,
+    this.initialBuilder,
+    this.loadingBuilder,
+    this.emptyBuilder,
+    this.errorBuilder,
     required this.dataBuilder,
-    required this.initialStateListener,
-    required this.loadingStateListener,
-    required this.emptyStateListener,
-    required this.errorStateListener,
-    required this.dataStateListener,
-    required this.isSliver,
-    super.rebuildWhen,
-    super.listenWhen,
-    super.callListenerOnInit,
-    super.child,
-  }) : _delegate = delegate,
-       super._internal(onDependenciesUpdate: delegate.updateDependencies);
+    this.initialStateListener,
+    this.loadingStateListener,
+    this.emptyStateListener,
+    this.errorStateListener,
+    this.dataStateListener,
+    this.rebuildWhen,
+    this.listenWhen,
+    this.callListenerOnInit = false,
+    this.isSliver = false,
+  });
 
-  final _MultiViewStateDependencyDelegate _delegate;
+  /// {@macro provider_kit.multi_view_state.provider_param}
+  final MultiStateProviders<T> providers;
 
   /// {@macro provider_kit.multi_view_state.initial_builder}
   final InitialStateBuilder? initialBuilder;
@@ -210,41 +171,26 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
   /// {@macro provider_kit.multi_view_state.data_listener}
   final DataStateListener<T>? dataStateListener;
 
+  /// {@macro provider_kit.multi_view_state.rebuild_when}
+  final RebuildWhen<T>? rebuildWhen;
+
+  /// {@macro provider_kit.multi_view_state.listen_when_param}
+  final ListenWhen<T>? listenWhen;
+
+  /// {@macro provider_kit.multi_view_state.call_listener_on_init_param}
+  final bool callListenerOnInit;
+
   /// {@macro provider_kit.multi_view_state.is_sliver}
   final bool isSliver;
 
   @override
-  Widget build(BuildContext context, T state, Widget? child) {
-    return MultiViewStateWidgetUtils.handleBuilder(
-      state,
-      _delegate.providers,
-      errorBuilder,
-      context,
-      isSliver,
-      initialBuilder,
-      loadingBuilder,
-      emptyBuilder,
-      dataBuilder,
-    );
-  }
-
-  @override
-  void onStateChange(BuildContext context, T state) {
-    MultiViewStateWidgetUtils.handleListener(
-      state,
-      _delegate.providers,
-      errorStateListener,
-      initialStateListener,
-      loadingStateListener,
-      emptyStateListener,
-      dataStateListener,
-    );
-  }
-
-  @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
+
     properties
+      ..add(
+        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      )
       ..add(
         ObjectFlagProperty<InitialStateBuilder?>.has(
           'initialBuilder',
@@ -302,8 +248,65 @@ class MultiViewStateConsumer<T> extends MultiStateConsumerBase<T> {
           dataStateListener,
         ),
       )
+      ..add(ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen))
+      ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen))
+      ..add(
+        DiagnosticsProperty<bool>(
+          'callListenerOnInit',
+          callListenerOnInit,
+          defaultValue: false,
+        ),
+      )
       ..add(
         DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false),
       );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _MultiViewStateBase<T>(
+      providers: providers,
+      widgetName: runtimeType.toString(),
+      rebuildWhen: rebuildWhen,
+      listenWhen: listenWhen,
+      callListenerOnInit: callListenerOnInit,
+      builder: _buildState,
+      listener: _handleStateChange,
+    );
+  }
+
+  Widget _buildState(
+    BuildContext context,
+    T state,
+    _MultiViewStateAggregate aggregate,
+    Widget? child,
+  ) {
+    return _MultiViewStateUtils.handleBuilder(
+      state,
+      aggregate,
+      errorBuilder,
+      context,
+      isSliver,
+      initialBuilder,
+      loadingBuilder,
+      emptyBuilder,
+      dataBuilder,
+    );
+  }
+
+  void _handleStateChange(
+    BuildContext context,
+    T state,
+    _MultiViewStateAggregate aggregate,
+  ) {
+    _MultiViewStateUtils.handleListener(
+      state,
+      aggregate,
+      errorStateListener,
+      initialStateListener,
+      loadingStateListener,
+      emptyStateListener,
+      dataStateListener,
+    );
   }
 }

@@ -274,17 +274,17 @@ class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
   }
 
   bool _handleStateChange(T previous, T current) {
-    final shouldListen = ObjectKit.isNotEqual<T>(
-      widget.listenWhen,
+    final shouldListen = ObjectKit.shouldNotify<T>(
       previous,
       current,
+      widget.listenWhen,
     );
 
     if (shouldListen) {
       _listenerQueue.dispatch(() => widget.onStateChange(context, current));
     }
 
-    return ObjectKit.isNotEqual<T>(widget.rebuildWhen, previous, current);
+    return ObjectKit.shouldNotify<T>(previous, current, widget.rebuildWhen);
   }
 
   /// Gets the provider from the context.

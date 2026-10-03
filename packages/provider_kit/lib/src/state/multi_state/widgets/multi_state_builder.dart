@@ -117,15 +117,6 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
     required this.providers,
     this.rebuildWhen,
     this.child,
-  }) : _onDependenciesUpdate = null;
-
-  /// {@macro provider_kit.multi_state.internal_constructor}
-  const MultiStateBuilderBase._internal({
-    super.key,
-    required this.providers,
-    this.rebuildWhen,
-    required this._onDependenciesUpdate,
-    this.child,
   });
 
   /// {@macro provider_kit.multi_state.provider_param}
@@ -137,11 +128,12 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
   /// {@template provider_kit.multi_state.rebuild_when_param}
   /// Determines whether [builder] should be called when the combined state
   /// changes.
+  ///
   /// The callback receives the previous and current combined states returned
   /// by [providers].
   ///
-  /// When omitted, ProviderKit uses its default equality comparison, including
-  /// deep comparison for collections.
+  /// When omitted, ProviderKit uses the combined state's `!=` comparison to
+  /// determine whether the state has changed.
   /// {@endtemplate}
   final RebuildWhen<T>? rebuildWhen;
 
@@ -150,9 +142,6 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
   /// This widget is preserved when the builder rebuilds.
   /// {@endtemplate}
   final Widget? child;
-
-  /// {@macro provider_kit.multi_state.onDependenciesUpdate_param}
-  final _DependenciesUpdateCallback? _onDependenciesUpdate;
 
   /// Builds the widget tree from the current combined state.
   /// Implemented by concrete builder widgets to provide their public
@@ -183,7 +172,6 @@ class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
       builder: widget.build,
       rebuildWhen: widget.rebuildWhen,
       widgetName: widget.runtimeType.toString(),
-      onDependenciesUpdate: widget._onDependenciesUpdate,
       child: widget.child,
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
@@ -152,8 +151,8 @@ abstract class StateBuilderBase<P extends StateValueListenable<T>, T>
   ///
   /// The callback receives the previous and current states.
   ///
-  /// When omitted, ProviderKit uses its default equality comparison, including
-  /// deep comparison for collections.
+  /// When omitted, ProviderKit uses the state's `!=` comparison to determine
+  /// whether the state has changed.
   /// {@endtemplate}
   final RebuildWhen<T>? rebuildWhen;
 
