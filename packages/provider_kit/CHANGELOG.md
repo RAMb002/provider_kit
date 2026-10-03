@@ -4,13 +4,11 @@
 
 - Updated `MultiState` and `MultiViewState` widget APIs with type-safe support for combining
 providers of different types into customizable combined states.
-
 - Replaced the previous `MultiState` and `MultiViewState` widget APIs with the new APIs.
 
 **State**
 
 - Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
-
 - Added `data` and `dataOrNull` getters to `ViewState` and `ViewStateNotifier`.
 
 **Mixins**
@@ -18,18 +16,16 @@ providers of different types into customizable combined states.
 - Added `NotifierResourcesMixin` for automatic disposal of
 `StateField`, `Mutation`, `MutationGroup`, `Debounce`, and `Throttle` resources
 created by `ChangeNotifier` notifiers.
-
 - Added `StateResourcesMixin` for automatic disposal of the same resources
 created by the `State` of a `StatefulWidget`.
-
 - Added shared `debounceRun()` and `throttleRun()` helpers with lazy resource
 creation.
 
 **Mutations**
 
+- Added `Mutation.data` and `Mutation.dataOrNull` for accessing mutation results.
 - Updated `MutationGroup.dispose()` to optionally accept a key for disposing a
 specific keyed mutation.
-
 - Removed the separate `disposeKey()` API.
 
 

@@ -248,10 +248,7 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
 
     try {
       onChange(
-        Change<MutationState<T>>(
-          currentState: _state,
-          nextState: newState,
-        ),
+        Change<MutationState<T>>(currentState: _state, nextState: newState),
       );
 
       _state = newState;
@@ -275,13 +272,45 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   /// Whether the mutation failed.
   bool get isError => _state.isError;
 
-  /// Returns the result of the current [MutationSuccess] state.
+  /// Returns the result from the current [MutationSuccess] state.
   ///
-  /// Returns `null` when the mutation is not currently successful.
-  T? get data {
-    final currentState = _state;
+  /// Use this getter only when the mutation is known to be in a
+  /// [MutationSuccess] state.
+  ///
+  /// Throws a [StateError] if the current mutation state does not contain
+  /// a successful result.
+  ///
+  /// Use [dataOrNull] when the mutation may be in another state and the
+  /// result may not be available.
+  ///
+  /// ```dart
+  /// if (mutation.isSuccess) {
+  ///   final result = mutation.data;
+  /// }
+  /// ```
+  T get data {
+    final state = _state;
 
-    return currentState is MutationSuccess<T> ? currentState.data : null;
+    if (state is MutationSuccess<T>) {
+      return state.data;
+    }
+
+    throw StateError(
+      'Data is only available when the current state is a MutationSuccess. '
+      'Current state: ${state.runtimeType}.',
+    );
+  }
+
+  /// Returns the result when the current state is [MutationSuccess],
+  /// otherwise `null`.
+  T? get dataOrNull {
+    final state = _state;
+
+    if (state is MutationSuccess<T>) {
+      return state.data;
+    }
+
+    return null;
   }
 
   VoidCallback? _onFirstListenerAdded;
