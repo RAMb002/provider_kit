@@ -151,15 +151,3 @@ typedef EmptyStateBuilder = Widget Function(
   String? message,
   bool isSliver,
 );
-
-// Multi-state callbacks.
-
-/// A callback that builds a widget for multiple data states.
-///
-/// [dataStates] provides the data states to be displayed.
-typedef MultiDataStateBuilder<T> = Widget Function(T dataStates);
-
-/// A callback invoked when multiple data states are available.
-///
-/// [dataStates] provides the data states to be handled.
-typedef MultiDataStateListener<T> = void Function(T dataStates);

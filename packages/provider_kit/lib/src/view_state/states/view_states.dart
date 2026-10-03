@@ -49,11 +49,11 @@ sealed class ViewState<T> {
       DataState<T>() => dataState(state.data),
       EmptyState<T>() => emptyState(state.message),
       ErrorState<T>() => errorState(
-          state.errorInfo,
-          state.error,
-          state.stackTrace,
-          state.onRetry,
-        ),
+        state.errorInfo,
+        state.error,
+        state.stackTrace,
+        state.onRetry,
+      ),
     };
   }
 
@@ -88,20 +88,22 @@ sealed class ViewState<T> {
     final ViewState<T> state = this;
     return switch (state) {
       InitialState<T>() => initialState == null ? orElse() : initialState(),
-      LoadingState<T>() => loadingState == null
-          ? orElse()
-          : loadingState(state.message, state.progress),
+      LoadingState<T>() =>
+        loadingState == null
+            ? orElse()
+            : loadingState(state.message, state.progress),
       DataState<T>() => dataState == null ? orElse() : dataState(state.data),
       EmptyState<T>() =>
         emptyState == null ? orElse() : emptyState(state.message),
-      ErrorState<T>() => errorState == null
-          ? orElse()
-          : errorState(
-              state.errorInfo,
-              state.error,
-              state.stackTrace,
-              state.onRetry,
-            ),
+      ErrorState<T>() =>
+        errorState == null
+            ? orElse()
+            : errorState(
+                state.errorInfo,
+                state.error,
+                state.stackTrace,
+                state.onRetry,
+              ),
     };
   }
 
@@ -135,18 +137,15 @@ sealed class ViewState<T> {
     final ViewState<T> state = this;
     return switch (state) {
       InitialState<T>() => initialState?.call(),
-      LoadingState<T>() => loadingState?.call(
-          state.message,
-          state.progress,
-        ),
+      LoadingState<T>() => loadingState?.call(state.message, state.progress),
       DataState<T>() => dataState?.call(state.data),
       EmptyState<T>() => emptyState?.call(state.message),
       ErrorState<T>() => errorState?.call(
-          state.errorInfo,
-          state.error,
-          state.stackTrace,
-          state.onRetry,
-        ),
+        state.errorInfo,
+        state.error,
+        state.stackTrace,
+        state.onRetry,
+      ),
     };
   }
 
@@ -279,6 +278,45 @@ sealed class ViewState<T> {
 
   /// Whether this view represents an error.
   bool get isError => this is ErrorState<T>;
+
+  /// Returns the data when the current state is a [DataState], otherwise `null`.
+  ///
+  /// This is useful when the current state may not contain data.
+  ///
+  /// ```dart
+  /// final value = state.dataOrNull;
+  /// if (value != null) {
+  ///   // Use value.
+  /// }
+  /// ```
+  T? get dataOrNull {
+    final state = this;
+    if (state is DataState<T>) {
+      return state.data;
+    }
+    return null;
+  }
+
+  /// Returns the data when the current state is a [DataState].
+  ///
+  /// Throws a [StateError] when the current state does not contain data.
+  ///
+  /// Use [dataOrNull] when the state may be [InitialState], [LoadingState],
+  /// [EmptyState], or [ErrorState].
+  ///
+  /// ```dart
+  /// final value = state.data;
+  /// ```
+  T get data {
+    final state = this;
+    if (state is DataState<T>) {
+      return state.data;
+    }
+    throw StateError(
+      'Data is only available when the current state is a DataState. '
+      'Current state: ${state.runtimeType}.',
+    );
+  }
 }
 
 /// Represents the initial state of a view.
@@ -336,6 +374,7 @@ class EmptyState<T> extends ViewState<T> {
 /// [data] contains the data produced by the operation.
 class DataState<T> extends ViewState<T> {
   const DataState(this.data);
+  @override
   final T data;
 
   @override
@@ -380,16 +419,8 @@ class ErrorState<T> extends ViewState<T> {
   /// The message provided by [errorInfo].
   String get message => errorInfo.message;
 
-  ErrorState(
-    this.error,
-    this.stackTrace, {
-    ErrorInfo? errorInfo,
-    this.onRetry,
-  }) : errorInfo = errorInfo ??
-            ProviderKit.resolveErrorInfo(
-              error,
-              stackTrace,
-            );
+  ErrorState(this.error, this.stackTrace, {ErrorInfo? errorInfo, this.onRetry})
+    : errorInfo = errorInfo ?? ProviderKit.resolveErrorInfo(error, stackTrace);
 
   @override
   bool operator ==(Object other) {
@@ -405,6 +436,7 @@ class ErrorState<T> extends ViewState<T> {
   int get hashCode => Object.hash(errorInfo, error, stackTrace, onRetry);
 
   @override
-  String toString() => 'ErrorState { errorInfo: $errorInfo, error: $error, '
+  String toString() =>
+      'ErrorState { errorInfo: $errorInfo, error: $error, '
       'stackTrace: $stackTrace, onRetry: ${onRetry != null} }';
 }

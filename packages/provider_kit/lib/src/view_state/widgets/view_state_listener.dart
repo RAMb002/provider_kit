@@ -1,4 +1,10 @@
-part of '../view_state_widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:provider_kit/src/state/index.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
+import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 
 /// {@template provider_kit.view_state_listener}
 /// A widget that listens to changes in a [ViewStateNotifier] and triggers callbacks
@@ -51,7 +57,7 @@ part of '../view_state_widgets.dart';
 class ViewStateListener<T>
     extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
   /// {@macro provider_kit.view_state_listener}
-  ViewStateListener({
+  const ViewStateListener({
     super.key,
     required ViewStateNotifier<T> provider,
     super.initialStateListener,
@@ -106,7 +112,7 @@ class ViewStateListener<T>
 
 class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
     extends ViewStateListenerBase<P, T> {
-  _ViewStateListenerOf({
+  const _ViewStateListenerOf({
     super.key,
     super.initialStateListener,
     super.loadingStateListener,
@@ -121,13 +127,41 @@ class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
 
 abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     extends StateListenerBase<P, ViewState<T>> {
+  /// {@template provider_kit.view_state.initial_listener}
+  /// Called when the provider is in [InitialState].
+  /// {@endtemplate}
   final InitialStateListener? initialStateListener;
+
+  /// {@template provider_kit.view_state.loading_listener}
+  /// Called when the provider is in [LoadingState].
+  ///
+  /// The callback receives the loading message and progress.
+  /// {@endtemplate}
   final LoadingStateListener? loadingStateListener;
+
+  /// {@template provider_kit.view_state.empty_listener}
+  /// Called when the provider is in [EmptyState].
+  ///
+  /// The callback receives the empty-state message.
+  /// {@endtemplate}
   final EmptyStateListener? emptyStateListener;
+
+  /// {@template provider_kit.view_state.error_listener}
+  /// Called when the provider is in [ErrorState].
+  ///
+  /// The callback receives the error information, error, stack trace, and a
+  /// retry callback.
+  /// {@endtemplate}
   final ErrorStateListener? errorStateListener;
+
+  /// {@template provider_kit.view_state.data_listener}
+  /// Called when the provider is in [DataState].
+  ///
+  /// The callback receives the data contained in the [DataState].
+  /// {@endtemplate}
   final DataStateListener<T>? dataStateListener;
 
-  ViewStateListenerBase({
+  const ViewStateListenerBase({
     super.key,
     super.provider,
     this.initialStateListener,
@@ -138,54 +172,62 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super(
-          listener: _createViewStateListener<T>(
-            initialStateListener: initialStateListener,
-            loadingStateListener: loadingStateListener,
-            emptyStateListener: emptyStateListener,
-            errorStateListener: errorStateListener,
-            dataStateListener: dataStateListener,
-          ),
-        );
+  });
+
+  @override
+  void onStateChange(BuildContext context, ViewState<T> state) {
+    state.when(
+      initialState: () {
+        initialStateListener?.call();
+      },
+      loadingState: (message, progress) {
+        loadingStateListener?.call(message, progress);
+      },
+      dataState: (data) {
+        dataStateListener?.call(data);
+      },
+      emptyState: (message) {
+        emptyStateListener?.call(message);
+      },
+      errorState: (errorInfo, error, stackTrace, onRetry) {
+        errorStateListener?.call(errorInfo, error, stackTrace, onRetry);
+      },
+    );
+  }
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(ObjectFlagProperty<InitialStateListener?>.has(
-          'initialStateListener', initialStateListener))
-      ..add(ObjectFlagProperty<LoadingStateListener?>.has(
-          'loadingStateListener', loadingStateListener))
-      ..add(ObjectFlagProperty<EmptyStateListener?>.has(
-          'emptyStateListener', emptyStateListener))
-      ..add(ObjectFlagProperty<ErrorStateListener?>.has(
-          'errorStateListener', errorStateListener))
-      ..add(ObjectFlagProperty<DataStateListener<T>?>.has(
-          'dataStateListener', dataStateListener));
+      ..add(
+        ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener',
+          initialStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener',
+          loadingStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener',
+          emptyStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener',
+          errorStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<DataStateListener<T>?>.has(
+          'dataStateListener',
+          dataStateListener,
+        ),
+      );
   }
-}
-
-ListenerCallback<ViewState<T>> _createViewStateListener<T>({
-  InitialStateListener? initialStateListener,
-  LoadingStateListener? loadingStateListener,
-  EmptyStateListener? emptyStateListener,
-  ErrorStateListener? errorStateListener,
-  DataStateListener<T>? dataStateListener,
-}) {
-  return (context, state) {
-    state.when(
-      initialState: () => initialStateListener?.call(),
-      loadingState: (message, progress) =>
-          loadingStateListener?.call(message, progress),
-      dataState: (data) => dataStateListener?.call(data),
-      emptyState: (message) => emptyStateListener?.call(message),
-      errorState: (errorMessage, onRetry, exception, stackTrace) =>
-          errorStateListener?.call(
-        errorMessage,
-        onRetry,
-        exception,
-        stackTrace,
-      ),
-    );
-  };
 }

@@ -38,22 +38,23 @@ architecture you already know while writing less boilerplate.
 
 - **Enhanced Notifiers** — Specialized notifiers for managing structured state
   and asynchronous operations.
-- **Reactive Fields** — Independent reactive state fields for `ChangeNotifier`-style
-  state management.
+- **Reactive Fields** — Independent reactive state fields for `ChangeNotifier`-
+  style state management.
 - **State Widgets** — Builders and listeners for reacting to state changes and
   handling side effects.
 - **View State** — Built-in initial, loading, empty, error, and data states for
   asynchronous UI flows.
-- **Reusable State Widgets** — Define default view-state widgets once and reuse
-  them across your application.
+- **Reusable ViewState Widgets** — Configure default widgets for loading, error,
+  empty, and other view states once and reuse them across your app.
+- **Multi-State Support** — Combine multiple state sources and use their values
+  together in one widget.
 - **Mutations** — Dedicated handling for user-triggered operations with loading,
   success, and error states.
-- **Multi-State Support** — Combine multiple state sources in a single widget.
 - **State Caching** — Save and restore view state data when needed.
 - **Notifier Observation** — Observe notifier lifecycle events and state changes.
-- **Error Mapping** — Map application errors into consistent error messages and codes.
-- **Resource Lifecycle** — Automatically manage resources such as mutations,
-  debounces, and throttles.
+- **Error Mapping** — Map application errors into consistent error messages and
+  codes.
+- **Automatic Resource Disposal** — Automatically dispose owned resources with their lifecycle.
 
 ## Contents
 
@@ -278,8 +279,7 @@ StateConsumer.of<MyProvider, MyDataType>(
 
 ## Multi State Widgets
 
-Multi State Widgets allow a single widget to listen to multiple providers at
-the same time.
+Multi State Widgets let you combine multiple providers into one type-safe state and use it to trigger side effects or rebuild the UI. There are three widgets for this: `MultiStateListener`, `MultiStateBuilder`, and `MultiStateConsumer`.
 
 <p>
   <img
@@ -290,72 +290,101 @@ the same time.
   />
 </p>
 
-The following widgets are available:
+## How it works
 
-- [`MultiStateListener`](#multistatelistener) — listens for state changes from multiple providers.
-- [`MultiStateBuilder`](#multistatebuilder) — rebuilds the UI when the state of any provider changes.
-- [`MultiStateConsumer`](#multistateconsumer) — combines listening and rebuilding for multiple providers.
-
-Unlike the single-provider State Widgets, Multi State Widgets receive their
-providers through the `providers` parameter and do not resolve them from the
-widget tree.
-
-The provided states can be of the same type or different types.
-
-## MultiStateListener
-
-A widget that listens for state changes from multiple providers and executes a
-side effect when any of their states change.
+Every Multi State Widget has a `providers` callback. Use `.watch` on each provider to listen to its state changes:
 
 ```dart
-MultiStateListener<MyDataType>(
-  providers: [provider1, provider2, provider3],
+providers: () => (
+  user: userProvider.watch,
+  isLoading: loadingField.watch,
+),
+```
+
+The widget automatically listens to every provider marked with .watch.
+
+The value returned from `providers` becomes the **combined state** passed to the `listener`/`builder`.
+It can be any Dart type — a record, a List, or a custom class:
+
+```dart
+// Record
+providers: () => (user: userProvider.watch, count: counter.watch),
+
+// List
+providers: () => mutations.map((m) => m.watch).toList(),
+
+// Custom class
+providers: () => MyScreenState(
+  user: userProvider.watch,
+  profile: profileProvider.watch,
+),
+```
+Providers can have completely different state types while the combined state remains fully type-safe.
+
+### MultiStateListener
+
+Use this widget when your listener needs the state of multiple
+providers to perform side effects without rebuilding the UI.
+
+```dart
+MultiStateListener(
+  providers: () => (
+    user: userProvider.watch,
+    cart: cartProvider.watch,
+  ),
   listenWhen: (previous, current) => previous != current, // Default, optional
   callListenerOnInit: false, // Default, optional
-  listener: (context, states) {
-    // Can execute side effects here
+  listener: (context, state) {
+    print('${state.user}: ${state.cart}');
   },
   child: YourWidget(),
 );
 ```
 
-## MultiStateBuilder
+### MultiStateBuilder
 
-A widget that rebuilds the UI when the state of any of its providers changes.
-
+A widget that listens to multiple providers and uses their combined state to rebuild the UI.
 ```dart
-MultiStateBuilder<MyDataType>(
-  providers: [provider1, provider2, provider3],
+MultiStateBuilder(
+  providers: () => (
+    user: userProvider.watch,
+    cart: cartProvider.watch,
+  ),
   rebuildWhen: (previous, current) => previous != current, // Default, optional
-  builder: (context, states, child) => Text(states.toString()),
   child: YourStaticWidget(), // Optional, won't be rebuilt
+  builder: (context, state, child) {
+     return Text('${state.user}: ${state.cart}');
+  },
 );
 ```
 
-## MultiStateConsumer
+### MultiStateConsumer
 
 A widget that combines the features of `MultiStateListener` and
 `MultiStateBuilder`, allowing you to listen to and rebuild from multiple
 providers.
 
 ```dart
-MultiStateConsumer<MyDataType>(
-  providers: [provider1, provider2, provider3],
+MultiStateConsumer(
+  providers: () => (
+    user: userProvider.watch,
+    cart: cartProvider.watch,
+  ),
   listenWhen: (previous, current) => previous != current, // Default, optional
   callListenerOnInit: false, // Default, optional
-  listener: (context, states) {
-    // Can execute side effects here
+  listener: (context, state) {
+    print('${state.user}: ${state.cart}');
   },
   rebuildWhen: (previous, current) => previous != current, // Default, optional
-  builder: (context, states, child) {
-    return Text(states.toString());
-  },
   child: YourStaticWidget(), // Optional, won't be rebuilt
+  builder: (context, state, child) {
+    return Text('${state.user}: ${state.cart}');
+  },
 );
 ```
+
 > **Tip:** `Multi State Widgets` work with any notifier
 > provided by ProviderKit, not just `StateNotifier`.
-
 
 ---
 
@@ -827,14 +856,10 @@ ViewStateConsumer.of<MyViewStateProvider, MyDataType>(
 
 ## Multi View State Widgets
 
-Multi View State Widgets allow you to listen to multiple `ViewState` providers
-with a single widget.
 
-Unlike the regular View State Widgets, these widgets do not resolve providers
-from the widget tree. Instead, you provide a list of providers through the
-`providers` parameter.
+Multi View State Widgets work similarly to [Multi State Widgets](#multi-state-widgets), but are designed specifically for combining multiple `ViewState` providers.
 
-The providers can have the same state type or different types.
+They combine the `ViewState` of multiple providers and treat them as a single `ViewState`. The combined view state is then used to determine which state-specific `builder` or `listener` is called.
 
 <p>
   <img
@@ -845,121 +870,100 @@ The providers can have the same state type or different types.
   />
 </p>
 
+When all providers are in `DataState`, their data is combined into a single typed value, just like the combined state in MultiState Widgets. Otherwise, the combined state follows the priority rules below.
 
-The following widgets are available:
+### ViewState Priority
 
-- [`MultiViewStateListener`](#multiviewstatelistener) — listens to multiple
-  `ViewState` providers and executes state-specific side effects.
-- [`MultiViewStateBuilder`](#multiviewstatebuilder) — builds the UI based on the
-  combined state of multiple providers.
-- [`MultiViewStateConsumer`](#multiviewstateconsumer) — combines listening and
-  building for multiple providers.
+When multiple providers have different view states, the combined `ViewState` follows this priority:
 
+**ErrorState** → **InitialState** → **LoadingState** → **EmptyState** → **DataState**
 
-### How Multi View State Widgets Work
+**`ErrorState` takes priority when any provider is in an error state**. The first provider in an error state provides the error details and message, while retry callbacks from all retryable error providers are combined.
 
-The behavior of **`MultiViewStateBuilder`**, **`MultiViewStateListener`**, and **`MultiViewStateConsumer`** depends on the collective states of the provided `ViewState`s. The highest-priority state in the list determines which **builder** or **listener** is triggered.
+**`InitialState` takes priority when no provider is in error state and at least one provider is in an initial state.**
 
-### Priority Order of States
+**`LoadingState` takes priority when no provider is in error or initial and at least one is in loading state**. The first loading provider provides the message and details, while available progress values are combined.
 
-#### 1️⃣ **`ErrorState`** (**Highest Priority**)  
-   - If **any** provider is in `ErrorState`, the `errorStateListener` (or `errorBuilder`) **will be invoked**.  
-   - > The first encountered `ErrorState` data will be passed to the `errorStateListener` or `errorBuilder`.
+**`EmptyState` takes priority when no provider is in error, initial, or loading and at least one is in an empty state**. The first provider in an empty state provides the empty-state details.
 
-#### 2️⃣ **`InitialState`**  
-   - If no `ErrorState` is found, but **at least one provider** is in `InitialState`, the `initialStateListener` (or `initialBuilder`) **will be invoked**.  
+**`DataState` is used only when all providers are in `DataState`**. Their data is combined into a single typed value and passed to the `builder` or `listener`.
 
-#### 3️⃣ **`LoadingState`**  
-   - If **no `ErrorState` or `InitialState` exists**, but **at least one provider** is in `LoadingState`, the `loadingStateListener` (or `loadingBuilder`) **will be invoked**.  
-   - > **First encountered `LoadingState` message** will be passed to the `loadingStateListener` or `loadingBuilder`.  
-   - > **`progress` will be aggregated** from all `LoadingState`s into a **single combined value**.  
-
-#### 4️⃣ **`EmptyState`**  
-   - If none of the above states are present, but **at least one provider** is in `EmptyState`, the `emptyStateListener` (or `emptyBuilder`) **will be invoked**.  
-   - > The **first encountered `EmptyState` message** will be passed to the `emptyStateListener` or `emptyBuilder`.
-
-#### 5️⃣ **`DataState<DataType>`** (**Lowest Priority**)  
-   - Only If **all** providers are in `DataState`, the `dataStateListener` (or `dataBuilder`) **will be invoked**.  
+> If some providers are in `DataState` while another is in `EmptyState`, the combined state becomes `EmptyState`. If you want to avoid this, keep the provider in `DataState` with an empty value instead, or use `disableEmptyState` with `AsyncViewStateNotifier`.
 
 
-### Additional Notes
-- **First encountered state** applies to all states **except** `DataState`.
-- **`LoadingState` progress** is **aggregated** from all active `LoadingState`s into a **single combined value**.
-- **Modifying `listenWhen` or `rebuildWhen`**  **overrides** the default priority logic which will result in triggering `listener` or `builder` **whenever any provider's state changes**.
+## MultiViewStateListener
 
-### Handling `EmptyState` in MultiViewState Widgets  
-
-> If some providers have **data** while others return **empty**, triggering `EmptyState` may not be ideal.  
-
-**Solution:** **Avoid using `EmptyState` in the provider logic**. Instead, handle **empty cases manually** inside `dataBuilder`.  
-
-This ensures `EmptyState` won’t be triggered unless **all** providers return an empty state.  
-
-
-## MultiViewStateListener 
-
-The `MultiViewStateListener` allows listening to multiple `ViewState` providers simultaneously. It merges their states into a unified `ViewState`, enabling centralized state management without manually handling multiple providers.
-
-> Check [How Multi View State Widgets Work](#how-multi-view-state-widgets-work) for more detailed information about how which state is triggered
+This widget listens to multiple `ViewState` providers and triggers state-specific side effects based on their combined view state.
 
 ```dart
-MultiViewStateListener<MyDataType>(
-  providers: [viewStateProviderOne, viewStateProviderTwo, viewStateProviderThree],
-  dataStateListener: (dataStates) {
-    print(dataStates);
+MultiViewStateListener(
+  providers: () => (
+    movie: movieProvider.watch,
+    similarMovies: similarMoviesProvider.watch,
+    trailers: trailersProvider.watch,
+  ),
+  dataStateListener: (state) {
+    // Use .data to access the data from each ViewState.
+    print(state.movie.data);
+    print(state.similarMovies.data);
+    print(state.trailers.data);
   },
-  child: YourChild(),
+  child: MovieDetailsView(),
 );
 ```
-
-`MultiViewStateListener` uses the same parameters as [`ViewStateListener`](#viewstatelistener), but accepts a `providers` list and does not provide an `.of` method.
-
 
 ## MultiViewStateBuilder
 
-`MultiViewStateBuilder` enables building UI based on multiple `ViewState`
-providers simultaneously. It combines their states into a unified `ViewState`.
-
-The state widgets configured through
-[`ViewStateWidgetsProvider`](#viewstatewidgetsprovider) are used by default for
-`InitialState`, `LoadingState`, `EmptyState`, and `ErrorState`. You can override
-any of them directly in `MultiViewStateBuilder`.
+This widget listens to multiple `ViewState` providers and builds the UI based on their combined view state.
 
 ```dart
-MultiViewStateBuilder<MyDataType>(
-  providers: [viewStateProviderOne, viewStateProviderTwo, viewStateProviderThree],
-  dataBuilder: (dataStates) {
-    return YourWidget(dataStates);
+MultiViewStateBuilder(
+  providers: () => (
+    movie: movieProvider.watch,
+    similarMovies: similarMoviesProvider.watch,
+    trailers: trailersProvider.watch,
+  ),
+  dataBuilder: (state) {
+    // Use .data to access the data from each ViewState.
+    return MovieDetailsView(
+      movie: state.movie.data,
+      similarMovies: state.similarMovies.data,
+      trailers: state.trailers.data,
+    );
   },
 );
 ```
 
-`MultiViewStateBuilder` uses the same parameters as [`ViewStateBuilder`](#viewstatebuilder), but accepts a `providers` list and does not provide an `.of` method.
+Use `initialBuilder`, `loadingBuilder`, `emptyBuilder`, and `errorBuilder` to customize the UI for the corresponding states. The default widgets configured through `ViewStateWidgetsProvider` are used when these builders are not provided.
 
 ## MultiViewStateConsumer
-`MultiViewStateConsumer` combines the features of
-[`MultiViewStateListener`](#multiviewstatelistener) and
-[`MultiViewStateBuilder`](#multiviewstatebuilder), allowing you to listen to and
-build from multiple `ViewState` providers.
 
-The state widgets configured through
-[`ViewStateWidgetsProvider`](#viewstatewidgetsprovider) are used by default for
-`InitialState`, `LoadingState`, `EmptyState`, and `ErrorState`. You can override
-any of them directly in `MultiViewStateConsumer`.
+This widget combines the features of `MultiViewStateListener` and `MultiViewStateBuilder`, allowing you to listen to and build from multiple `ViewState` providers.
 
 ```dart
-MultiViewStateConsumer<MyDataType>(
-  providers: [viewStateProviderOne, viewStateProviderTwo, viewStateProviderThree],
-  dataStateListener: (dataStates) {
-    print(dataStates);
+MultiViewStateConsumer(
+  providers: () => (
+    movie: movieProvider.watch,
+    similarMovies: similarMoviesProvider.watch,
+    trailers: trailersProvider.watch,
+  ),
+  dataStateListener: (state) {
+    // Use .data to access the data from each ViewState.
+    print(state.movie.data);
+    print(state.similarMovies.data);
+    print(state.trailers.data);
   },
-  dataBuilder: (dataStates) {
-    return YourWidget(dataStates);
+  dataBuilder: (state) {
+    return MovieDetailsView(
+      movie: state.movie.data,
+      similarMovies: state.similarMovies.data,
+      trailers: state.trailers.data,
+    );
   },
 );
 ```
 
-`MultiViewStateConsumer` uses the same parameters as [`ViewStateConsumer`](#viewstateconsumer), but accepts a `providers` list and does not provide an `.of` method.
+Use `initialBuilder`, `loadingBuilder`, `emptyBuilder`, and `errorBuilder` to customize the UI for the corresponding states. The default widgets configured through `ViewStateWidgetsProvider` are used when these builders are not provided.
 
 ---
 
@@ -1425,7 +1429,7 @@ void dispose() {
 `StateField<T>` is a lightweight reactive state field for developers who prefer the traditional `ChangeNotifier` style.
 Instead of keeping all state in a single state object, you can keep individual variables and make them reactive.
 
-```dart id="am8noi"
+```dart
 class LoginProvider extends ChangeNotifier {
   final email = StateField('');
   final password = StateField('');
@@ -1435,7 +1439,7 @@ class LoginProvider extends ChangeNotifier {
 
 Update a field through `state`:
 
-```dart id="vgtoat"
+```dart
 email.state = 'user@example.com';
 isLoading.state = true;
 ```

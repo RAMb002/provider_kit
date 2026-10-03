@@ -38,16 +38,7 @@ abstract class ViewStateNotifier<State>
   ///
   /// Only use this getter when the current state is known to be a [DataState].
   /// Throws a [StateError] otherwise.
-  State get data {
-    final currentState = state;
+  State get data => state.data;
 
-    if (currentState is DataState<State>) {
-      return currentState.data;
-    }
-
-    throw StateError(
-      'Current state is ${currentState.runtimeType}, '
-      'not DataState<$State>.',
-    );
-  }
+  State? get dataOrNull => state.dataOrNull;
 }

@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider_kit/provider_kit.dart';
+import 'package:provider_kit/src/state/multi_state/multi_state.dart';
+import 'package:provider_kit/src/state/notifiers/state_notifier.dart';
+import 'package:provider_kit/src/state/state_field.dart';
 
 import '../../shared/mocks/notifiers.dart';
+import '../../shared/mocks/widgets.dart';
 
 const incrementProvider0ButtonKey = Key('multi_increment_p0');
-const multiIncrementProvider0Key = Key('multi_increment_p0');
 const multiResetButtonKey = Key('multi_reset_btn');
 const multiNoopButtonKey = Key('multi_noop_btn');
 
@@ -43,13 +45,14 @@ class _MultiListenerTestAppState extends State<MultiListenerTestApp> {
       home: Scaffold(
         body: Column(
           children: [
-            MultiStateListener<int>(
-              providers: _activeProviders,
+            MultiStateListener<List<int>>(
+              providers: () => [
+                for (final provider in _activeProviders) provider.watch,
+              ],
               listenWhen: widget.listenWhen,
               listener: widget.onListenerCalled,
               child: const SizedBox(),
             ),
-            // Button 1: Increments the current first provider
             TextButton(
               key: incrementProvider0ButtonKey,
               onPressed: () {
@@ -59,7 +62,6 @@ class _MultiListenerTestAppState extends State<MultiListenerTestApp> {
               },
               child: const Text('Increment'),
             ),
-            // Button 2: Swaps to a completely different provider list
             TextButton(
               key: multiResetButtonKey,
               onPressed: () {
@@ -69,7 +71,6 @@ class _MultiListenerTestAppState extends State<MultiListenerTestApp> {
               },
               child: const Text('Swap List'),
             ),
-            // Button 3: Triggers a rebuild passing the original list reference
             TextButton(
               key: multiNoopButtonKey,
               onPressed: () {
@@ -86,75 +87,83 @@ class _MultiListenerTestAppState extends State<MultiListenerTestApp> {
   }
 }
 
+@immutable
+class _CombinedState {
+  const _CombinedState({required this.first, required this.second});
+
+  final int first;
+  final bool second;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _CombinedState &&
+        other.first == first &&
+        other.second == second;
+  }
+
+  @override
+  int get hashCode => Object.hash(first, second);
+}
+
 void main() {
   group('MultiStateListener', () {
     // =========================================================================
     // SECTION 1: CORE FLUTTER HIERARCHY & FRAMEWORK CONTRACTS
     // =========================================================================
 
-    testWidgets('throws AssertionError when child is not specified',
-        (tester) async {
+    testWidgets('throws AssertionError when child is not specified', (
+      tester,
+    ) async {
       const expectedMessage =
           'MultiStateListener<int> used outside of MultiStateListener must specify a child';
 
+      final provider = CounterProvider();
+
       await tester.pumpWidget(
         MultiStateListener<int>(
-          providers: MyProvider().providersOne,
+          providers: () => provider.watch,
           listener: (_, __) {},
         ),
       );
 
       expect(
         tester.takeException(),
-        isA<AssertionError>()
-            .having((e) => e.message, 'message', expectedMessage),
+        isA<AssertionError>().having(
+          (e) => e.message,
+          'message',
+          expectedMessage,
+        ),
       );
     });
 
     testWidgets('renders child when specified', (tester) async {
       const targetKey = Key('multi_listener_child');
+      final provider = CounterProvider();
+
       await tester.pumpWidget(
         MultiStateListener<int>(
-          providers: MyProvider().providersOne,
+          providers: () => provider.watch,
           listener: (_, __) {},
           child: const SizedBox(key: targetKey),
         ),
       );
+
       expect(find.byKey(targetKey), findsOneWidget);
-    });
-
-    testWidgets('works with empty providers list', (tester) async {
-      int listenerCallCount = 0;
-      List<int>? receivedStates;
-
-      await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: const [],
-          listener: (_, states) {
-            listenerCallCount++;
-            receivedStates = states;
-          },
-          child: const SizedBox(),
-        ),
-      );
-
-      await tester.pump();
-      expect(listenerCallCount, 0);
-      expect(receivedStates, null);
     });
 
     // =========================================================================
     // SECTION 2: INITIALIZATION TIMINGS & LIFECYCLES
     // =========================================================================
 
-    testWidgets('does not call listener on initialization by default',
-        (tester) async {
+    testWidgets('does not call listener on initialization by default', (
+      tester,
+    ) async {
       final states = <List<int>>[];
       final providers = MyProvider().providersOne;
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
+        MultiStateListener<List<int>>(
+          providers: () => [for (final provider in providers) provider.watch],
           callListenerOnInit: false,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
@@ -162,163 +171,561 @@ void main() {
       );
 
       await tester.pump();
+
       expect(states, isEmpty);
     });
 
     testWidgets(
-        'calls listener on initialization when callListenerOnInit is true',
-        (tester) async {
-      final states = <List<int>>[];
-      final expectedStates = [
-        [0, 10]
-      ];
-      final providers = MyProvider().providersOne;
+      'calls listener on initialization when callListenerOnInit is true',
+      (tester) async {
+        final states = <List<int>>[];
+        const expectedStates = [
+          [0, 10],
+        ];
+
+        final providers = MyProvider().providersOne;
+
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [for (final provider in providers) provider.watch],
+            callListenerOnInit: true,
+            listener: (_, state) => states.add(state),
+            child: const SizedBox(),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(states, expectedStates);
+      },
+    );
+
+    testWidgets(
+      'calls initial listener before normal listener for a change before first frame',
+      (tester) async {
+        final field = StateField(0);
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () => field.watch,
+            callListenerOnInit: true,
+            listener: (_, state) {
+              states.add(state);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
+              },
+            ),
+          ),
+        );
+
+        expect(states, [0, 1]);
+      },
+    );
+
+    testWidgets(
+      'delivers all listener notifications before the initial callback in order',
+      (tester) async {
+        final field = StateField(0);
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () => field.watch,
+            callListenerOnInit: true,
+            listener: (_, state) {
+              states.add(state);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
+                field.state = 2;
+                field.state = 3;
+              },
+            ),
+          ),
+        );
+
+        expect(states, [0, 1, 2, 3]);
+      },
+    );
+
+    testWidgets('clears queued notifications when initial listener throws', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
 
       await tester.pumpWidget(
         MultiStateListener<int>(
-          providers: providers,
+          providers: () => field.watch,
           callListenerOnInit: true,
-          listener: (_, state) => states.add(state),
+          listener: (_, state) {
+            if (state == 0) {
+              throw StateError('initial listener failed');
+            }
+
+            states.add(state);
+          },
+          child: StateChangeDuringInit(
+            onInit: () {
+              field.state = 1;
+              field.state = 2;
+            },
+          ),
+        ),
+      );
+
+      final exception = tester.takeException();
+
+      expect(exception, isA<StateError>());
+      expect((exception as StateError).message, 'initial listener failed');
+
+      field.state = 3;
+      await tester.pump();
+
+      // Queued 1 and 2 were cleared after the initial listener failed.
+      expect(states, [3]);
+    });
+
+    testWidgets(
+      'clears remaining queued notifications when a queued listener throws',
+      (tester) async {
+        final field = StateField(0);
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () => field.watch,
+            callListenerOnInit: true,
+            listener: (_, state) {
+              if (state == 1) {
+                throw StateError('queued listener failed');
+              }
+
+              states.add(state);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
+                field.state = 2;
+              },
+            ),
+          ),
+        );
+
+        final exception = tester.takeException();
+
+        expect(exception, isA<StateError>());
+        expect((exception as StateError).message, 'queued listener failed');
+
+        field.state = 3;
+        await tester.pump();
+
+        // Initial 0 ran, 1 threw, and remaining queued 2 was cleared.
+        expect(states, [0, 3]);
+      },
+    );
+
+    testWidgets('queues state changes triggered by the initial listener', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        MultiStateListener<int>(
+          providers: () => field.watch,
+          callListenerOnInit: true,
+          listener: (_, state) {
+            states.add(state);
+
+            if (state == 0) {
+              field.state = 1;
+            }
+          },
           child: const SizedBox(),
         ),
       );
 
       await tester.pump();
-      expect(states, expectedStates);
+
+      expect(states, [0, 1]);
     });
 
-    testWidgets('listener receives current states when called during init',
-        (tester) async {
-      List<int>? initStates;
-      final provider1 = CounterProvider(5);
-      final provider2 = CounterProvider(9);
+    testWidgets(
+      'delivers later listener notifications normally after initialization',
+      (tester) async {
+        final field = StateField(0);
+        final states = <int>[];
 
-      await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: [provider1, provider2],
-          callListenerOnInit: true,
-          listener: (_, states) => initStates = states,
-          child: const SizedBox(),
-        ),
-      );
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () => field.watch,
+            callListenerOnInit: true,
+            listener: (_, state) {
+              states.add(state);
+            },
+            child: const SizedBox(),
+          ),
+        );
 
-      await tester.pump();
-      expect(initStates, [5, 9]);
-    });
+        expect(states, [0]);
+
+        field.state = 1;
+        await tester.pump();
+
+        expect(states, [0, 1]);
+      },
+    );
+
+    testWidgets(
+      'listener receives current states when called during initialization',
+      (tester) async {
+        List<int>? initStates;
+
+        final provider1 = CounterProvider(5);
+        final provider2 = CounterProvider(9);
+
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [provider1.watch, provider2.watch],
+            callListenerOnInit: true,
+            listener: (_, states) => initStates = states,
+            child: const SizedBox(),
+          ),
+        );
+
+        await tester.pump();
+
+        expect(initStates, [5, 9]);
+      },
+    );
 
     // =========================================================================
-    // SECTION 3: STATE EMISSIONS & DATA ORDER GUARANTEES
+    // SECTION 3: STATE EMISSIONS & COMBINED STATE GUARANTEES
     // =========================================================================
 
     testWidgets(
-        'triggers listener with updated snapshot when a single provider emits a change',
-        (tester) async {
-      final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
-      const expectedStates = [
-        [1, 10],
-      ];
+      'triggers listener with updated combined state when one provider changes',
+      (tester) async {
+        final states = <List<int>>[];
+        final provider = MyProvider();
 
-      await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
-          listener: (_, statesList) => states.add(statesList),
-          child: const SizedBox(),
-        ),
-      );
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [
+              for (final item in provider.providersOne) item.watch,
+            ],
+            listener: (_, statesList) => states.add(statesList),
+            child: const SizedBox(),
+          ),
+        );
 
-      providers.first.increment();
-      await tester.pump();
-      expect(states, expectedStates);
-    });
+        provider.providersOne.first.increment();
+        await tester.pump();
+
+        expect(states, [
+          [1, 10],
+        ]);
+      },
+    );
 
     testWidgets(
-        'provides correct state list in the listener (order matches providers)',
-        (tester) async {
-      List<int>? receivedStates;
+      'returns combined list in the same order as the providers callback',
+      (tester) async {
+        List<int>? receivedStates;
+
+        final provider1 = CounterProvider(5);
+        final provider2 = CounterProvider(7);
+
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [provider1.watch, provider2.watch],
+            listener: (_, states) => receivedStates = states,
+            child: const SizedBox(),
+          ),
+        );
+
+        provider1.increment();
+        await tester.pump();
+
+        expect(receivedStates, [6, 7]);
+
+        provider2.increment();
+        await tester.pump();
+
+        expect(receivedStates, [6, 8]);
+      },
+    );
+
+    testWidgets(
+      'triggers listener sequentially for every individual provider update',
+      (tester) async {
+        final states = <List<int>>[];
+        final provider = MyProvider();
+
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [
+              for (final item in provider.providersOne) item.watch,
+            ],
+            listener: (_, statesList) => states.add(statesList),
+            child: const SizedBox(),
+          ),
+        );
+
+        provider.incrementProviders(provider.providersOne);
+        await tester.pump();
+
+        expect(states, [
+          [1, 10],
+          [1, 20],
+        ]);
+      },
+    );
+
+    testWidgets(
+      'triggers listener for every individual state change in the providers',
+      (tester) async {
+        final states = <List<int>>[];
+        final provider = MyProvider();
+
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [
+              for (final item in provider.providersOne) item.watch,
+            ],
+            listener: (_, statesList) => states.add(statesList),
+            child: const SizedBox(),
+          ),
+        );
+
+        provider.incrementProviders(provider.providersOne);
+        await tester.pump();
+
+        provider.incrementProviders(provider.providersOne);
+        await tester.pump();
+
+        expect(states, [
+          [1, 10],
+          [1, 20],
+          [2, 20],
+          [2, 30],
+        ]);
+      },
+    );
+
+    testWidgets('supports a record as the combined state', (tester) async {
+      ({int first, int second})? receivedState;
+
       final provider1 = CounterProvider(5);
       final provider2 = CounterProvider(7);
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: [provider1, provider2],
-          listener: (_, statesList) => receivedStates = statesList,
+        MultiStateListener(
+          providers: () => (first: provider1.watch, second: provider2.watch),
+          listener: (_, state) {
+            receivedState = state;
+          },
           child: const SizedBox(),
         ),
       );
 
       provider1.increment();
       await tester.pump();
-      expect(receivedStates, [6, 7]);
 
-      provider2.increment();
-      await tester.pump();
-      expect(receivedStates, [6, 8]);
+      expect(receivedState, (first: 6, second: 7));
     });
 
-    testWidgets(
-        'triggers listener sequentially for every individual provider update in the collection',
-        (tester) async {
-      final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
-      const expectedStates = [
-        [1, 10],
-        [1, 20]
-      ];
+    testWidgets('supports a custom object as the combined state', (
+      tester,
+    ) async {
+      _CombinedState? receivedState;
+
+      final provider1 = CounterProvider(5);
+      final provider2 = CounterProvider(7);
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
-          listener: (_, statesList) => states.add(statesList),
+        MultiStateListener(
+          providers: () => _CombinedState(
+            first: provider1.watch,
+            second: provider2.watch.isEven,
+          ),
+          listener: (_, state) {
+            receivedState = state;
+          },
           child: const SizedBox(),
         ),
       );
 
-      provider.incrementProviders(providers);
+      provider1.increment();
       await tester.pump();
-      expect(states, expectedStates);
+
+      expect(receivedState, const _CombinedState(first: 6, second: false));
     });
 
-    testWidgets(
-        'triggers listener for every individual state change in the provider list',
-        (tester) async {
-      final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
-      const expectedStates = [
-        [1, 10],
-        [1, 20],
-        [2, 20],
-        [2, 30]
+    testWidgets('supports a list of states for collection-style usage', (
+      tester,
+    ) async {
+      List<int>? receivedStates;
+
+      final providers = [
+        CounterProvider(),
+        CounterProvider(10),
+        CounterProvider(20),
       ];
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
-          listener: (_, statesList) => states.add(statesList),
+        MultiStateListener(
+          providers: () => [for (final provider in providers) provider.watch],
+          listener: (_, states) {
+            receivedStates = states;
+          },
           child: const SizedBox(),
         ),
       );
 
-      provider.incrementProviders(providers);
+      providers[1].increment();
       await tester.pump();
-      provider.incrementProviders(providers);
-      await tester.pump();
-      expect(states, expectedStates);
+
+      expect(receivedStates, [0, 11, 20]);
     });
 
     // =========================================================================
-    // SECTION 4: RUNTIME PROVIDER TRANSITIONS & LIST UPDATES
+    // SECTION 4: DEPENDENCY TRACKING
     // =========================================================================
 
+    testWidgets('asserts when no watched state source is collected', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+
+      await tester.pumpWidget(
+        MultiStateListener<int>(
+          providers: () => provider.state,
+          listener: (_, __) {},
+          child: const SizedBox(),
+        ),
+      );
+
+      expect(tester.takeException(), isA<AssertionError>());
+    });
+
+    test(
+      '.watch throws an assertion when used outside a MultiState collection',
+      () {
+        final provider = CounterProvider();
+
+        expect(() => provider.watch, throwsA(isA<AssertionError>()));
+      },
+    );
+
     testWidgets(
-      'updates when the provider is changed at runtime to a different provider from the list and '
-      'unsubscribes from the old provider that is removed',
+      'cleans dependency collection scope when providers evaluation throws',
+      (tester) async {
+        final provider = CounterProvider();
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () {
+              provider.watch;
+              throw StateError('providers evaluation failed');
+            },
+            listener: (_, __) {},
+            child: const SizedBox(),
+          ),
+        );
+
+        expect(tester.takeException(), isA<StateError>());
+
+        // A failed collection must not leave its dependency scope active.
+        // If the scope leaked, `.watch` would incorrectly succeed here.
+        expect(() => provider.watch, throwsA(isA<AssertionError>()));
+      },
+    );
+
+    testWidgets('does not register the same dependency more than once', (
+      tester,
+    ) async {
+      final states = <(int, int)>[];
+      final provider = CounterProvider();
+
+      await tester.pumpWidget(
+        MultiStateListener(
+          providers: () => (first: provider.watch, second: provider.watch),
+          listener: (_, state) {
+            states.add((state.first, state.second));
+          },
+          child: const SizedBox(),
+        ),
+      );
+
+      provider.increment();
+      await tester.pump();
+
+      expect(states, [(1, 1)]);
+    });
+
+    testWidgets(
+      'updates dependencies when the dependency graph changes during a state change',
+      (tester) async {
+        final states = <int>[];
+
+        final providerA = CounterProvider(0);
+        final providerB = CounterProvider(100);
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () {
+              if (providerA.state.isEven) {
+                return providerA.watch;
+              }
+
+              return providerB.watch;
+            },
+            listener: (_, current) {
+              states.add(current);
+            },
+            child: const SizedBox(),
+          ),
+        );
+
+        // Initially providerA is watched.
+        providerA.increment(); // A: 0 -> 1
+        await tester.pump();
+
+        // The dependency switches from A to B.
+        expect(states, [100]);
+
+        // A is no longer watched, so this must not trigger the listener.
+        providerA.increment(); // A: 1 -> 2
+        await tester.pump();
+
+        expect(states, [100]);
+
+        // B is watched, so this triggers the listener.
+        // During this callback, the dependency switches back to A.
+        providerB.increment(); // B: 100 -> 101
+        await tester.pump();
+
+        expect(states, [100, 2]);
+
+        // A is watched again.
+        providerA.increment(); // A: 2 -> 3
+        await tester.pump();
+
+        expect(states, [100, 2, 101]);
+      },
+    );
+
+    testWidgets(
+      'uses newly collected dependencies when the providers callback changes',
       (tester) async {
         final states = <List<int>>[];
-        int listenerCallCount = 0;
+
         final providerA = CounterProvider(0);
         final providerB = CounterProvider(10);
         final providerC = CounterProvider(100);
@@ -328,11 +735,12 @@ void main() {
         await tester.pumpWidget(
           StatefulBuilder(
             builder: (context, setState) {
-              return MultiStateListener<int>(
-                providers: activeProviders,
-                listener: (_, statesList) {
-                  listenerCallCount++;
-                  states.add(statesList);
+              return MultiStateListener<List<int>>(
+                providers: () => [
+                  for (final provider in activeProviders) provider.watch,
+                ],
+                listener: (_, current) {
+                  states.add(current);
                 },
                 child: GestureDetector(
                   key: const Key('swap_provider_trigger'),
@@ -347,95 +755,171 @@ void main() {
           ),
         );
 
-        expect(states, isEmpty);
-        expect(listenerCallCount, 0);
-
-        activeProviders.first.increment();
+        providerA.increment();
         await tester.pump();
-
-        expect(states, [
-          [1, 10],
-        ]);
-        expect(listenerCallCount, 1);
 
         providerB.increment();
         await tester.pump();
+
         expect(states, [
           [1, 10],
           [1, 11],
         ]);
-        expect(listenerCallCount, 2);
+
         await tester.tap(find.byKey(const Key('swap_provider_trigger')));
         await tester.pump();
-
-        expect(states, [
-          [1, 10],
-          [1, 11],
-        ]);
-
-        expect(listenerCallCount, 2);
 
         providerA.increment();
         await tester.pump();
 
-        expect(states, [
-          [1, 10],
-          [1, 11],
-        ]);
-
-        expect(listenerCallCount, 2);
-
         providerC.increment();
-        providerB.increment();
         await tester.pump();
 
         expect(states, [
           [1, 10],
           [1, 11],
           [101, 11],
-          [101, 12],
         ]);
-        expect(listenerCallCount, 4);
       },
     );
 
     testWidgets(
-      'does not update when the provider is changed at runtime to same provider '
-      'and stays subscribed to current provider',
+      'updates dependencies even when the provider collection is mutated in place',
+      (tester) async {
+        final providerA = CounterProvider(1);
+        final providerB = CounterProvider(2);
+
+        final activeProviders = [providerA];
+
+        final states = <List<int>>[];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  return Column(
+                    children: [
+                      MultiStateListener<List<int>>(
+                        providers: () => [
+                          for (final provider in activeProviders)
+                            provider.watch,
+                        ],
+                        listener: (_, current) {
+                          states.add(current);
+                        },
+                        child: const SizedBox(),
+                      ),
+                      TextButton(
+                        key: const Key('mutate_in_place_btn'),
+                        onPressed: () {
+                          setState(() {
+                            activeProviders[0] = providerB;
+                          });
+                        },
+                        child: const Text('Mutate'),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('mutate_in_place_btn')));
+        await tester.pump();
+
+        providerA.increment();
+        await tester.pump();
+
+        expect(states, isEmpty);
+
+        providerB.increment();
+        await tester.pump();
+
+        expect(states, [
+          [3],
+        ]);
+      },
+    );
+
+    // =========================================================================
+    // SECTION 5: RUNTIME PROVIDER TRANSITIONS & NO-OP REBUILDS
+    // =========================================================================
+
+    testWidgets(
+      'unsubscribes from removed providers and subscribes to new providers',
       (tester) async {
         final states = <List<int>>[];
-        const rebuildKey = Key('rebuild_same_providers_trigger');
-        int listenerCallCount = 0;
+        var listenerCallCount = 0;
 
         final providerA = CounterProvider(0);
         final providerB = CounterProvider(10);
-
-        var activeProviders = [providerA, providerB];
+        final providerC = CounterProvider(100);
 
         await tester.pumpWidget(
-          StatefulBuilder(
-            builder: (context, setState) {
-              return MultiStateListener<int>(
-                providers: activeProviders,
-                listener: (_, statesList) {
-                  listenerCallCount++;
-                  states.add(statesList);
-                },
-                child: GestureDetector(
-                  key: rebuildKey,
-                  onTap: () {
-                    setState(() {
-                      activeProviders = [providerA, providerB];
-                    });
-                  },
-                ),
-              );
+          MultiListenerTestApp(
+            initialProviders: [providerA, providerB],
+            newProviders: [providerC, providerB],
+            listenWhen: (_, __) => true,
+            onListenerCalled: (_, statesList) {
+              listenerCallCount++;
+              states.add(statesList);
             },
           ),
         );
 
-        expect(states, isEmpty);
-        expect(listenerCallCount, 0);
+        providerA.increment();
+        await tester.pump();
+
+        providerB.increment();
+        await tester.pump();
+
+        expect(states, [
+          [1, 10],
+          [1, 11],
+        ]);
+        expect(listenerCallCount, 2);
+
+        await tester.tap(find.byKey(multiResetButtonKey));
+        await tester.pump();
+
+        providerA.increment();
+        await tester.pump();
+
+        expect(listenerCallCount, 2);
+
+        providerC.increment();
+        await tester.pump();
+
+        expect(states, [
+          [1, 10],
+          [1, 11],
+          [101, 11],
+        ]);
+        expect(listenerCallCount, 3);
+      },
+    );
+
+    testWidgets(
+      'does not call listener when rebuilt with the same dependencies',
+      (tester) async {
+        final states = <List<int>>[];
+        var listenerCallCount = 0;
+
+        final providerA = CounterProvider(0);
+        final providerB = CounterProvider(10);
+
+        await tester.pumpWidget(
+          MultiListenerTestApp(
+            initialProviders: [providerA, providerB],
+            onListenerCalled: (_, statesList) {
+              listenerCallCount++;
+              states.add(statesList);
+            },
+          ),
+        );
 
         providerA.increment();
         await tester.pump();
@@ -443,15 +927,10 @@ void main() {
         expect(states, [
           [1, 10],
         ]);
-
         expect(listenerCallCount, 1);
 
-        await tester.tap(find.byKey(rebuildKey));
+        await tester.tap(find.byKey(multiNoopButtonKey));
         await tester.pump();
-
-        expect(states, [
-          [1, 10],
-        ]);
 
         expect(listenerCallCount, 1);
 
@@ -462,142 +941,81 @@ void main() {
           [1, 10],
           [2, 10],
         ]);
-
         expect(listenerCallCount, 2);
       },
     );
 
     testWidgets(
-        'updates subscription when providers list changes to a different list',
-        (tester) async {
-      final states = <List<int>>[];
-      int listenerCallCount = 0;
+      'does not call listener when dependencies change during widget update',
+      (tester) async {
+        final states = <List<int>>[];
 
-      final provider1 = CounterProvider(0);
-      final provider2 = CounterProvider(10);
-      final provider3 = CounterProvider(20);
+        final providerA = CounterProvider(10);
+        final providerB = CounterProvider(20);
+        final providerC = CounterProvider(30);
 
-      final incrementFinder = find.byKey(incrementProvider0ButtonKey);
-      final resetFinder = find.byKey(multiResetButtonKey);
+        await tester.pumpWidget(
+          MultiListenerTestApp(
+            initialProviders: [providerA, providerB],
+            newProviders: [providerC],
+            listenWhen: (_, __) => true,
+            onListenerCalled: (_, statesList) {
+              states.add(statesList);
+            },
+          ),
+        );
 
-      await tester.pumpWidget(
-        MultiListenerTestApp(
-          listenWhen: (previous, current) => true,
-          initialProviders: [provider1, provider2],
-          newProviders: [provider3],
-          onListenerCalled: (_, statesList) {
-            listenerCallCount++;
-            states.add(statesList);
-          },
-        ),
-      );
+        providerA.increment();
+        await tester.pump();
 
-      expect(states, isEmpty);
-      expect(listenerCallCount, 0);
+        expect(states, [
+          [11, 20],
+        ]);
 
-      await tester.tap(incrementFinder);
-      await tester.pump();
+        await tester.tap(find.byKey(multiResetButtonKey));
+        await tester.pump();
 
-      expect(listenerCallCount, 1);
-      expect(states, [
-        [1, 10],
-      ]);
+        expect(states, [
+          [11, 20],
+        ]);
 
-      await tester.tap(resetFinder);
-      await tester.pump();
+        providerC.increment();
+        await tester.pump();
 
-      await tester.tap(incrementFinder);
-      await tester.pump();
-
-      expect(listenerCallCount, 2);
-      expect(states, [
-        [1, 10],
-        [21],
-      ]);
-
-      provider1.increment();
-      await tester.pump();
-
-      expect(listenerCallCount, 2);
-      expect(states, [
-        [1, 10],
-        [21],
-      ]);
-    });
-
-    testWidgets(
-        'does not reattach when providers list is replaced with an equal list (no-op)',
-        (tester) async {
-      final states = <List<int>>[];
-      int listenerCallCount = 0;
-
-      final provider = CounterProvider(0);
-
-      final incrementFinder = find.byKey(incrementProvider0ButtonKey);
-      final noopFinder = find.byKey(multiNoopButtonKey);
-
-      await tester.pumpWidget(
-        MultiListenerTestApp(
-          initialProviders: [provider],
-          onListenerCalled: (_, statesList) {
-            listenerCallCount++;
-            states.add(statesList);
-          },
-        ),
-      );
-
-      expect(states, isEmpty);
-      expect(listenerCallCount, 0);
-
-      await tester.tap(incrementFinder);
-      await tester.pump();
-
-      expect(listenerCallCount, 1);
-      expect(states, [
-        [1],
-      ]);
-
-      await tester.tap(noopFinder);
-      await tester.pump();
-
-      expect(listenerCallCount, 1);
-      expect(states, [
-        [1],
-      ]);
-
-      await tester.tap(incrementFinder);
-      await tester.pump();
-
-      expect(listenerCallCount, 2);
-      expect(states, [
-        [1],
-        [2],
-      ]);
-    });
+        expect(states, [
+          [11, 20],
+          [31],
+        ]);
+      },
+    );
 
     // =========================================================================
-    // SECTION 5: CONDITIONAL FILTERS & INTERCEPTIONS (listenWhen)
+    // SECTION 6: CONDITIONAL FILTERS & INTERCEPTIONS (listenWhen)
     // =========================================================================
 
-    testWidgets('calls listenWhen with previous and current state lists',
-        (tester) async {
+    testWidgets('calls listenWhen with previous and current combined states', (
+      tester,
+    ) async {
       List<int>? latestPrevious;
       List<int>? latestCurrent;
-      int listenWhenCallCount = 0;
-      int listenerCallCount = 0;
+      var listenWhenCallCount = 0;
+      var listenerCallCount = 0;
+
       final provider1 = CounterProvider();
       final provider2 = CounterProvider(10);
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: [provider1, provider2],
+        MultiStateListener<List<int>>(
+          providers: () => [provider1.watch, provider2.watch],
           listenWhen: (previous, current) {
             listenWhenCallCount++;
             latestPrevious = previous;
             latestCurrent = current;
             return true;
           },
-          listener: (_, __) => listenerCallCount++,
+          listener: (_, __) {
+            listenerCallCount++;
+          },
           child: const SizedBox(),
         ),
       );
@@ -611,19 +1029,21 @@ void main() {
       expect(listenerCallCount, 1);
     });
 
-    testWidgets('calls listener only when listenWhen returns true',
-        (tester) async {
+    testWidgets('calls listener only when listenWhen returns true', (
+      tester,
+    ) async {
       final states = <List<int>>[];
+      var listenWhenCallCount = 0;
+
       final provider1 = CounterProvider();
       final provider2 = CounterProvider(10);
-      int listenWhenCallCount = 0;
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: [provider1, provider2],
+        MultiStateListener<List<int>>(
+          providers: () => [provider1.watch, provider2.watch],
           listenWhen: (previous, current) {
             listenWhenCallCount++;
-            return current[0] % 2 == 0 && current[1] % 2 == 0;
+            return current[0].isEven && current[1].isEven;
           },
           listener: (_, statesList) => states.add(statesList),
           child: const SizedBox(),
@@ -632,77 +1052,165 @@ void main() {
 
       provider1.increment();
       await tester.pump();
+
       expect(states, isEmpty);
       expect(listenWhenCallCount, 1);
 
       provider1.increment();
       await tester.pump();
+
       expect(states, [
-        [2, 10]
+        [2, 10],
       ]);
       expect(listenWhenCallCount, 2);
 
       provider2.increment();
       await tester.pump();
+
       expect(states, [
-        [2, 10]
+        [2, 10],
       ]);
       expect(listenWhenCallCount, 3);
 
       provider2.increment();
       await tester.pump();
+
       expect(states, [
         [2, 10],
-        [2, 12]
+        [2, 12],
       ]);
       expect(listenWhenCallCount, 4);
     });
 
     testWidgets(
-        'listenWhen receives correct previous and current after multiple state changes',
-        (tester) async {
-      final previousStates = <List<int>>[];
-      final currentStates = <List<int>>[];
-      final provider1 = CounterProvider();
-      final provider2 = CounterProvider(10);
+      'listenWhen receives correct previous and current values after multiple changes',
+      (tester) async {
+        final previousStates = <List<int>>[];
+        final currentStates = <List<int>>[];
+
+        final provider1 = CounterProvider();
+        final provider2 = CounterProvider(10);
+
+        await tester.pumpWidget(
+          MultiStateListener<List<int>>(
+            providers: () => [provider1.watch, provider2.watch],
+            listenWhen: (previous, current) {
+              previousStates.add(previous);
+              currentStates.add(current);
+              return true;
+            },
+            listener: (_, __) {},
+            child: const SizedBox(),
+          ),
+        );
+
+        provider1.increment();
+        await tester.pump();
+
+        provider1.increment();
+        await tester.pump();
+
+        expect(previousStates, [
+          [0, 10],
+          [1, 10],
+        ]);
+
+        expect(currentStates, [
+          [1, 10],
+          [2, 10],
+        ]);
+      },
+    );
+
+    testWidgets('applies listenWhen before queuing listener notifications', (
+      tester,
+    ) async {
+      final field = StateField(0);
+
+      final states = <int>[];
+      final transitions = <({int previous, int current})>[];
 
       await tester.pumpWidget(
         MultiStateListener<int>(
-          providers: [provider1, provider2],
+          providers: () => field.watch,
+          callListenerOnInit: true,
           listenWhen: (previous, current) {
-            previousStates.add(previous);
-            currentStates.add(current);
-            return true;
+            transitions.add((previous: previous, current: current));
+
+            return current.isEven;
           },
-          listener: (_, __) {},
-          child: const SizedBox(),
+          listener: (_, state) {
+            states.add(state);
+          },
+          child: StateChangeDuringInit(
+            onInit: () {
+              field.state = 1;
+              field.state = 2;
+              field.state = 3;
+            },
+          ),
         ),
       );
 
-      provider1.increment();
-      await tester.pump();
-      provider1.increment();
-      await tester.pump();
+      expect(transitions, [
+        (previous: 0, current: 1),
+        (previous: 1, current: 2),
+        (previous: 2, current: 3),
+      ]);
 
-      expect(previousStates, [
-        [0, 10],
-        [1, 10],
-      ]);
-      expect(currentStates, [
-        [1, 10],
-        [2, 10],
-      ]);
+      // Initial callback is always delivered.
+      // Normal callbacks are filtered by listenWhen.
+      expect(states, [0, 2]);
     });
 
     testWidgets(
-        'does not call listener when listenWhen returns false on single state change in each given providers',
-        (tester) async {
+      'updates its previous state even when listenWhen returns false',
+      (tester) async {
+        final previousValues = <int>[];
+        final currentValues = <int>[];
+        final states = <int>[];
+
+        final provider = CounterProvider();
+
+        await tester.pumpWidget(
+          MultiStateListener<int>(
+            providers: () => provider.watch,
+            listenWhen: (previous, current) {
+              previousValues.add(previous);
+              currentValues.add(current);
+
+              return current == 2;
+            },
+            listener: (_, current) {
+              states.add(current);
+            },
+            child: const SizedBox(),
+          ),
+        );
+
+        provider.increment();
+        await tester.pump();
+
+        provider.increment();
+        await tester.pump();
+
+        expect(previousValues, [0, 1]);
+        expect(currentValues, [1, 2]);
+        expect(states, [2]);
+      },
+    );
+
+    testWidgets('does not call listener when listenWhen always returns false', (
+      tester,
+    ) async {
       final states = <List<int>>[];
+
       final provider = MyProvider();
       final providers = provider.providersOne;
+
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
+        MultiStateListener<List<int>>(
+          providers: () => [for (final item in providers) item.watch],
           listenWhen: (_, __) => false,
           listener: (_, statesList) => states.add(statesList),
           child: const SizedBox(),
@@ -711,19 +1219,24 @@ void main() {
 
       provider.incrementProviders(providers);
       await tester.pump();
+
+      provider.incrementProviders(providers);
+      await tester.pump();
+
       expect(states, isEmpty);
     });
 
-    testWidgets(
-        'calls listener when listenWhen returns true on single state change in each given providers',
-        (tester) async {
+    testWidgets('calls listener when listenWhen always returns true', (
+      tester,
+    ) async {
       final states = <List<int>>[];
+
       final provider = MyProvider();
       final providers = provider.providersOne;
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
+        MultiStateListener<List<int>>(
+          providers: () => [for (final item in providers) item.watch],
           listenWhen: (_, __) => true,
           listener: (_, statesList) => states.add(statesList),
           child: const SizedBox(),
@@ -732,128 +1245,60 @@ void main() {
 
       provider.incrementProviders(providers);
       await tester.pump();
-      expect(states, [
-        [1, 10],
-        [1, 20]
-      ]);
-    });
 
-    testWidgets(
-        'does not call listener when listenWhen returns false on multiple state change in each given providers',
-        (tester) async {
-      final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
-      await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
-          listenWhen: (_, __) => false,
-          listener: (_, statesList) => states.add(statesList),
-          child: const SizedBox(),
-        ),
-      );
-
-      provider.incrementProviders(providers);
-      await tester.pump();
-      expect(states, isEmpty);
-      provider.incrementProviders(providers);
-      await tester.pump();
-      expect(states, isEmpty);
-    });
-
-    testWidgets(
-        'calls listener when listenWhen returns true on multiple state change in each given providers',
-        (tester) async {
-      final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
-
-      await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: providers,
-          listenWhen: (_, __) => true,
-          listener: (_, statesList) => states.add(statesList),
-          child: const SizedBox(),
-        ),
-      );
-
-      provider.incrementProviders(providers);
-      await tester.pump();
-      expect(states, [
-        [1, 10],
-        [1, 20]
-      ]);
-
-      provider.incrementProviders(providers);
-      await tester.pump();
       expect(states, [
         [1, 10],
         [1, 20],
-        [2, 20],
-        [2, 30]
       ]);
     });
 
-    testWidgets(
-        'calls listener with correct previous states when providers list changes',
-        (tester) async {
-      List<int>? previousStates;
-      List<int>? currentStates;
-      int listenWhenCalls = 0;
+    testWidgets('uses listenWhen to filter collection state changes', (
+      tester,
+    ) async {
+      final states = <List<String>>[];
 
-      final provider1 = CounterProvider(10);
-      final provider2 = CounterProvider(20);
-      final provider3 = CounterProvider(30);
-
-      final incrementFinder = find.byKey(incrementProvider0ButtonKey);
-      final resetFinder = find.byKey(multiResetButtonKey);
+      final provider = StateNotifier<List<String>>(['initial']);
 
       await tester.pumpWidget(
-        MultiListenerTestApp(
-          initialProviders: [provider1, provider2],
-          newProviders: [provider3],
+        MultiStateListener<List<String>>(
+          providers: () => provider.watch,
           listenWhen: (previous, current) {
-            listenWhenCalls++;
-            previousStates = previous;
-            currentStates = current;
-            return true;
+            return previous.first.length != current.first.length;
           },
-          onListenerCalled: (_, __) {},
+          listener: (_, current) {
+            states.add(current);
+          },
+          child: const SizedBox(),
         ),
       );
 
-      await tester.tap(incrementFinder);
+      provider.state = ['initial'];
       await tester.pump();
 
-      expect(listenWhenCalls, 1);
-      expect(previousStates, [10, 20]);
-      expect(currentStates, [11, 20]);
+      expect(states, isEmpty);
 
-      await tester.tap(resetFinder);
+      provider.state = ['changed_longer_string'];
       await tester.pump();
 
-      await tester.tap(incrementFinder);
-      await tester.pump();
-
-      expect(listenWhenCalls, 2);
-      expect(previousStates, [30]);
-      expect(currentStates, [31]);
+      expect(states, [
+        ['changed_longer_string'],
+      ]);
     });
 
-// =========================================================================
-    // SECTION 4B: ADVANCED ARCHITECTURAL & EDGE-CASE COVERS (MISSING SCENARIOS)
+    // =========================================================================
+    // SECTION 8: LISTENER SAFETY & CALLBACK BEHAVIOR
     // =========================================================================
 
-    testWidgets(
-        '1. safe to trigger navigation/dialogs inside listener (deferred execution)',
-        (tester) async {
+    testWidgets('is safe to trigger navigation or dialogs inside listener', (
+      tester,
+    ) async {
       final provider = CounterProvider(0);
 
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: MultiStateListener<int>(
-              providers: [provider],
+              providers: () => provider.watch,
               listener: (context, _) {
                 showDialog(
                   context: context,
@@ -868,178 +1313,94 @@ void main() {
 
       provider.increment();
       await tester.pump();
+
       expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets(
-        '2. detects changes when the providers list is mutated in-place',
-        (tester) async {
-      final providerA = CounterProvider(1);
-      final providerB = CounterProvider(2);
-      final providersList = [providerA];
-      final states = <List<int>>[];
+    // =========================================================================
+    // SECTION 9: INITIAL CALLBACK + RUNTIME DEPENDENCY CHANGES
+    // =========================================================================
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                return Column(
-                  children: [
-                    MultiStateListener<int>(
-                      providers: providersList,
-                      listener: (_, current) => states.add(current),
-                      child: const SizedBox(),
+    testWidgets(
+      'does not call listener again when dependencies change at runtime even when callListenerOnInit is true',
+      (tester) async {
+        final states = <List<int>>[];
+
+        final providerA = CounterProvider(1);
+        final providerB = CounterProvider(5);
+
+        var currentProviders = [providerA];
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  return GestureDetector(
+                    key: const Key('swap_trigger_tap'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      setState(() {
+                        currentProviders = [providerB];
+                      });
+                    },
+                    child: SizedBox(
+                      width: 100,
+                      height: 100,
+                      child: MultiStateListener<List<int>>(
+                        providers: () => [
+                          for (final provider in currentProviders)
+                            provider.watch,
+                        ],
+                        callListenerOnInit: true,
+                        listener: (_, current) {
+                          states.add(current);
+                        },
+                        child: const SizedBox(),
+                      ),
                     ),
-                    TextButton(
-                      key: const Key('mutate_in_place_btn'),
-                      onPressed: () => setState(() {
-                        providersList[0] =
-                            providerB; // Same list reference, different internal index item
-                      }),
-                      child: const Text('Mutate'),
-                    ),
-                  ],
-                );
-              },
+                  );
+                },
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      await tester.tap(find.byKey(const Key('mutate_in_place_btn')));
-      await tester.pump();
+        await tester.pumpAndSettle();
 
-      providerA.increment();
-      await tester.pump();
-      expect(states, isEmpty);
+        expect(states, [
+          [1],
+        ]);
 
-      providerB.increment();
-      await tester.pump();
-      expect(states, [
-        [3]
-      ]);
-    });
+        await tester.tap(find.byKey(const Key('swap_trigger_tap')));
+        await tester.pumpAndSettle();
 
-    testWidgets(
-        '3. does not fire listener on runtime list swap even if callListenerOnInit is true',
-        (tester) async {
-      final states = <List<int>>[];
-      final providerA = CounterProvider(1);
-      final providerB = CounterProvider(5);
-      var currentProviders = [providerA];
+        expect(states, [
+          [1],
+        ]);
 
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                return GestureDetector(
-                  key: const Key('swap_trigger_tap'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => setState(() => currentProviders = [providerB]),
-                  child: SizedBox(
-                    width: 100,
-                    height: 100,
-                    child: MultiStateListener<int>(
-                      providers: currentProviders,
-                      callListenerOnInit: true, // Only applies to initState!
-                      listener: (_, current) => states.add(current),
-                      child: const SizedBox(),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ),
-      );
+        providerB.increment();
+        await tester.pumpAndSettle();
 
-      await tester.pumpAndSettle();
-      expect(states, [
-        [1]
-      ]);
+        expect(states, [
+          [1],
+          [6],
+        ]);
+      },
+    );
 
-      await tester.tap(find.byKey(const Key('swap_trigger_tap')));
-      await tester.pumpAndSettle();
+    // =========================================================================
+    // SECTION 10: LISTENER DISPOSAL
+    // =========================================================================
 
-      expect(states, [
-        [1]
-      ]);
-
-      providerB.increment();
-      await tester.pumpAndSettle();
-
-      expect(states, [
-        [1],
-        [6]
-      ]);
-    });
-
-    testWidgets(
-        '4. deep equality works with custom complex object states via listenWhen fallback',
-        (tester) async {
-      final states = <List<String>>[];
-
-      final provider1 = StateNotifier<List<String>>(['initial']);
-      final provider2 = StateNotifier<List<String>>(['data']);
-
-      await tester.pumpWidget(
-        MultiStateListener<List<String>>(
-          providers: [provider1, provider2],
-          listenWhen: (previous, current) {
-            return previous[0].first.length != current[0].first.length;
-          },
-          listener: (_, current) => states.add(current[0]),
-          child: const SizedBox(),
-        ),
-      );
-
-      provider1.state = ['initial'];
-      await tester.pumpAndSettle();
-      expect(states, isEmpty);
-
-      provider1.state = ['changed_longer_string'];
-      await tester.pumpAndSettle();
-
-      expect(states, [
-        ['changed_longer_string']
-      ]);
-    });
-
-    testWidgets(
-        '5. documents that concurrent provider updates trigger separate sequential notifications',
-        (tester) async {
-      final states = <List<int>>[];
-      final providerA = CounterProvider(0);
-      final providerB = CounterProvider(10);
-
-      await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: [providerA, providerB],
-          listener: (_, current) => states.add(current),
-          child: const SizedBox(),
-        ),
-      );
-
-      providerA.increment();
-      providerB.increment();
-      await tester.pump();
-
-      expect(states, [
-        [1, 10],
-        [1, 11]
-      ]);
-    });
-
-    testWidgets(
-        '6. explicitly drops internal listener hooks and counts down to zero on clean removal',
-        (tester) async {
+    testWidgets('removes dependency listeners when widget is disposed', (
+      tester,
+    ) async {
       final provider = CounterProvider(0);
 
       await tester.pumpWidget(
         MultiStateListener<int>(
-          providers: [provider],
+          providers: () => provider.watch,
           listener: (_, __) {},
           child: const SizedBox(),
         ),
@@ -1055,38 +1416,42 @@ void main() {
     });
 
     // =========================================================================
-    // SECTION 6: FLUTTER INSPECTOR DIAGNOSTICS & REFLECTIONS
+    // SECTION 11: FLUTTER INSPECTOR & DIAGNOSTICS
     // =========================================================================
 
     testWidgets('overrides debugFillProperties correctly', (tester) async {
-      final builder = DiagnosticPropertiesBuilder();
+      final provider = CounterProvider();
 
-      MultiStateListener<int>(
-        providers: [CounterProvider(), CounterProvider(5)],
+      final widget = MultiStateListener<int>(
+        providers: () => provider.watch,
         listener: (_, __) {},
-        listenWhen: (prev, curr) => prev != curr,
+        listenWhen: (previous, current) => previous != current,
         callListenerOnInit: true,
         child: const SizedBox(),
-      ).debugFillProperties(builder);
+      );
+
+      final builder = DiagnosticPropertiesBuilder();
+
+      widget.debugFillProperties(builder);
 
       final description = builder.properties
           .where((node) => !node.isFiltered(DiagnosticLevel.info))
           .map((node) => node.toString())
           .toList();
 
+      expect(description.any((value) => value.contains('providers')), isTrue);
+
+      expect(description.any((value) => value.contains('listener')), isTrue);
+
+      expect(description.any((value) => value.contains('listenWhen')), isTrue);
+
       expect(
         description.any(
-            (e) => e.contains('providers') && e.contains('CounterProvider')),
+          (value) =>
+              value.contains('callListenerOnInit') && value.contains('true'),
+        ),
         isTrue,
-        reason:
-            'Properties description should expose the providers list configuration. Found: $description',
       );
-      expect(description.any((e) => e.contains('listener')), isTrue);
-      expect(description.any((e) => e.contains('listenWhen')), isTrue);
-      expect(
-          description.any(
-              (e) => e.contains('callListenerOnInit') && e.contains('true')),
-          isTrue);
     });
   });
 }

@@ -1,4 +1,11 @@
-part of '../view_state_widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:provider_kit/src/state/index.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
+import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
+import 'package:provider_kit/src/view_state/utils/view_state_widget_utils.dart';
 
 /// {@template provider_kit.view_state_builder}
 /// A widget that builds its UI based on the specific [ViewState] of a [ViewStateNotifier].
@@ -121,11 +128,50 @@ class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
 
 abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     extends StateBuilderBase<P, ViewState<T>> {
+  /// {@template provider_kit.view_state.initial_builder}
+  /// Builds the UI when the provider is in [InitialState].
+  ///
+  /// The callback receives whether the widget is being built for use in a
+  /// sliver.
+  /// {@endtemplate}
   final InitialStateBuilder? initialBuilder;
+
+  /// {@template provider_kit.view_state.data_builder}
+  /// Builds the UI when the provider is in [DataState].
+  ///
+  /// The callback receives the data contained in the [DataState].
+  /// {@endtemplate}
   final DataStateBuilder<T> dataBuilder;
+
+  /// {@template provider_kit.view_state.error_builder}
+  /// Builds the UI when the provider is in [ErrorState].
+  ///
+  /// The callback receives the error information, error, stack trace, a retry
+  /// callback, and whether the widget is being built for use in a sliver.
+  ///
+  /// The retry callback retries the provider.
+  /// {@endtemplate}
   final ErrorStateBuilder? errorBuilder;
+
+  /// {@template provider_kit.view_state.loading_builder}
+  /// Builds the UI when the provider is in [LoadingState].
+  ///
+  /// The callback receives the loading message, progress, and whether the
+  /// widget is being built for use in a sliver.
+  /// {@endtemplate}
   final LoadingStateBuilder? loadingBuilder;
+
+  /// {@template provider_kit.view_state.empty_builder}
+  /// Builds the UI when the provider is in [EmptyState].
+  ///
+  /// The callback receives the empty-state message and whether the widget is
+  /// being built for use in a sliver.
+  /// {@endtemplate}
   final EmptyStateBuilder? emptyBuilder;
+
+  /// {@template provider_kit.view_state.is_sliver}
+  /// Whether the default state widgets are built for use in a sliver.
+  /// {@endtemplate}
   final bool isSliver;
 
   const ViewStateBuilderBase({
@@ -141,12 +187,8 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
   });
 
   @override
-  Widget build(
-    BuildContext context,
-    ViewState<T> state,
-    Widget? child,
-  ) {
-    return buildStateWidget<P, T>(
+  Widget build(BuildContext context, ViewState<T> state, Widget? child) {
+    return ViewStateWidgetUtils.buildStateWidget<P, T>(
       context,
       provider,
       state,
@@ -159,94 +201,39 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     );
   }
 
-  static Widget buildStateWidget<P, T>(
-    BuildContext context,
-    P? provider,
-    ViewState<T> state,
-    InitialStateBuilder? initialBuilder,
-    DataStateBuilder<T> dataBuilder,
-    ErrorStateBuilder? errorBuilder,
-    LoadingStateBuilder? loadingBuilder,
-    EmptyStateBuilder? emptyBuilder,
-    bool isSliver,
-  ) {
-    switch (state) {
-      case InitialState<T>():
-        return _ViewStateWidgetUtils.buildInitialWidget(
-            context, initialBuilder, isSliver);
-
-      case LoadingState<T>():
-        return _ViewStateWidgetUtils.buildLoadingWidget(
-            context, loadingBuilder, state.message, state.progress, isSliver);
-
-      case EmptyState<T>():
-        return _ViewStateWidgetUtils.buildEmptyWidget(
-            context, emptyBuilder, state.message, isSliver);
-
-      case ErrorState<T>():
-        return _buildErrorState<P, T>(
-          provider,
-          state,
-          context,
-          errorBuilder,
-          isSliver,
-        );
-
-      case DataState<T>():
-        return dataBuilder(state.data);
-    }
-  }
-
-  static Widget _buildErrorState<P, T>(
-    P? provider,
-    ErrorState<T> errorState,
-    BuildContext context,
-    ErrorStateBuilder? errorBuilder,
-    bool isSliver,
-  ) {
-    final effectiveOnRetry =
-        errorState.onRetry ?? _getOnRetryFromProvider<P, T>(context, provider);
-    return errorBuilder != null
-        ? errorBuilder(
-            errorState.errorInfo,
-            errorState.error,
-            errorState.stackTrace,
-            effectiveOnRetry,
-            isSliver,
-          )
-        : context.errorStateWidget(
-            errorState.errorInfo,
-            errorState.error,
-            errorState.stackTrace,
-            effectiveOnRetry,
-            isSliver,
-          );
-  }
-
-  static VoidCallback? _getOnRetryFromProvider<P, T>(
-      BuildContext context, P? providerParam) {
-    final provider = providerParam ?? context.read<P>();
-    if (provider is AsyncViewStateNotifier<T>) {
-      return provider.refresh;
-    }
-    return null;
-  }
-
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(ObjectFlagProperty<InitialStateBuilder?>.has(
-          'initialBuilder', initialBuilder))
-      ..add(ObjectFlagProperty<LoadingStateBuilder?>.has(
-          'loadingBuilder', loadingBuilder))
-      ..add(ObjectFlagProperty<EmptyStateBuilder?>.has(
-          'emptyBuilder', emptyBuilder))
-      ..add(ObjectFlagProperty<ErrorStateBuilder?>.has(
-          'errorBuilder', errorBuilder))
-      ..add(ObjectFlagProperty<DataStateBuilder<T>>.has(
-          'dataBuilder', dataBuilder))
       ..add(
-          DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false));
+        ObjectFlagProperty<InitialStateBuilder?>.has(
+          'initialBuilder',
+          initialBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<LoadingStateBuilder?>.has(
+          'loadingBuilder',
+          loadingBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<EmptyStateBuilder?>.has(
+          'emptyBuilder',
+          emptyBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ErrorStateBuilder?>.has(
+          'errorBuilder',
+          errorBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<DataStateBuilder<T>>.has('dataBuilder', dataBuilder),
+      )
+      ..add(
+        DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false),
+      );
   }
 }

@@ -14,6 +14,12 @@ typedef ListenWhen<T> = bool Function(T previous, T next);
 /// [next] is the current state.
 typedef RebuildWhen<T> = bool Function(T previous, T next);
 
+/// A callback that returns the combined state used by a multi-state widget.
+///
+/// State sources are accessed through `.watch` inside the callback so
+/// ProviderKit can track the dependencies automatically.
+typedef MultiStateProviders<T> = T Function();
+
 /// A callback that builds a widget based on the current state.
 ///
 /// [context] provides the build context.
@@ -25,17 +31,6 @@ typedef StateWidgetBuilder<T> = Widget Function(
   Widget? child,
 );
 
-/// A callback that builds a widget based on multiple states.
-///
-/// [context] provides the build context.
-/// [states] provides the current states.
-/// [child] provides an optional child widget.
-typedef MultiStateWidgetBuilder<T> = Widget Function(
-  BuildContext context,
-  T states,
-  Widget? child,
-);
-
 /// A callback invoked when the state changes.
 ///
 /// [context] provides the build context.
@@ -43,13 +38,4 @@ typedef MultiStateWidgetBuilder<T> = Widget Function(
 typedef ListenerCallback<T> = void Function(
   BuildContext context,
   T state,
-);
-
-/// A callback invoked when multiple states change.
-///
-/// [context] provides the build context.
-/// [states] provides the current states.
-typedef MultiListenerCallback<T> = void Function(
-  BuildContext context,
-  T states,
 );

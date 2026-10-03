@@ -1,4 +1,11 @@
-part of '../view_state_widgets.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:provider_kit/src/state/index.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
+import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
+import 'package:provider_kit/src/view_state/utils/view_state_widget_utils.dart';
 
 /// {@template provider_kit.view_state_consumer}
 /// A widget that combines listening to and building based on the specific
@@ -48,7 +55,7 @@ part of '../view_state_widgets.dart';
 class ViewStateConsumer<T>
     extends ViewStateConsumerBase<ViewStateNotifier<T>, T> {
   /// {@macro provider_kit.view_state_consumer}
-  ViewStateConsumer({
+  const ViewStateConsumer({
     super.key,
     required ViewStateNotifier<T> provider,
     super.rebuildWhen,
@@ -120,7 +127,7 @@ class ViewStateConsumer<T>
 
 class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
     extends ViewStateConsumerBase<P, T> {
-  _ViewStateConsumerOf({
+  const _ViewStateConsumerOf({
     super.key,
     required super.dataBuilder,
     super.initialBuilder,
@@ -141,20 +148,40 @@ class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
 
 abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     extends StateConsumerBase<P, ViewState<T>> {
+  /// {@macro provider_kit.view_state.initial_builder}
   final InitialStateBuilder? initialBuilder;
-  final LoadingStateBuilder? loadingBuilder;
-  final EmptyStateBuilder? emptyBuilder;
-  final ErrorStateBuilder? errorBuilder;
-  final DataStateBuilder<T> dataBuilder;
-  final bool isSliver;
 
+  /// {@macro provider_kit.view_state.loading_builder}
+  final LoadingStateBuilder? loadingBuilder;
+
+  /// {@macro provider_kit.view_state.empty_builder}
+  final EmptyStateBuilder? emptyBuilder;
+
+  /// {@macro provider_kit.view_state.error_builder}
+  final ErrorStateBuilder? errorBuilder;
+
+  /// {@macro provider_kit.view_state.data_builder}
+  final DataStateBuilder<T> dataBuilder;
+
+  /// {@macro provider_kit.view_state.initial_listener}
   final InitialStateListener? initialStateListener;
+
+  /// {@macro provider_kit.view_state.loading_listener}
   final LoadingStateListener? loadingStateListener;
+
+  /// {@macro provider_kit.view_state.empty_listener}
   final EmptyStateListener? emptyStateListener;
+
+  /// {@macro provider_kit.view_state.error_listener}
   final ErrorStateListener? errorStateListener;
+
+  /// {@macro provider_kit.view_state.data_listener}
   final DataStateListener<T>? dataStateListener;
 
-  ViewStateConsumerBase({
+  /// {@macro provider_kit.view_state.is_sliver}
+  final bool isSliver;
+
+  const ViewStateConsumerBase({
     super.key,
     super.provider,
     super.rebuildWhen,
@@ -171,63 +198,107 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     this.dataStateListener,
     super.listenWhen,
     super.callListenerOnInit,
-  }) : super(
-          builder: (context, state, child) {
-            return ViewStateBuilderBase.buildStateWidget<P, T>(
-              context,
-              provider,
-              state,
-              initialBuilder,
-              dataBuilder,
-              errorBuilder,
-              loadingBuilder,
-              emptyBuilder,
-              isSliver,
-            );
-          },
-          listener: (context, state) {
-            state.when(
-              initialState: () => initialStateListener?.call(),
-              loadingState: (message, progress) =>
-                  loadingStateListener?.call(message, progress),
-              dataState: (data) => dataStateListener?.call(data),
-              emptyState: (message) => emptyStateListener?.call(message),
-              errorState: (errorMessage, onRetry, exception, stackTrace) =>
-                  errorStateListener?.call(
-                errorMessage,
-                onRetry,
-                exception,
-                stackTrace,
-              ),
-            );
-          },
-        );
+  });
+
+  @override
+  Widget build(BuildContext context, ViewState<T> state, Widget? child) {
+    return ViewStateWidgetUtils.buildStateWidget<P, T>(
+      context,
+      provider,
+      state,
+      initialBuilder,
+      dataBuilder,
+      errorBuilder,
+      loadingBuilder,
+      emptyBuilder,
+      isSliver,
+    );
+  }
+
+  @override
+  void onStateChange(BuildContext context, ViewState<T> state) {
+    state.when(
+      initialState: () {
+        initialStateListener?.call();
+      },
+      loadingState: (message, progress) {
+        loadingStateListener?.call(message, progress);
+      },
+      dataState: (data) {
+        dataStateListener?.call(data);
+      },
+      emptyState: (message) {
+        emptyStateListener?.call(message);
+      },
+      errorState: (errorInfo, error, stackTrace, onRetry) {
+        errorStateListener?.call(errorInfo, error, stackTrace, onRetry);
+      },
+    );
+  }
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(ObjectFlagProperty<InitialStateBuilder?>.has(
-          'initialBuilder', initialBuilder))
-      ..add(ObjectFlagProperty<LoadingStateBuilder?>.has(
-          'loadingBuilder', loadingBuilder))
-      ..add(ObjectFlagProperty<EmptyStateBuilder?>.has(
-          'emptyBuilder', emptyBuilder))
-      ..add(ObjectFlagProperty<ErrorStateBuilder?>.has(
-          'errorBuilder', errorBuilder))
-      ..add(ObjectFlagProperty<DataStateBuilder<T>>.has(
-          'dataBuilder', dataBuilder))
       ..add(
-          DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false))
-      ..add(ObjectFlagProperty<InitialStateListener?>.has(
-          'initialStateListener', initialStateListener))
-      ..add(ObjectFlagProperty<LoadingStateListener?>.has(
-          'loadingStateListener', loadingStateListener))
-      ..add(ObjectFlagProperty<EmptyStateListener?>.has(
-          'emptyStateListener', emptyStateListener))
-      ..add(ObjectFlagProperty<ErrorStateListener?>.has(
-          'errorStateListener', errorStateListener))
-      ..add(ObjectFlagProperty<DataStateListener<T>?>.has(
-          'dataStateListener', dataStateListener));
+        ObjectFlagProperty<InitialStateBuilder?>.has(
+          'initialBuilder',
+          initialBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<LoadingStateBuilder?>.has(
+          'loadingBuilder',
+          loadingBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<EmptyStateBuilder?>.has(
+          'emptyBuilder',
+          emptyBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ErrorStateBuilder?>.has(
+          'errorBuilder',
+          errorBuilder,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<DataStateBuilder<T>>.has('dataBuilder', dataBuilder),
+      )
+      ..add(
+        DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false),
+      )
+      ..add(
+        ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener',
+          initialStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener',
+          loadingStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener',
+          emptyStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener',
+          errorStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<DataStateListener<T>?>.has(
+          'dataStateListener',
+          dataStateListener,
+        ),
+      );
   }
 }

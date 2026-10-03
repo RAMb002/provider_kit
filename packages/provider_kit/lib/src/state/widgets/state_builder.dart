@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/state/widgets/state_listener.dart';
 
@@ -86,7 +87,13 @@ class StateBuilder<T> extends StateBuilderBase<StateValueListenable<T>, T> {
     );
   }
 
-  /// The function that builds the widget tree based on the current state.
+  /// {@template provider_kit.state_builder.builder}
+  /// Builds the widget tree whenever the state changes and
+  /// [rebuildWhen] allows the rebuild.
+  ///
+  /// The [child] is an optional widget that is not rebuilt when the state
+  /// changes.
+  /// {@endtemplate}
   final StateWidgetBuilder<T> builder;
 
   @override
@@ -136,16 +143,23 @@ abstract class StateBuilderBase<P extends StateValueListenable<T>, T>
     this.child,
   });
 
-  /// The provider whose state should be listened to.
-  ///
-  /// When null, the provider is resolved from the current [BuildContext].
+  /// {@macro provider_kit.state_listener.provider}
   final P? provider;
 
-  /// A function that determines whether the builder should be called based on
-  /// the previous and current state.
+  /// {@template provider_kit.state_builder.rebuild_when}
+  /// Determines whether the builder should be called when the state changes.
+  ///
+  /// The callback receives the previous and current states.
+  ///
+  /// When omitted, ProviderKit uses the state's `!=` comparison to determine
+  /// whether the state has changed.
+  /// {@endtemplate}
   final RebuildWhen<T>? rebuildWhen;
 
-  /// An optional child widget that does not depend on the state and will not be rebuilt.
+  /// {@template provider_kit.state_builder.child}
+  /// An optional widget that is passed to [builder] and is not rebuilt when the
+  /// state changes.
+  /// {@endtemplate}
   final Widget? child;
 
   /// The function that builds the widget tree based on the current state.
@@ -158,12 +172,7 @@ abstract class StateBuilderBase<P extends StateValueListenable<T>, T>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(
-        ObjectFlagProperty<RebuildWhen<T>?>.has(
-          'rebuildWhen',
-          rebuildWhen,
-        ),
-      )
+      ..add(ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen))
       ..add(DiagnosticsProperty<P?>('provider', provider))
       ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
   }
@@ -174,6 +183,12 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
     extends State<StateBuilderBase<P, T>> {
   late T _state;
   late P _provider;
+
+  /// Whether a rebuild has already been scheduled for the current frame.
+  ///
+  /// This prevents multiple deferred rebuild callbacks from being registered
+  /// when several dependency notifications occur during the same build phase.
+  final RebuildScheduler _rebuildScheduler = RebuildScheduler();
 
   @override
   void initState() {
@@ -203,6 +218,23 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
     }
   }
 
+  /// Requests a rebuild of this widget.
+  ///
+  /// If a rebuild is requested while the widget tree is being built, the
+  /// rebuild is deferred until after the current frame to avoid marking the
+  /// widget dirty during the build phase. Multiple rebuild requests during the
+  /// same build phase are coalesced into a single deferred rebuild.
+  ///
+  /// Otherwise, the rebuild is requested immediately.
+  void _requestRebuild(T state) {
+    _state = state;
+
+    _rebuildScheduler.request(
+      isMounted: () => mounted,
+      rebuild: () => setState(() {}),
+    );
+  }
+
   /// Gets the provider from the context.
   P get _readProvider => context.read<P>();
 
@@ -212,14 +244,12 @@ class _StateBuilderBaseState<P extends StateValueListenable<T>, T>
   @override
   Widget build(BuildContext context) {
     if (widget.provider == null) {
-      context.select<P, bool>(
-        (provider) => identical(_provider, provider),
-      );
+      context.select<P, bool>((provider) => identical(_provider, provider));
     }
     return StateListener<T>(
       provider: _provider,
       listenWhen: widget.rebuildWhen,
-      listener: (context, state) => setState(() => _state = state),
+      listener: (context, state) => _requestRebuild(state),
       child: widget.build(context, _state, widget.child),
     );
   }

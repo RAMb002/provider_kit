@@ -1,4 +1,3 @@
-import 'package:example/example_kits/providers/1_view_state_notifier.dart';
 import 'package:example/example_kits/providers/2_async_view_state_notifier.dart';
 import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
@@ -15,45 +14,54 @@ class MultiViewStateListenerExample extends StatefulWidget {
 
 class _MultiViewStateListenerExampleState
     extends State<MultiViewStateListenerExample> {
-  late ItemsProvider itemsProvider;
-  late ViewStateProviderOne viewStateProviderOne;
-  late ViewStateProviderTwo viewStateProviderTwo;
+  late MovieProvider movieProvider;
+  late SimilarMoviesProvider similarMoviesProvider;
+  late TrailersProvider trailersProvider;
 
   @override
   void initState() {
     super.initState();
-    itemsProvider = ItemsProvider();
-    viewStateProviderOne = ViewStateProviderOne();
-    viewStateProviderTwo = ViewStateProviderTwo();
+
+    movieProvider = MovieProvider();
+    similarMoviesProvider = SimilarMoviesProvider();
+    trailersProvider = TrailersProvider();
   }
 
   @override
   void dispose() {
-    itemsProvider.dispose();
-    viewStateProviderOne.dispose();
-    viewStateProviderTwo.dispose();
+    movieProvider.dispose();
+    similarMoviesProvider.dispose();
+    trailersProvider.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final providers = [
-      itemsProvider,
-      viewStateProviderOne,
-      viewStateProviderTwo,
-    ];
     return ScaffoldWithButton(
-      title: "Multi View State Listener",
+      title: 'Multi View State Listener',
       child: MultiViewStateListener(
-        providers: providers,
-        initialStateListener: () => context.showToast("initial state"),
+        callListenerOnInit: true,
+        providers: () => (
+          movie: movieProvider.watch,
+          similarMovies: similarMoviesProvider.watch,
+          trailers: trailersProvider.watch,
+        ),
+        initialStateListener: () => context.showToast('Initial state'),
+        emptyStateListener: (message) => context.showToast('Empty state'),
         loadingStateListener: (message, progress) =>
-            context.showToast("loading state"),
-        emptyStateListener: (message) => context.showToast("empty state"),
-        dataStateListener: (data) => context.showToast(data.toString()),
+            context.showToast('Loading state'),
+        dataStateListener: (state) {
+          context.showToast(
+            'Movie: ${state.movie.data.title}\n'
+            'Similar movies: ${state.similarMovies.data.length}\n'
+            'Trailers: ${state.trailers.data.length}',
+          );
+        },
         errorStateListener: (errorMessage, onRetry, exception, stackTrace) =>
-            context.showToast("error state, message - $errorMessage"),
-        child: const Text("listening"),
+            context.showToast(
+          'Error state: $errorMessage',
+        ),
+        child: const Text('Listening to movie details'),
       ),
     );
   }

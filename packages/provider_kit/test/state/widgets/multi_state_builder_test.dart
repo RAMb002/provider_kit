@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider_kit/provider_kit.dart';
+import 'package:provider_kit/src/state/multi_state/multi_state.dart';
+import 'package:provider_kit/src/state/state_field.dart';
+import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 
 import '../../shared/mocks/notifiers.dart';
+import '../../shared/mocks/widgets.dart';
 
 const incrementProvider0Key = Key('multi_builder_increment_p0');
 const multiBuilderResetKey = Key('multi_builder_reset_btn');
@@ -14,16 +17,17 @@ class MultiBuilderTestApp extends StatefulWidget {
   const MultiBuilderTestApp({
     super.key,
     required this.initialProviders,
-    this.newProviders,
+    required this.newProviders,
     required this.builder,
     this.rebuildWhen,
   });
 
   final List<CounterProvider> initialProviders;
-  final List<CounterProvider>? newProviders;
-  final Widget Function(BuildContext context, List<int> states, Widget? child)
-      builder;
-  final bool Function(List<int> previous, List<int> current)? rebuildWhen;
+  final List<CounterProvider> newProviders;
+
+  final StateWidgetBuilder<List<int>> builder;
+
+  final RebuildWhen<List<int>>? rebuildWhen;
 
   @override
   State<MultiBuilderTestApp> createState() => _MultiBuilderTestAppState();
@@ -44,8 +48,10 @@ class _MultiBuilderTestAppState extends State<MultiBuilderTestApp> {
       home: Scaffold(
         body: Column(
           children: [
-            MultiStateBuilder<int>(
-              providers: _activeProviders,
+            MultiStateBuilder<List<int>>(
+              providers: () => [
+                for (final provider in _activeProviders) provider.watch,
+              ],
               rebuildWhen: widget.rebuildWhen,
               builder: widget.builder,
               child: const SizedBox(key: Key('multi_builder_child')),
@@ -63,16 +69,16 @@ class _MultiBuilderTestAppState extends State<MultiBuilderTestApp> {
               key: multiBuilderResetKey,
               onPressed: () {
                 setState(() {
-                  _activeProviders = widget.newProviders ?? [];
+                  _activeProviders = widget.newProviders;
                 });
               },
-              child: const Text('Swap List'),
+              child: const Text('Swap Providers'),
             ),
             TextButton(
               key: multiBuilderNoopKey,
               onPressed: () {
                 setState(() {
-                  _activeProviders = widget.initialProviders;
+                  _activeProviders = _activeProviders;
                 });
               },
               child: const Text('No-Op Rebuild'),
@@ -92,16 +98,20 @@ void main() {
 
     testWidgets('renders builder output and passes child', (tester) async {
       const childKey = Key('builder_child');
+
+      final provider1 = CounterProvider();
+      final provider2 = CounterProvider(10);
+
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateBuilder<int>(
-            providers: MyProvider().providersOne,
-            builder: (_, states, child) {
+          child: MultiStateBuilder<List<int>>(
+            providers: () => [provider1.watch, provider2.watch],
+            builder: (_, state, child) {
               return Row(
                 children: [
                   child!,
-                  Text('${states[0]}-${states[1]}', key: builderOutputKey),
+                  Text('${state[0]}-${state[1]}', key: builderOutputKey),
                 ],
               );
             },
@@ -115,49 +125,55 @@ void main() {
       expect(find.text('0-10'), findsOneWidget);
     });
 
-    testWidgets('works with empty providers list', (tester) async {
-      int buildCount = 0;
-      List<int>? lastStates;
+    testWidgets('builder receives arbitrary combined state type', (
+      tester,
+    ) async {
+      final provider = CounterProvider(5);
+
+      ({int count, bool loading})? receivedState;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
-          providers: const [],
-          builder: (_, states, __) {
-            buildCount++;
-            lastStates = states;
-            return const SizedBox();
-          },
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MultiStateBuilder<({int count, bool loading})>(
+            providers: () => (count: provider.watch, loading: false),
+            builder: (_, state, __) {
+              receivedState = state;
+
+              return Text('${state.count}-${state.loading}');
+            },
+          ),
         ),
       );
 
-      expect(buildCount, 1); // initial build
-      expect(lastStates, isEmpty);
+      expect(receivedState, (count: 5, loading: false));
+      expect(find.text('5-false'), findsOneWidget);
     });
 
-    testWidgets('child widget is preserved across rebuilds', (tester) async {
+    testWidgets('child widget is preserved across state rebuilds', (
+      tester,
+    ) async {
       const childKey = Key('child_preserved');
-      int childRebuildCount = 0;
+
+      int childBuildCount = 0;
       int builderBuildCount = 0;
-      final provider = CounterProvider(0);
+
+      final provider = CounterProvider();
 
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
           child: MultiStateBuilder<int>(
-            providers: [provider],
-            builder: (_, __, child) {
+            providers: () => provider.watch,
+            builder: (_, state, child) {
               builderBuildCount++;
-              return Column(
-                children: [
-                  child!,
-                  Text('Builder $builderBuildCount'),
-                ],
-              );
+
+              return Column(children: [child!, Text('State: $state')]);
             },
             child: StatefulBuilder(
               key: childKey,
               builder: (_, __) {
-                childRebuildCount++;
+                childBuildCount++;
                 return const Text('Child');
               },
             ),
@@ -165,545 +181,491 @@ void main() {
         ),
       );
 
-      // Initial build
       expect(builderBuildCount, 1);
-      expect(childRebuildCount, 1);
+      expect(childBuildCount, 1);
 
-      // Trigger rebuild via provider change
       provider.increment();
       await tester.pump();
 
-      // Builder rebuilds, but child does not
       expect(builderBuildCount, 2);
-      expect(childRebuildCount, 1);
+      expect(childBuildCount, 1);
     });
 
     // =========================================================================
-    // SECTION 2: INITIAL BUILD & STATE ORDER
+    // SECTION 2: INITIAL BUILD & STATE
     // =========================================================================
 
-    testWidgets('builder receives initial states on first build',
-        (tester) async {
-      List<int>? initStates;
+    testWidgets('builder receives initial combined state', (tester) async {
       final provider1 = CounterProvider(5);
       final provider2 = CounterProvider(9);
 
+      List<int>? receivedState;
+
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
-          providers: [provider1, provider2],
-          builder: (_, states, __) {
-            initStates = states;
+        MultiStateBuilder<List<int>>(
+          providers: () => [provider1.watch, provider2.watch],
+          builder: (_, state, __) {
+            receivedState = state;
             return const SizedBox();
           },
         ),
       );
 
-      expect(initStates, [5, 9]);
+      expect(receivedState, [5, 9]);
     });
 
-    testWidgets('states order matches providers list order', (tester) async {
-      final provider1 = CounterProvider(5);
-      final provider2 = CounterProvider(7);
-      List<int>? receivedStates;
+    testWidgets('initial builder is called exactly once', (tester) async {
+      final provider = CounterProvider();
+
+      int buildCount = 0;
 
       await tester.pumpWidget(
         MultiStateBuilder<int>(
-          providers: [provider1, provider2],
-          builder: (_, states, __) {
-            receivedStates = states;
+          providers: () => provider.watch,
+          builder: (_, __, ___) {
+            buildCount++;
             return const SizedBox();
           },
         ),
       );
 
-      expect(receivedStates, [5, 7]);
-
-      provider1.increment();
-      await tester.pump();
-      expect(receivedStates, [6, 7]);
-
-      provider2.increment();
-      await tester.pump();
-      expect(receivedStates, [6, 8]);
+      expect(buildCount, 1);
     });
 
     // =========================================================================
-    // SECTION 3: REBUILD BEHAVIOR ON STATE CHANGES
+    // SECTION 3: REBUILD BEHAVIOR
     // =========================================================================
 
-    testWidgets('rebuilds when a single provider emits a change',
-        (tester) async {
+    testWidgets('rebuilds when a watched state source changes', (tester) async {
+      final provider = CounterProvider();
+
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        MultiStateBuilder<int>(
+          providers: () => provider.watch,
+          builder: (_, state, __) {
+            states.add(state);
+            return const SizedBox();
+          },
+        ),
+      );
+
+      expect(states, [0]);
+
+      provider.increment();
+      await tester.pump();
+
+      expect(states, [0, 1]);
+    });
+
+    testWidgets('rebuilds when any watched state source changes', (
+      tester,
+    ) async {
+      final provider1 = CounterProvider();
+      final provider2 = CounterProvider(10);
+
       final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
-          providers: providers,
-          builder: (_, currentStates, __) {
-            states.add(currentStates);
+        MultiStateBuilder<List<int>>(
+          providers: () => [provider1.watch, provider2.watch],
+          builder: (_, state, __) {
+            states.add(state);
             return const SizedBox();
           },
         ),
       );
 
-      // Initial build adds initial state
       expect(states, [
-        [0, 10]
+        [0, 10],
       ]);
 
-      providers.first.increment();
+      provider1.increment();
       await tester.pump();
 
       expect(states, [
         [0, 10],
         [1, 10],
       ]);
-    });
 
-    testWidgets(
-        'batches multiple synchronous provider updates into a single rebuild',
-        (tester) async {
-      final states = <List<int>>[];
-      final provider = MyProvider();
-      final providers = provider.providersOne;
-
-      await tester.pumpWidget(
-        MultiStateBuilder<int>(
-          providers: providers,
-          builder: (_, currentStates, __) {
-            states.add(currentStates);
-            return const SizedBox();
-          },
-        ),
-      );
-
-      expect(states, [
-        [0, 10]
-      ]);
-
-      provider.incrementProviders(providers);
+      provider2.increment();
       await tester.pump();
 
-      //build get batched since its a builder
-      //otherwise the states would be [1, 10] and then [1, 20] in two separate rebuilds
       expect(states, [
         [0, 10],
-        [1, 20],
+        [1, 10],
+        [1, 11],
       ]);
     });
 
     testWidgets(
-      'rebuilds for each state change when updates happen in separate frames',
+      'batches multiple synchronous provider updates into a single build',
       (tester) async {
+        final provider1 = CounterProvider();
+        final provider2 = CounterProvider(10);
+
         final states = <List<int>>[];
-        final provider = MyProvider();
-        final providers = provider.providersOne;
 
         await tester.pumpWidget(
-          MultiStateBuilder<int>(
-            providers: providers,
-            builder: (_, currentStates, __) {
-              states.add(currentStates);
+          MultiStateBuilder<List<int>>(
+            providers: () => [provider1.watch, provider2.watch],
+            builder: (_, state, __) {
+              states.add(state);
               return const SizedBox();
             },
           ),
         );
 
-        expect(states, [
-          [0, 10]
-        ]);
-
-        // Increment first provider, then pump to complete a frame
-        providers.first.increment();
-        await tester.pump(); // 👈 Forces a frame boundary
-
-        // Increment second provider, then pump another frame
-        providers.last.increment();
-        await tester.pump(); // 👈 Another frame boundary
-
-        // Both intermediate states appear
         expect(states, [
           [0, 10],
-          [1, 10], // after first provider change
-          [1, 20], // after second provider change
         ]);
-      },
-    );
-    // =========================================================================
-    // SECTION 4: REBUILD FILTERING (rebuildWhen)
-    // =========================================================================
 
-    testWidgets(
-      'calls rebuildWhen with previous and current state lists (multiple updates)',
-      (tester) async {
-        final previousStates = <List<int>>[];
-        final currentStates = <List<int>>[];
-        int rebuildWhenCallCount = 0;
-        int buildCount = 0;
+        provider1.increment();
+        provider2.increment();
 
-        final provider = MyProvider();
-        final providers = provider.providersOne;
-
-        await tester.pumpWidget(
-          MultiStateBuilder<int>(
-            providers: providers,
-            rebuildWhen: (previous, current) {
-              rebuildWhenCallCount++;
-              previousStates.add(previous);
-              currentStates.add(current);
-              return true;
-            },
-            builder: (_, __, ___) {
-              buildCount++;
-              return const SizedBox();
-            },
-          ),
-        );
-
-        // Initial build
-        expect(buildCount, 1);
-        expect(rebuildWhenCallCount, 0);
-        expect(previousStates, isEmpty);
-        expect(currentStates, isEmpty);
-
-        // Increment both providers synchronously (same microtask)
-        provider.incrementProviders(providers);
         await tester.pump();
 
-        // rebuildWhen is called for each provider change (two calls)
-        expect(rebuildWhenCallCount, 2);
-
-        // Capture the full sequence of previous and current states
-        expect(previousStates, [
-          [0, 10], // after first provider increment
-          [1, 10], // after second provider increment
+        expect(states, [
+          [0, 10],
+          [1, 11],
         ]);
-        expect(currentStates, [
-          [1, 10], // after first provider increment
-          [1, 20], // after second provider increment
-        ]);
-
-        // Builder rebuilds only once (batched) with the final state [1, 20]
-        expect(buildCount, 2); // initial + one rebuild
-
-        // No additional rebuildWhen calls during the rebuild itself
-        expect(rebuildWhenCallCount, 2);
       },
     );
 
-    testWidgets('rebuilds only when rebuildWhen returns true', (tester) async {
-      final states = <List<int>>[];
+    testWidgets('rebuilds separately when updates happen in separate frames', (
+      tester,
+    ) async {
       final provider1 = CounterProvider();
       final provider2 = CounterProvider(10);
 
+      final states = <List<int>>[];
+
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
-          providers: [provider1, provider2],
-          rebuildWhen: (previous, current) {
-            // Rebuild only when both states are even
-            return current[0] % 2 == 0 && current[1] % 2 == 0;
-          },
-          builder: (_, currentStates, __) {
-            states.add(currentStates);
+        MultiStateBuilder<List<int>>(
+          providers: () => [provider1.watch, provider2.watch],
+          builder: (_, state, __) {
+            states.add(state);
             return const SizedBox();
           },
         ),
       );
 
-      // Initial build
       expect(states, [
-        [0, 10]
+        [0, 10],
       ]);
 
-      provider1.increment(); // becomes 1 (odd)
+      provider1.increment();
       await tester.pump();
-      expect(states, [
-        [0, 10]
-      ]); // no rebuild
 
-      provider1.increment(); // becomes 2 (even)
+      provider2.increment();
       await tester.pump();
+
       expect(states, [
         [0, 10],
-        [2, 10],
-      ]); // rebuild
-
-      provider2.increment(); // becomes 11 (odd)
-      await tester.pump();
-      expect(states, [
-        [0, 10],
-        [2, 10],
-      ]); // no rebuild
-
-      provider2.increment(); // becomes 12 (even)
-      await tester.pump();
-      expect(states, [
-        [0, 10],
-        [2, 10],
-        [2, 12],
-      ]); // rebuild
+        [1, 10],
+        [1, 11],
+      ]);
     });
 
-    testWidgets(
-        'rebuildWhen receives correct previous and current after multiple changes',
-        (tester) async {
-      final previousStates = <List<int>>[];
-      final currentStates = <List<int>>[];
-      final provider1 = CounterProvider();
-      final provider2 = CounterProvider(10);
+    // =========================================================================
+    // SECTION 4: REBUILD FILTERING
+    // =========================================================================
+
+    testWidgets('rebuildWhen receives previous and current state', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+
+      final previousStates = <int>[];
+      final currentStates = <int>[];
+
+      int rebuildWhenCallCount = 0;
+      int buildCount = 0;
 
       await tester.pumpWidget(
         MultiStateBuilder<int>(
-          providers: [provider1, provider2],
+          providers: () => provider.watch,
           rebuildWhen: (previous, current) {
+            rebuildWhenCallCount++;
             previousStates.add(previous);
             currentStates.add(current);
             return true;
           },
-          builder: (_, __, ___) => const SizedBox(),
-        ),
-      );
-
-      provider1.increment();
-      await tester.pump();
-      provider1.increment();
-      await tester.pump();
-
-      expect(previousStates, [
-        [0, 10],
-        [1, 10],
-      ]);
-      expect(currentStates, [
-        [1, 10],
-        [2, 10],
-      ]);
-    });
-
-    // =========================================================================
-    // SECTION 5: RUNTIME PROVIDER LIST TRANSITIONS
-    // =========================================================================
-
-    testWidgets(
-        'updates subscription when providers list changes to a different list',
-        (tester) async {
-      final buildLog = <List<int>>[];
-      final provider1 = CounterProvider(0);
-      final provider2 = CounterProvider(10);
-      final provider3 = CounterProvider(20);
-
-      final incrementFinder = find.byKey(incrementProvider0Key);
-      final resetFinder = find.byKey(multiBuilderResetKey);
-
-      await tester.pumpWidget(
-        MultiBuilderTestApp(
-          initialProviders: [provider1, provider2],
-          newProviders: [provider3],
-          builder: (_, states, __) {
-            buildLog.add(states);
+          builder: (_, __, ___) {
+            buildCount++;
             return const SizedBox();
           },
         ),
       );
 
-      // Initial build
-      expect(buildLog, [
-        [0, 10]
-      ]);
+      expect(buildCount, 1);
+      expect(rebuildWhenCallCount, 0);
 
-      // Increment first provider -> rebuild
-      await tester.tap(incrementFinder);
+      provider.increment();
       await tester.pump();
-      expect(buildLog, [
-        [0, 10],
-        [1, 10],
-      ]);
 
-      // Swap to [provider3]
-      await tester.tap(resetFinder);
+      provider.increment();
       await tester.pump();
-      // After swap, the builder should rebuild with the new list's states
-      // Because the providers list changed, we detach from old and attach to new,
-      // and setState is called with new states.
-      expect(buildLog, [
-        [0, 10],
-        [1, 10],
-        [20],
-      ]);
 
-      // Increment old provider1 should not trigger rebuild
-      provider1.increment();
-      await tester.pump();
-      expect(buildLog, [
-        [0, 10],
-        [1, 10],
-        [20],
-      ]);
-
-      // Increment new provider3 should trigger rebuild
-      provider3.increment();
-      await tester.pump();
-      expect(buildLog, [
-        [0, 10],
-        [1, 10],
-        [20],
-        [21],
-      ]);
+      expect(rebuildWhenCallCount, 2);
+      expect(previousStates, [0, 1]);
+      expect(currentStates, [1, 2]);
+      expect(buildCount, 3);
     });
 
-    testWidgets(
-        'detects in-place provider list mutation (same list reference, different content)',
-        (tester) async {
-      final providerA = CounterProvider(1);
-      final providerB = CounterProvider(2);
-      final providersList = [providerA];
-      final buildLog = <List<int>>[];
+    testWidgets('defers rebuild when a watched source changes during build', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                return Column(
-                  children: [
-                    MultiStateBuilder<int>(
-                      providers: providersList,
-                      builder: (_, states, __) {
-                        buildLog.add(states);
-                        return const SizedBox();
-                      },
-                    ),
-                    TextButton(
-                      key: const Key('mutate_in_place_btn'),
-                      onPressed: () => setState(() {
-                        providersList[0] = providerB;
-                      }),
-                      child: const Text('Mutate'),
-                    ),
-                  ],
-                );
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MultiStateBuilder<int>(
+            providers: () => field.watch,
+            builder: (_, state, child) {
+              states.add(state);
+
+              return Column(children: [Text('$state'), child!]);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
               },
             ),
           ),
         ),
       );
 
-      // Initial build
-      expect(buildLog, [
-        [1]
-      ]);
+      // Initial build completed; the rebuild was deferred.
+      expect(states, [0]);
 
-      // Mutate list in-place
-      await tester.tap(find.byKey(const Key('mutate_in_place_btn')));
       await tester.pump();
 
-      // The builder should rebuild with the new provider's state
-      expect(buildLog, [
-        [1],
-        [2],
-      ]);
+      expect(states, [0, 1]);
+      expect(find.text('1'), findsOneWidget);
+    });
 
-      // Old providerA increments should not trigger rebuild
-      providerA.increment();
-      await tester.pump();
-      expect(buildLog, [
-        [1],
-        [2],
-      ]);
+    testWidgets('coalesces multiple rebuild requests during the same build', (
+      tester,
+    ) async {
+      final field = StateField(0);
+      final states = <int>[];
 
-      // New providerB increments should trigger rebuild
-      providerB.increment();
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: MultiStateBuilder<int>(
+            providers: () => field.watch,
+            builder: (_, state, child) {
+              states.add(state);
+
+              return Column(children: [Text('$state'), child!]);
+            },
+            child: StateChangeDuringInit(
+              onInit: () {
+                field.state = 1;
+                field.state = 2;
+                field.state = 3;
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(states, [0]);
+
       await tester.pump();
-      expect(buildLog, [
-        [1],
-        [2],
-        [3],
-      ]);
+
+      // Only one deferred rebuild, using the latest state.
+      expect(states, [0, 3]);
+      expect(find.text('3'), findsOneWidget);
+    });
+
+    testWidgets('rebuilds only when rebuildWhen returns true', (tester) async {
+      final provider = CounterProvider();
+
+      final states = <int>[];
+      int rebuildWhenCallCount = 0;
+
+      await tester.pumpWidget(
+        MultiStateBuilder<int>(
+          providers: () => provider.watch,
+          rebuildWhen: (previous, current) {
+            rebuildWhenCallCount++;
+
+            // Rebuild only for even values.
+            return current.isEven;
+          },
+          builder: (_, state, __) {
+            states.add(state);
+            return const SizedBox();
+          },
+        ),
+      );
+
+      expect(states, [0]);
+      expect(rebuildWhenCallCount, 0);
+
+      provider.increment(); // 1
+      await tester.pump();
+
+      expect(states, [0]);
+
+      provider.increment(); // 2
+      await tester.pump();
+
+      expect(states, [0, 2]);
+
+      provider.increment(); // 3
+      await tester.pump();
+
+      expect(states, [0, 2]);
+
+      provider.increment(); // 4
+      await tester.pump();
+
+      expect(states, [0, 2, 4]);
+      expect(rebuildWhenCallCount, 4);
     });
 
     testWidgets(
-      'does not reattach listeners when providers list replaced with an equal list (no-op)',
+      'rebuildWhen baseline advances even when previous rebuild is skipped',
       (tester) async {
-        final buildLog = <List<int>>[];
-        final provider = CounterProvider(0);
+        final provider = CounterProvider();
 
-        final incrementFinder = find.byKey(incrementProvider0Key);
-        final noopFinder = find.byKey(multiBuilderNoopKey);
+        final previousStates = <int>[];
+        final currentStates = <int>[];
 
         await tester.pumpWidget(
-          MultiBuilderTestApp(
-            initialProviders: [provider],
-            builder: (_, states, __) {
-              buildLog.add(states);
-              return const SizedBox();
+          MultiStateBuilder<int>(
+            providers: () => provider.watch,
+            rebuildWhen: (previous, current) {
+              previousStates.add(previous);
+              currentStates.add(current);
+
+              return current == 2;
             },
+            builder: (_, __, ___) => const SizedBox(),
           ),
         );
 
-        // Initial build
-        expect(buildLog, [
-          [0]
-        ]);
-
-        // Increment → rebuild (state change)
-        await tester.tap(incrementFinder);
+        provider.increment(); // 1
         await tester.pump();
-        expect(buildLog, [
-          [0],
-          [1]
-        ]);
 
-        // No‑op: parent rebuilds (setState) but providers list is unchanged.
-        // The parent rebuild causes the builder to be called again (expected).
-        await tester.tap(noopFinder);
+        provider.increment(); // 2
         await tester.pump();
-        // Extra rebuild due to parent's setState, NOT because of a provider change.
-        expect(buildLog, [
-          [0],
-          [1],
-          [1]
-        ]);
 
-        // Increment again → rebuild (state change)
-        await tester.tap(incrementFinder);
-        await tester.pump();
-        expect(buildLog, [
-          [0],
-          [1],
-          [1],
-          [2]
-        ]);
+        expect(previousStates, [0, 1]);
+        expect(currentStates, [1, 2]);
       },
     );
 
-    testWidgets('detects provider list order change as different list',
-        (tester) async {
-      final providerA = CounterProvider(1);
-      final providerB = CounterProvider(2);
-      final buildLog = <List<int>>[];
-      final providers = [providerA, providerB]; // initial order
+    testWidgets('does not call rebuildWhen during the initial build', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+
+      int rebuildWhenCallCount = 0;
+
+      await tester.pumpWidget(
+        MultiStateBuilder<int>(
+          providers: () => provider.watch,
+          rebuildWhen: (_, __) {
+            rebuildWhenCallCount++;
+            return true;
+          },
+          builder: (_, __, ___) => const SizedBox(),
+        ),
+      );
+
+      expect(rebuildWhenCallCount, 0);
+    });
+
+    // =========================================================================
+    // SECTION 5: DEPENDENCY COLLECTION
+    // =========================================================================
+
+    testWidgets('collects providers once during initial build', (tester) async {
+      final provider = CounterProvider();
+
+      int collectionCount = 0;
+
+      await tester.pumpWidget(
+        MultiStateBuilder<int>(
+          providers: () {
+            collectionCount++;
+            return provider.watch;
+          },
+          builder: (_, __, ___) => const SizedBox(),
+        ),
+      );
+
+      expect(collectionCount, 1);
+    });
+
+    testWidgets('collects providers once for each dependency notification', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+
+      int collectionCount = 0;
+      int buildCount = 0;
+
+      await tester.pumpWidget(
+        MultiStateBuilder<int>(
+          providers: () {
+            collectionCount++;
+
+            return provider.watch;
+          },
+          builder: (_, __, ___) {
+            buildCount++;
+            return const SizedBox();
+          },
+        ),
+      );
+
+      expect(collectionCount, 1);
+      expect(buildCount, 1);
+
+      provider.increment();
+      await tester.pump();
+
+      expect(collectionCount, 2);
+      expect(buildCount, 2);
+    });
+
+    testWidgets('does not duplicate subscriptions when parent rebuilds', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+
+      int buildCount = 0;
 
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
           child: StatefulBuilder(
-            builder: (context, setState) {
+            builder: (_, setState) {
               return Column(
                 children: [
                   MultiStateBuilder<int>(
-                    providers: providers,
-                    builder: (_, states, __) {
-                      buildLog.add(states);
-                      return const SizedBox();
+                    providers: () => provider.watch,
+                    builder: (_, state, __) {
+                      buildCount++;
+
+                      return Text('$state');
                     },
                   ),
                   TextButton(
-                    onPressed: () => setState(() {
-                      providers
-                        ..clear()
-                        ..addAll([providerB, providerA]);
-                    }),
-                    child: const Text('Swap Order'),
+                    key: multiBuilderNoopKey,
+                    onPressed: () {
+                      setState(() {});
+                    },
+                    child: const Text('Rebuild Parent'),
                   ),
                 ],
               );
@@ -712,81 +674,101 @@ void main() {
         ),
       );
 
-      expect(buildLog, [
-        [1, 2]
-      ]);
+      expect(buildCount, 1);
 
-      await tester.tap(find.text('Swap Order'));
+      await tester.tap(find.byKey(multiBuilderNoopKey));
       await tester.pump();
-      // Build log should now include [2, 1] (new order)
-      expect(buildLog, [
-        [1, 2],
-        [2, 1]
-      ]);
+
+      expect(buildCount, 2);
+
+      provider.increment();
+      await tester.pump();
+
+      // One dependency notification should produce exactly one builder
+      // rebuild. A duplicated listener would cause an additional build.
+      expect(buildCount, 3);
+      expect(find.text('1'), findsOneWidget);
     });
 
     // =========================================================================
-    // SECTION 6: EDGE CASES & CONCURRENT UPDATES
+    // SECTION 6: RUNTIME DEPENDENCY TRANSITIONS
     // =========================================================================
 
+    testWidgets('updates subscriptions when watched sources change', (
+      tester,
+    ) async {
+      final provider1 = CounterProvider();
+      final provider2 = CounterProvider(20);
+
+      final buildLog = <List<int>>[];
+
+      await tester.pumpWidget(
+        MultiBuilderTestApp(
+          initialProviders: [provider1],
+          newProviders: [provider2],
+          builder: (_, state, __) {
+            buildLog.add(state);
+            return const SizedBox();
+          },
+        ),
+      );
+
+      expect(buildLog, [
+        [0],
+      ]);
+
+      provider1.increment();
+      await tester.pump();
+
+      expect(buildLog, [
+        [0],
+        [1],
+      ]);
+
+      await tester.tap(find.byKey(multiBuilderResetKey));
+      await tester.pump();
+
+      expect(buildLog, [
+        [0],
+        [1],
+        [20],
+      ]);
+
+      // The old provider should no longer be subscribed.
+      provider1.increment();
+      await tester.pump();
+
+      expect(buildLog, [
+        [0],
+        [1],
+        [20],
+      ]);
+
+      // The new provider should be subscribed.
+      provider2.increment();
+      await tester.pump();
+
+      expect(buildLog, [
+        [0],
+        [1],
+        [20],
+        [21],
+      ]);
+    });
+
     testWidgets(
-      'builder updates to new provider states on list swap even when rebuildWhen returns false',
+      'new dependency state becomes the baseline after dependency swap',
       (tester) async {
-        final buildLog = <List<int>>[];
         final provider1 = CounterProvider(10);
-        final provider2 = CounterProvider(20);
-        final provider3 = CounterProvider(30);
+        final provider2 = CounterProvider(30);
 
-        await tester.pumpWidget(
-          MultiBuilderTestApp(
-            initialProviders: [provider1, provider2],
-            newProviders: [provider3],
-            rebuildWhen: (_, __) => false, // always false
-            builder: (_, states, __) {
-              buildLog.add(states);
-              return const SizedBox();
-            },
-          ),
-        );
-
-        // Initial build
-        expect(buildLog, [
-          [10, 20]
-        ]);
-
-        // Swap to [provider3]
-        await tester.tap(find.byKey(multiBuilderResetKey));
-        await tester.pump();
-
-        // Builder updates to new state despite rebuildWhen returning false
-        expect(buildLog, [
-          [10, 20],
-          [30],
-        ]);
-
-        // Change new provider – should NOT rebuild (rebuildWhen false)
-        provider3.increment();
-        await tester.pump();
-        expect(buildLog, [
-          [10, 20],
-          [30],
-        ]);
-      },
-    );
-
-    testWidgets(
-      'rebuildWhen receives correct previous states after provider list swap',
-      (tester) async {
         final previousStates = <List<int>>[];
         final currentStates = <List<int>>[];
-        final provider1 = CounterProvider(10);
-        final provider2 = CounterProvider(20);
-        final provider3 = CounterProvider(30);
 
         await tester.pumpWidget(
           MultiBuilderTestApp(
-            initialProviders: [provider1, provider2],
-            newProviders: [provider3],
+            initialProviders: [provider1],
+            newProviders: [provider2],
             rebuildWhen: (previous, current) {
               previousStates.add(previous);
               currentStates.add(current);
@@ -796,39 +778,144 @@ void main() {
           ),
         );
 
-        // Swap to [provider3]
         await tester.tap(find.byKey(multiBuilderResetKey));
         await tester.pump();
 
-        // No rebuildWhen calls during swap (it's a list change, not a state change)
+        // Replacing dependencies establishes the new state as the baseline;
+        // rebuildWhen is not called for the widget configuration change.
         expect(previousStates, isEmpty);
         expect(currentStates, isEmpty);
 
-        // Change new provider
-        provider3.increment();
+        provider2.increment();
         await tester.pump();
 
-        // rebuildWhen should be called with correct previous (initial state of provider3)
         expect(previousStates, [
           [30],
         ]);
+
         expect(currentStates, [
           [31],
         ]);
       },
     );
 
+    testWidgets(
+      'builder reflects new dependency state even when rebuildWhen returns false',
+      (tester) async {
+        final provider1 = CounterProvider(10);
+        final provider2 = CounterProvider(30);
+
+        final buildLog = <List<int>>[];
+
+        await tester.pumpWidget(
+          MultiBuilderTestApp(
+            initialProviders: [provider1],
+            newProviders: [provider2],
+            rebuildWhen: (_, __) => false,
+            builder: (_, state, __) {
+              buildLog.add(state);
+              return const SizedBox();
+            },
+          ),
+        );
+
+        expect(buildLog, [
+          [10],
+        ]);
+
+        await tester.tap(find.byKey(multiBuilderResetKey));
+        await tester.pump();
+
+        // A widget configuration change is still reflected by the next build.
+        // rebuildWhen only controls state-change rebuilds.
+        expect(buildLog, [
+          [10],
+          [30],
+        ]);
+
+        provider2.increment();
+        await tester.pump();
+
+        expect(buildLog, [
+          [10],
+          [30],
+        ]);
+      },
+    );
+
+    testWidgets(
+      'parent rebuild with unchanged dependencies does not recreate subscriptions',
+      (tester) async {
+        final provider = CounterProvider();
+
+        final buildLog = <List<int>>[];
+
+        await tester.pumpWidget(
+          MultiBuilderTestApp(
+            initialProviders: [provider],
+            newProviders: [provider],
+            builder: (_, state, __) {
+              buildLog.add(state);
+              return const SizedBox();
+            },
+          ),
+        );
+
+        expect(buildLog, [
+          [0],
+        ]);
+
+        await tester.tap(find.byKey(multiBuilderNoopKey));
+        await tester.pump();
+
+        // Parent rebuild causes the builder to run again, but should not add
+        // another listener to the same dependency.
+        expect(buildLog, [
+          [0],
+          [0],
+        ]);
+
+        provider.increment();
+        await tester.pump();
+
+        // One provider notification should result in exactly one additional
+        // builder invocation.
+        expect(buildLog, [
+          [0],
+          [0],
+          [1],
+        ]);
+      },
+    );
+
+    testWidgets(
+      'throws AssertionError when no watched state source is collected',
+      (tester) async {
+        await tester.pumpWidget(
+          MultiStateBuilder<int>(
+            providers: () => 0,
+            builder: (_, state, __) {
+              return Text('$state');
+            },
+          ),
+        );
+
+        expect(tester.takeException(), isA<AssertionError>());
+      },
+    );
+
     // =========================================================================
-    // SECTION 7: CLEANUP & MEMORY LEAKS
+    // SECTION 7: CLEANUP
     // =========================================================================
 
-    testWidgets('detaches listeners when widget is removed from tree',
-        (tester) async {
-      final provider = CounterProvider(0);
+    testWidgets('detaches listeners when widget is removed from the tree', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
 
       await tester.pumpWidget(
         MultiStateBuilder<int>(
-          providers: [provider],
+          providers: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
         ),
       );
@@ -850,8 +937,8 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       MultiStateBuilder<int>(
-        providers: [CounterProvider(), CounterProvider(5)],
-        rebuildWhen: (prev, curr) => prev != curr,
+        providers: () => CounterProvider().watch,
+        rebuildWhen: (previous, current) => previous != current,
         child: const SizedBox(),
         builder: (_, __, ___) => const SizedBox(),
       ).debugFillProperties(builder);
@@ -862,14 +949,16 @@ void main() {
           .toList();
 
       expect(
-        description.any(
-            (e) => e.contains('providers') && e.contains('CounterProvider')),
+        description.any((value) => value.contains('providers')),
         isTrue,
-        reason:
-            'Should expose providers list configuration. Found: $description',
+        reason: 'Should expose providers configuration. Found: $description',
       );
-      expect(description.any((e) => e.contains('rebuildWhen')), isTrue);
-      expect(description.any((e) => e.contains('child')), isTrue);
+
+      expect(description.any((value) => value.contains('rebuildWhen')), isTrue);
+
+      expect(description.any((value) => value.contains('child')), isTrue);
+
+      expect(description.any((value) => value.contains('builder')), isTrue);
     });
   });
 }
