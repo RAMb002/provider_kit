@@ -1496,6 +1496,14 @@ class SearchNotifier extends ChangeNotifier
 }
 ```
 
+For convenience, `ResourceNotifier` provides the same resource management without explicitly adding the mixin or extending `ChangeNotifier`:
+
+```dart
+class SearchNotifier extends ResourceNotifier {
+  late final searchQuery = field("");
+  late final searchMutation = mutation<List<Movie>>();
+}
+```
 Resources are disposed automatically when the notifier is disposed.
 
 ### StateResourcesMixin
