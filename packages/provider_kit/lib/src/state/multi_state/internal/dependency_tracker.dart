@@ -10,7 +10,7 @@ final class _DependencyTracker {
 
   static final List<_DependencyScope> _scopes = <_DependencyScope>[];
 
-  /// Whether a providers evaluation is currently being collected.
+  /// Whether a dependency-collecting callback is currently being evaluated.
   static bool get isCollecting => _scopes.isNotEmpty;
 
   /// Records [dependency] in the currently active collection scope.
@@ -24,12 +24,12 @@ final class _DependencyTracker {
     _scopes.last.dependencies.add(listenable);
   }
 
-  /// Evaluates [providers] and collects every dependency accessed during
-  /// that evaluation.
+  /// Evaluates [callback] and collects every dependency accessed through
+  /// `.watch` during that evaluation.
   ///
-  /// Any exception thrown by [providers] propagates normally.
+  /// Any exception thrown by [callback] propagates normally.
   static _DependencyCollection<T> collect<T>(
-    T Function() providers, {
+    T Function() callback, {
     required String widgetName,
   }) {
     final _DependencyScope scope = _DependencyScope(
@@ -39,17 +39,12 @@ final class _DependencyTracker {
     _scopes.add(scope);
 
     try {
-      final T value = providers();
+      final T value = callback();
 
       assert(
         scope.dependencies.isNotEmpty,
         '$widgetName requires at least one watched state source.\n\n'
-        'Use `.watch` inside the `providers` callback.\n\n'
-        'Example:\n'
-        'providers: () => (\n'
-        '  user: userProvider.watch,\n'
-        '  loading: loadingField.watch,\n'
-        ')',
+        'Use `.watch` inside the dependency-collecting callback.',
       );
 
       return _DependencyCollection<T>(

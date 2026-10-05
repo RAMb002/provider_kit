@@ -33,3 +33,4 @@ part 'internal/multi_state_core.dart';
 part 'widgets/multi_state_builder.dart';
 part 'widgets/multi_state_consumer.dart';
 part 'widgets/multi_state_listener.dart';
+part 'widgets/watch_builder.dart';

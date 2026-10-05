@@ -5,6 +5,7 @@
 - Updated `MultiState` and `MultiViewState` widget APIs with type-safe support for combining
 providers of different types into customizable combined states.
 - Replaced the previous `MultiState` and `MultiViewState` widget APIs with the new APIs.
+- Added `WatchBuilder`, a new widget for simply listening to multiple providers on the go using `.watch`.
 
 **State**
 

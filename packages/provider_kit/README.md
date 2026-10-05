@@ -383,6 +383,25 @@ MultiStateConsumer(
 );
 ```
 
+### WatchBuilder
+
+`WatchBuilder` provides a simple way to rebuild the UI when the state used inside the builder changes.
+
+```dart
+WatchBuilder(
+  builder: (context, child) {
+    final user = userProvider.watch;
+    final cart = cartProvider.watch;
+
+    return Text('${user.name}: ${cart.length}');
+  },
+)
+```
+State is accessed directly with .watch, and the widget automatically tracks the providers used by the builder.
+Unlike `MultiStateBuilder`, you don't need to declare a `providers` callback or create a combined state.
+
+Use `WatchBuilder` when you want a simple way to rebuild from multiple state sources.
+
 > **Tip:** `Multi State Widgets` work with any notifier
 > provided by ProviderKit, not just `StateNotifier`.
 
