@@ -22,13 +22,9 @@ void main() {
       });
 
       test('copies the keepAliveStates set', () async {
-        final keepAliveStates = <KeepAliveState>{
-          KeepAliveState.success,
-        };
+        final keepAliveStates = <KeepAliveState>{KeepAliveState.success};
 
-        final group = MutationGroup<int>(
-          keepAliveStates: keepAliveStates,
-        );
+        final group = MutationGroup<int>(keepAliveStates: keepAliveStates);
 
         keepAliveStates.add(KeepAliveState.error);
 
@@ -52,9 +48,7 @@ void main() {
 
       test('exposes an unmodifiable keepAlive policy internally', () {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-          },
+          keepAliveStates: {KeepAliveState.success},
         );
 
         final mutation = group('key');
@@ -123,23 +117,24 @@ void main() {
       });
 
       test(
-          'key lookup creates a new mutation after the previous one was disposed',
-          () {
-        final group = MutationGroup<int>();
+        'key lookup creates a new mutation after the previous one was disposed',
+        () {
+          final group = MutationGroup<int>();
 
-        final first = group('key');
+          final first = group('key');
 
-        group.dispose('key');
+          group.dispose('key');
 
-        expect(first.mounted, isFalse);
+          expect(first.mounted, isFalse);
 
-        final second = group('key');
+          final second = group('key');
 
-        expect(identical(first, second), isFalse);
-        expect(second.mounted, isTrue);
+          expect(identical(first, second), isFalse);
+          expect(second.mounted, isTrue);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
     });
 
     group('automatic disposal', () {
@@ -225,27 +220,28 @@ void main() {
       });
 
       test(
-          'mutation disposed after last listener removal is replaced on next lookup',
-          () async {
-        final group = MutationGroup<int>();
-        final first = group('key');
+        'mutation disposed after last listener removal is replaced on next lookup',
+        () async {
+          final group = MutationGroup<int>();
+          final first = group('key');
 
-        void listener() {}
+          void listener() {}
 
-        first.addListener(listener);
-        first.removeListener(listener);
+          first.addListener(listener);
+          first.removeListener(listener);
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(first.mounted, isFalse);
+          expect(first.mounted, isFalse);
 
-        final second = group('key');
-        expect(identical(first, second), isFalse);
-        expect(second.mounted, isTrue);
-        expect(second.isIdle, isTrue);
+          final second = group('key');
+          expect(identical(first, second), isFalse);
+          expect(second.mounted, isTrue);
+          expect(second.isIdle, isTrue);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
       test('adding a listener prevents automatic disposal', () async {
         final group = MutationGroup<int>();
         final mutation = group('key');
@@ -269,81 +265,85 @@ void main() {
         group.dispose();
       });
 
-      test('re-adding a listener before queued disposal keeps mutation alive',
-          () async {
-        final group = MutationGroup<int>();
-        final mutation = group('key');
+      test(
+        're-adding a listener before queued disposal keeps mutation alive',
+        () async {
+          final group = MutationGroup<int>();
+          final mutation = group('key');
 
-        void listener() {}
+          void listener() {}
 
-        mutation.addListener(listener);
-        mutation.removeListener(listener);
+          mutation.addListener(listener);
+          mutation.removeListener(listener);
 
-        // Re-add before the scheduled microtask gets a chance to dispose it.
-        mutation.addListener(listener);
+          // Re-add before the scheduled microtask gets a chance to dispose it.
+          mutation.addListener(listener);
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(mutation.mounted, isTrue);
+          expect(mutation.mounted, isTrue);
 
-        mutation.removeListener(listener);
+          mutation.removeListener(listener);
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(mutation.mounted, isFalse);
+          expect(mutation.mounted, isFalse);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
 
-      test('adding a listener after success cancels pending auto-disposal',
-          () async {
-        final group = MutationGroup<int>();
-        final mutation = group('key');
+      test(
+        'adding a listener after success cancels pending auto-disposal',
+        () async {
+          final group = MutationGroup<int>();
+          final mutation = group('key');
 
-        await mutation.run(() async => 42);
+          await mutation.run(() async => 42);
 
-        void listener() {}
+          void listener() {}
 
-        mutation.addListener(listener);
+          mutation.addListener(listener);
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(mutation.mounted, isTrue);
-        expect(group('key'), same(mutation));
+          expect(mutation.mounted, isTrue);
+          expect(group('key'), same(mutation));
 
-        mutation.removeListener(listener);
-        await Future<void>.delayed(Duration.zero);
+          mutation.removeListener(listener);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(mutation.mounted, isFalse);
+          expect(mutation.mounted, isFalse);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
 
-      test('group disposal safely handles a pending auto-dispose callback',
-          () async {
-        final group = MutationGroup<int>();
-        final mutation = group('key');
+      test(
+        'group disposal safely handles a pending auto-dispose callback',
+        () async {
+          final group = MutationGroup<int>();
+          final mutation = group('key');
 
-        await mutation.run(() async => 42);
+          await mutation.run(() async => 42);
 
-        expect(mutation.mounted, isTrue);
+          expect(mutation.mounted, isTrue);
 
-        group.dispose();
+          group.dispose();
 
-        expect(mutation.mounted, isFalse);
+          expect(mutation.mounted, isFalse);
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(mutation.mounted, isFalse);
-      });
+          expect(mutation.mounted, isFalse);
+        },
+      );
     });
 
     group('keepAliveStates', () {
       test('keeps successful mutation alive when configured', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-          },
+          keepAliveStates: {KeepAliveState.success},
         );
 
         final mutation = group('key');
@@ -361,9 +361,7 @@ void main() {
 
       test('keeps error mutation alive when configured', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.error,
-          },
+          keepAliveStates: {KeepAliveState.error},
         );
 
         final mutation = group('key');
@@ -384,9 +382,7 @@ void main() {
 
       test('keeping success does not keep error alive', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-          },
+          keepAliveStates: {KeepAliveState.success},
         );
 
         final mutation = group('key');
@@ -406,9 +402,7 @@ void main() {
 
       test('keeping error does not keep success alive', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.error,
-          },
+          keepAliveStates: {KeepAliveState.error},
         );
 
         final mutation = group('key');
@@ -422,36 +416,35 @@ void main() {
         group.dispose();
       });
 
-      test('keeping both success and error alive preserves both states',
-          () async {
-        final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-            KeepAliveState.error,
-          },
-        );
+      test(
+        'keeping both success and error alive preserves both states',
+        () async {
+          final group = MutationGroup<int>(
+            keepAliveStates: {KeepAliveState.success, KeepAliveState.error},
+          );
 
-        final successMutation = group('success');
-        await successMutation.run(() async => 42);
+          final successMutation = group('success');
+          await successMutation.run(() async => 42);
 
-        final errorMutation = group('error');
+          final errorMutation = group('error');
 
-        try {
-          await errorMutation.run(() async {
-            throw StateError('failure');
-          });
-        } catch (_) {}
+          try {
+            await errorMutation.run(() async {
+              throw StateError('failure');
+            });
+          } catch (_) {}
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(successMutation.mounted, isTrue);
-        expect(errorMutation.mounted, isTrue);
+          expect(successMutation.mounted, isTrue);
+          expect(errorMutation.mounted, isTrue);
 
-        expect(group('success'), same(successMutation));
-        expect(group('error'), same(errorMutation));
+          expect(group('success'), same(successMutation));
+          expect(group('error'), same(errorMutation));
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
     });
 
     group('disposeKey', () {
@@ -481,51 +474,51 @@ void main() {
         group.dispose();
       });
 
-      test('force disposes a successful mutation even if keep-alive is enabled',
-          () async {
-        final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-          },
-        );
+      test(
+        'force disposes a successful mutation even if keep-alive is enabled',
+        () async {
+          final group = MutationGroup<int>(
+            keepAliveStates: {KeepAliveState.success},
+          );
 
-        final mutation = group('key');
+          final mutation = group('key');
 
-        await mutation.run(() async => 42);
+          await mutation.run(() async => 42);
 
-        expect(mutation.mounted, isTrue);
+          expect(mutation.mounted, isTrue);
 
-        group.dispose('key');
+          group.dispose('key');
 
-        expect(mutation.mounted, isFalse);
+          expect(mutation.mounted, isFalse);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
 
-      test('force disposes an error mutation even if keep-alive is enabled',
-          () async {
-        final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.error,
-          },
-        );
+      test(
+        'force disposes an error mutation even if keep-alive is enabled',
+        () async {
+          final group = MutationGroup<int>(
+            keepAliveStates: {KeepAliveState.error},
+          );
 
-        final mutation = group('key');
+          final mutation = group('key');
 
-        try {
-          await mutation.run(() async {
-            throw StateError('failure');
-          });
-        } catch (_) {}
+          try {
+            await mutation.run(() async {
+              throw StateError('failure');
+            });
+          } catch (_) {}
 
-        expect(mutation.mounted, isTrue);
+          expect(mutation.mounted, isTrue);
 
-        group.dispose('key');
+          group.dispose('key');
 
-        expect(mutation.mounted, isFalse);
+          expect(mutation.mounted, isFalse);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
 
       test('force disposes a loading mutation', () async {
         final group = MutationGroup<int>();
@@ -563,47 +556,45 @@ void main() {
         group.dispose();
       });
       test(
-          'disposing an old mutation does not affect a new mutation for the same key',
-          () async {
-        final group = MutationGroup<int>();
-
-        final first = group('key');
-        group.dispose('key');
-
-        final second = group('key');
-
-        expect(first.mounted, isFalse);
-        expect(second.mounted, isTrue);
-
-        await second.run(() async => 42);
-
-        expect(second.data, 42);
-        expect(second.isSuccess, isTrue);
-
-        group.dispose();
-      });
-
-      test(
-        'disposing a mutation directly removes it from the group cache',
-        () {
+        'disposing an old mutation does not affect a new mutation for the same key',
+        () async {
           final group = MutationGroup<int>();
 
           final first = group('key');
-
-          expect(first.mounted, isTrue);
-
-          first.dispose();
-
-          expect(first.mounted, isFalse);
+          group.dispose('key');
 
           final second = group('key');
 
-          expect(identical(first, second), isFalse);
+          expect(first.mounted, isFalse);
           expect(second.mounted, isTrue);
+
+          await second.run(() async => 42);
+
+          expect(second.data, 42);
+          expect(second.isSuccess, isTrue);
 
           group.dispose();
         },
       );
+
+      test('disposing a mutation directly removes it from the group cache', () {
+        final group = MutationGroup<int>();
+
+        final first = group('key');
+
+        expect(first.mounted, isTrue);
+
+        first.dispose();
+
+        expect(first.mounted, isFalse);
+
+        final second = group('key');
+
+        expect(identical(first, second), isFalse);
+        expect(second.mounted, isTrue);
+
+        group.dispose();
+      });
     });
 
     group('dispose', () {
@@ -676,10 +667,7 @@ void main() {
     group('independent keyed state', () {
       test('different keys maintain completely independent states', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-            KeepAliveState.error,
-          },
+          keepAliveStates: {KeepAliveState.success, KeepAliveState.error},
         );
 
         final first = group('one');
@@ -702,7 +690,8 @@ void main() {
         expect(first.data, 1);
 
         expect(second.isLoading, isTrue);
-        expect(second.data, isNull);
+        expect(() => second.data, throwsA(isA<StateError>()));
+        expect(second.dataOrNull, isNull);
 
         expect(third.isError, isTrue);
 
@@ -717,9 +706,7 @@ void main() {
       });
       test('same key preserves state while mutation remains cached', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-          },
+          keepAliveStates: {KeepAliveState.success},
         );
 
         final first = group('key');
@@ -765,32 +752,34 @@ void main() {
           group.dispose();
         },
       );
-      test('stale concurrent group execution cannot overwrite latest state',
-          () async {
-        final group = MutationGroup<int>();
-        final mutation = group('key');
+      test(
+        'stale concurrent group execution cannot overwrite latest state',
+        () async {
+          final group = MutationGroup<int>();
+          final mutation = group('key');
 
-        final first = Completer<int>();
-        final second = Completer<int>();
+          final first = Completer<int>();
+          final second = Completer<int>();
 
-        final firstFuture = mutation.run(() => first.future);
-        final secondFuture = mutation.run(() => second.future);
+          final firstFuture = mutation.run(() => first.future);
+          final secondFuture = mutation.run(() => second.future);
 
-        second.complete(2);
+          second.complete(2);
 
-        expect(await secondFuture, 2);
-        expect(mutation.isSuccess, isTrue);
-        expect(mutation.data, 2);
+          expect(await secondFuture, 2);
+          expect(mutation.isSuccess, isTrue);
+          expect(mutation.data, 2);
 
-        first.complete(1);
+          first.complete(1);
 
-        expect(await firstFuture, 1);
+          expect(await firstFuture, 1);
 
-        expect(mutation.isSuccess, isTrue);
-        expect(mutation.data, 2);
+          expect(mutation.isSuccess, isTrue);
+          expect(mutation.data, 2);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
       test(
         'disposing group while execution is active does not prevent executor completion',
         () async {
@@ -816,9 +805,7 @@ void main() {
       });
       test('observes mutation lifecycle events on success', () async {
         final observer = _TestNotifierObserver();
-        ProviderKit.configure(
-          observer: observer,
-        );
+        ProviderKit.configure(observer: observer);
 
         final mutation = Mutation<int>();
 
@@ -843,9 +830,7 @@ void main() {
 
       test('observes mutation lifecycle events on error', () async {
         final observer = _TestNotifierObserver();
-        ProviderKit.configure(
-          observer: observer,
-        );
+        ProviderKit.configure(observer: observer);
 
         final mutation = Mutation<int>();
         final exception = StateError('failure');
@@ -860,23 +845,11 @@ void main() {
 
         expect(observer.changes, hasLength(2));
 
-        expect(
-          observer.changes[0].currentState,
-          isA<MutationIdle<int>>(),
-        );
-        expect(
-          observer.changes[0].nextState,
-          isA<MutationLoading<int>>(),
-        );
+        expect(observer.changes[0].currentState, isA<MutationIdle<int>>());
+        expect(observer.changes[0].nextState, isA<MutationLoading<int>>());
 
-        expect(
-          observer.changes[1].currentState,
-          isA<MutationLoading<int>>(),
-        );
-        expect(
-          observer.changes[1].nextState,
-          isA<MutationError<int>>(),
-        );
+        expect(observer.changes[1].currentState, isA<MutationLoading<int>>());
+        expect(observer.changes[1].nextState, isA<MutationError<int>>());
 
         expect(observer.errors, hasLength(1));
         expect(observer.errors.single, same(exception));
@@ -885,42 +858,37 @@ void main() {
 
         expect(observer.disposed, contains(mutation));
       });
-      test(
-        'reports errors thrown while publishing mutation state',
-        () async {
-          final observer = _TestNotifierObserver();
-          ProviderKit.configure(
-            observer: observer,
-          );
+      test('reports errors thrown while publishing mutation state', () async {
+        final observer = _TestNotifierObserver();
+        ProviderKit.configure(observer: observer);
 
-          final mutation = Mutation<int>();
+        final mutation = Mutation<int>();
 
-          observer.throwOnChange = true;
+        observer.throwOnChange = true;
 
-          await expectLater(
-            mutation.run(() async => 42),
-            throwsA(
-              isA<StateError>().having(
-                (error) => error.message,
-                'message',
-                'observer onChange failed',
-              ),
-            ),
-          );
-
-          expect(observer.errors, hasLength(1));
-          expect(
-            observer.errors.single,
+        await expectLater(
+          mutation.run(() async => 42),
+          throwsA(
             isA<StateError>().having(
               (error) => error.message,
               'message',
               'observer onChange failed',
             ),
-          );
+          ),
+        );
 
-          mutation.dispose();
-        },
-      );
+        expect(observer.errors, hasLength(1));
+        expect(
+          observer.errors.single,
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'observer onChange failed',
+          ),
+        );
+
+        mutation.dispose();
+      });
     });
   });
 }
@@ -939,10 +907,7 @@ class _TestNotifierObserver extends NotifierObserver {
   }
 
   @override
-  void onChange(
-    NotifierBase notifier,
-    Change<dynamic> change,
-  ) {
+  void onChange(NotifierBase notifier, Change<dynamic> change) {
     super.onChange(notifier, change);
     if (throwOnChange) {
       throw StateError('observer onChange failed');
@@ -951,11 +916,7 @@ class _TestNotifierObserver extends NotifierObserver {
   }
 
   @override
-  void onError(
-    NotifierBase notifier,
-    Object error,
-    StackTrace stackTrace,
-  ) {
+  void onError(NotifierBase notifier, Object error, StackTrace stackTrace) {
     super.onError(notifier, error, stackTrace);
     errors.add(error);
   }

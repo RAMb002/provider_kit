@@ -17,7 +17,8 @@ void main() {
         expect(mutation.isLoading, isFalse);
         expect(mutation.isSuccess, isFalse);
         expect(mutation.isError, isFalse);
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
         expect(mutation.hasListeners, isFalse);
 
         mutation.dispose();
@@ -157,7 +158,8 @@ void main() {
         expect(mutation.isLoading, isFalse);
         expect(mutation.isSuccess, isFalse);
         expect(mutation.isError, isTrue);
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
 
         mutation.dispose();
       });
@@ -203,10 +205,7 @@ void main() {
         const String customMessage = 'Unable to save changes.';
         ProviderKit.configure(
           errorInfoMapper: (error, stackTrace) {
-            return const ErrorInfo(
-              message: customMessage,
-              code: 'save_failed',
-            );
+            return const ErrorInfo(message: customMessage, code: 'save_failed');
           },
         );
 
@@ -217,10 +216,7 @@ void main() {
           throw exception;
         });
 
-        await expectLater(
-          future,
-          throwsA(same(exception)),
-        );
+        await expectLater(future, throwsA(same(exception)));
 
         final state = mutation.state as MutationError<int>;
 
@@ -360,10 +356,7 @@ void main() {
         final exception = StateError('stale failure');
         first.completeError(exception);
 
-        await expectLater(
-          firstFuture,
-          throwsA(same(exception)),
-        );
+        await expectLater(firstFuture, throwsA(same(exception)));
 
         expect(mutation.isSuccess, isTrue);
         expect(mutation.data, 2);
@@ -493,7 +486,8 @@ void main() {
         expect(mutation.isLoading, isFalse);
         expect(mutation.isSuccess, isFalse);
         expect(mutation.isError, isFalse);
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
 
         mutation.dispose();
       });
@@ -512,7 +506,8 @@ void main() {
         mutation.reset();
 
         expect(mutation.isIdle, isTrue);
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
 
         mutation.dispose();
       });
@@ -536,41 +531,39 @@ void main() {
         // The stale execution must not restore Success.
         expect(mutation.isIdle, isTrue);
         expect(mutation.isSuccess, isFalse);
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
 
         mutation.dispose();
       });
       test(
-          'reset success state to idle does not retain the mutation as success',
-          () async {
-        final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.success,
-          },
-        );
+        'reset success state to idle does not retain the mutation as success',
+        () async {
+          final group = MutationGroup<int>(
+            keepAliveStates: {KeepAliveState.success},
+          );
 
-        final mutation = group('key');
+          final mutation = group('key');
 
-        await mutation.run(() async => 42);
+          await mutation.run(() async => 42);
 
-        expect(mutation.mounted, isTrue);
+          expect(mutation.mounted, isTrue);
 
-        mutation.reset();
+          mutation.reset();
 
-        expect(mutation.isIdle, isTrue);
+          expect(mutation.isIdle, isTrue);
 
-        await Future<void>.delayed(Duration.zero);
+          await Future<void>.delayed(Duration.zero);
 
-        expect(mutation.mounted, isFalse);
+          expect(mutation.mounted, isFalse);
 
-        group.dispose();
-      });
+          group.dispose();
+        },
+      );
 
       test('reset error state to idle removes error retention', () async {
         final group = MutationGroup<int>(
-          keepAliveStates: {
-            KeepAliveState.error,
-          },
+          keepAliveStates: {KeepAliveState.error},
         );
 
         final mutation = group('key');
@@ -607,10 +600,7 @@ void main() {
 
         completer.completeError(exception);
 
-        await expectLater(
-          future,
-          throwsA(same(exception)),
-        );
+        await expectLater(future, throwsA(same(exception)));
 
         // The stale execution must not publish MutationError.
         expect(mutation.isIdle, isTrue);
@@ -664,8 +654,8 @@ void main() {
     group('data and convenience getters', () {
       test('data is null in idle state', () {
         final mutation = Mutation<int>();
-
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
 
         mutation.dispose();
       });
@@ -675,8 +665,8 @@ void main() {
         final completer = Completer<int>();
 
         final future = mutation.run(() => completer.future);
-
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
         expect(mutation.isLoading, isTrue);
 
         completer.complete(42);
@@ -695,7 +685,8 @@ void main() {
           });
         } catch (_) {}
 
-        expect(mutation.data, isNull);
+        expect(() => mutation.data, throwsA(isA<StateError>()));
+        expect(mutation.dataOrNull, isNull);
         expect(mutation.isError, isTrue);
 
         mutation.dispose();
@@ -751,32 +742,31 @@ void main() {
 
         mutation.dispose();
 
-        expect(
-          mutation.reset,
-          throwsA(isA<AssertionError>()),
-        );
+        expect(mutation.reset, throwsA(isA<AssertionError>()));
       });
     });
 
     group('execution completes after disposal', () {
-      test('successful execution does not update state after disposal',
-          () async {
-        final mutation = Mutation<int>();
-        final completer = Completer<int>();
+      test(
+        'successful execution does not update state after disposal',
+        () async {
+          final mutation = Mutation<int>();
+          final completer = Completer<int>();
 
-        final future = mutation.run(() => completer.future);
+          final future = mutation.run(() => completer.future);
 
-        expect(mutation.isLoading, isTrue);
+          expect(mutation.isLoading, isTrue);
 
-        mutation.dispose();
+          mutation.dispose();
 
-        completer.complete(42);
+          completer.complete(42);
 
-        expect(await future, 42);
+          expect(await future, 42);
 
-        expect(mutation.mounted, isFalse);
-        expect(mutation.state, isA<MutationLoading<int>>());
-      });
+          expect(mutation.mounted, isFalse);
+          expect(mutation.state, isA<MutationLoading<int>>());
+        },
+      );
 
       test('failed execution does not update state after disposal', () async {
         final mutation = Mutation<int>();
