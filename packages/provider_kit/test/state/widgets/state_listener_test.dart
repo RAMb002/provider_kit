@@ -80,9 +80,7 @@ void main() {
     testWidgets('throws AssertionError when child is not specified', (
       tester,
     ) async {
-      const expectedMessage =
-          'StateListener<int> used outside of StateListener must specify a child';
-
+      const expectedMessage = 'StateListener<int> requires a child.';
       await tester.pumpWidget(
         StateListener<int>(
           provider: CounterProvider(),

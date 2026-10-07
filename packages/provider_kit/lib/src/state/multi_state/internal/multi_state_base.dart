@@ -16,8 +16,10 @@ part of '../multi_state.dart';
 /// for each dependency notification handled by this widget. The returned
 /// value becomes the combined state, while every `.watch` accessed during
 /// the collection becomes a dependency.
-class _MultiStateBase<T> extends StatefulWidget {
-  const _MultiStateBase({
+@internal
+class MultiStateBase<T> extends StatefulWidget {
+  const MultiStateBase({
+    super.key,
     required this.providers,
     this.listener,
     this.listenWhen,
@@ -55,7 +57,7 @@ class _MultiStateBase<T> extends StatefulWidget {
 
   /// Builds the widget from the current combined state.
   ///
-  /// When this is null, [_MultiStateBase] behaves as a listener-only widget
+  /// When this is null, [MultiStateBase] behaves as a listener-only widget
   /// and returns [child] directly.
   final StateWidgetBuilder<T>? builder;
 
@@ -70,10 +72,10 @@ class _MultiStateBase<T> extends StatefulWidget {
   final String widgetName;
 
   @override
-  State<_MultiStateBase<T>> createState() => _MultiStateBaseState<T>();
+  State<MultiStateBase<T>> createState() => _MultiStateBaseState<T>();
 }
 
-/// State implementation for [_MultiStateBase].
+/// State implementation for [MultiStateBase].
 ///
 /// The shared dependency, state, listener, and rebuild mechanics are owned
 /// by [_MultiStateCore]. This state coordinates those mechanics with the
@@ -81,7 +83,7 @@ class _MultiStateBase<T> extends StatefulWidget {
 ///
 /// Dependency subscriptions are updated incrementally so that sources which
 /// are no longer used are unsubscribed and newly used sources are subscribed.
-class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
+class _MultiStateBaseState<T> extends State<MultiStateBase<T>> {
   late final _MultiStateCore<T> _core;
   @override
   void initState() {
@@ -115,7 +117,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
   }
 
   @override
-  void didUpdateWidget(_MultiStateBase<T> oldWidget) {
+  void didUpdateWidget(MultiStateBase<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // Re-collect when the widget configuration changes. This is important
@@ -218,10 +220,7 @@ class _MultiStateBaseState<T> extends State<_MultiStateBase<T>> {
 
     // Listener-only variants do not build from state. They simply preserve
     // their child subtree.
-    assert(
-      widget.child != null,
-      '''${widget.widgetName} used outside of MultiStateListener must specify a child''',
-    );
+    assert(widget.child != null, '${widget.widgetName} requires a child.');
 
     return widget.child!;
   }

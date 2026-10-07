@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
-import 'package:provider_kit/src/state/widgets/state_listener.dart';
+import 'package:provider_kit/src/state/widgets/state_listener/state_listener.dart';
 
 /// {@template provider_kit.stateBuilder}
 /// A widget that rebuilds its UI based on the state of a [StateValueListenable].

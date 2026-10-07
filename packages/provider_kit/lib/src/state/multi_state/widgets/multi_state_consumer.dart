@@ -147,7 +147,7 @@ class MultiStateConsumer<T> extends MultiStateConsumerBase<T> {
 ///
 /// The actual dependency tracking, state collection, subscriptions,
 /// equality checks, rebuild handling, and listener invocation are handled by
-/// the internal [_MultiStateBase] implementation.
+/// the internal [MultiStateBase] implementation.
 abstract class MultiStateConsumerBase<T> extends StatefulWidget {
   const MultiStateConsumerBase({
     super.key,
@@ -158,7 +158,7 @@ abstract class MultiStateConsumerBase<T> extends StatefulWidget {
     this.child,
   });
 
-  /// {@macro provider_kit.multi_state.provider_param}
+  /// {@macro provider_kit.multi_state.providers_param}
   ///
   /// The returned value becomes the combined state passed to [builder],
   /// [listener], [rebuildWhen], and [listenWhen].
@@ -209,7 +209,7 @@ abstract class MultiStateConsumerBase<T> extends StatefulWidget {
 class _MultiStateConsumerBaseState<T> extends State<MultiStateConsumerBase<T>> {
   @override
   Widget build(BuildContext context) {
-    return _MultiStateBase<T>(
+    return MultiStateBase<T>(
       providers: widget.providers,
       builder: widget.build,
       listener: widget.onStateChange,

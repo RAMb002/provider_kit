@@ -196,6 +196,9 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   }
 
   @override
+  String get debugWidgetName => 'ViewStateListener<$T>';
+
+  @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties

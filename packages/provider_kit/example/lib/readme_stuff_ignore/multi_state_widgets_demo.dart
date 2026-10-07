@@ -81,7 +81,7 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
             );
           },
         ),
-      MultiStateDemoMode.listener => MultiStateListener(
+      MultiStateDemoMode.listener => StateListener.multi(
           providers: providers,
           listener: (_, states) {
             _handleStateChange(states);

@@ -119,7 +119,7 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
     this.child,
   });
 
-  /// {@macro provider_kit.multi_state.provider_param}
+  /// {@macro provider_kit.multi_state.providers_param}
   ///
   /// The returned value becomes the combined state passed to [builder] and
   /// [rebuildWhen].
@@ -167,7 +167,7 @@ abstract class MultiStateBuilderBase<T> extends StatefulWidget {
 class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
   @override
   Widget build(BuildContext context) {
-    return _MultiStateBase<T>(
+    return MultiStateBase<T>(
       providers: widget.providers,
       builder: widget.build,
       rebuildWhen: widget.rebuildWhen,

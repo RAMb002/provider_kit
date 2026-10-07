@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart';
 import 'package:provider_kit/src/state/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/state/state_field.dart';
+import 'package:provider_kit/src/state/widgets/state_listener/state_listener.dart';
 
 import '../../shared/mocks/notifiers.dart';
 import '../../shared/mocks/widgets.dart';
@@ -45,7 +46,7 @@ class _MultiListenerTestAppState extends State<MultiListenerTestApp> {
       home: Scaffold(
         body: Column(
           children: [
-            MultiStateListener<List<int>>(
+            StateListener.multi(
               providers: () => [
                 for (final provider in _activeProviders) provider.watch,
               ],
@@ -106,7 +107,7 @@ class _CombinedState {
 }
 
 void main() {
-  group('MultiStateListener', () {
+  group('StateListener.multi', () {
     // =========================================================================
     // SECTION 1: CORE FLUTTER HIERARCHY & FRAMEWORK CONTRACTS
     // =========================================================================
@@ -114,13 +115,12 @@ void main() {
     testWidgets('throws AssertionError when child is not specified', (
       tester,
     ) async {
-      const expectedMessage =
-          'MultiStateListener<int> used outside of MultiStateListener must specify a child';
+      const expectedMessage = 'StateListener<int>.multi requires a child.';
 
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
+        StateListener.multi(
           providers: () => provider.watch,
           listener: (_, __) {},
         ),
@@ -141,7 +141,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
+        StateListener.multi(
           providers: () => provider.watch,
           listener: (_, __) {},
           child: const SizedBox(key: targetKey),
@@ -162,7 +162,7 @@ void main() {
       final providers = MyProvider().providersOne;
 
       await tester.pumpWidget(
-        MultiStateListener<List<int>>(
+        StateListener.multi(
           providers: () => [for (final provider in providers) provider.watch],
           callListenerOnInit: false,
           listener: (_, state) => states.add(state),
@@ -186,7 +186,7 @@ void main() {
         final providers = MyProvider().providersOne;
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [for (final provider in providers) provider.watch],
             callListenerOnInit: true,
             listener: (_, state) => states.add(state),
@@ -207,7 +207,7 @@ void main() {
         final states = <int>[];
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () => field.watch,
             callListenerOnInit: true,
             listener: (_, state) {
@@ -232,7 +232,7 @@ void main() {
         final states = <int>[];
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () => field.watch,
             callListenerOnInit: true,
             listener: (_, state) {
@@ -259,7 +259,7 @@ void main() {
       final states = <int>[];
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
+        StateListener.multi(
           providers: () => field.watch,
           callListenerOnInit: true,
           listener: (_, state) {
@@ -297,7 +297,7 @@ void main() {
         final states = <int>[];
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () => field.watch,
             callListenerOnInit: true,
             listener: (_, state) {
@@ -336,7 +336,7 @@ void main() {
       final states = <int>[];
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
+        StateListener.multi(
           providers: () => field.watch,
           callListenerOnInit: true,
           listener: (_, state) {
@@ -362,7 +362,7 @@ void main() {
         final states = <int>[];
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () => field.watch,
             callListenerOnInit: true,
             listener: (_, state) {
@@ -390,7 +390,7 @@ void main() {
         final provider2 = CounterProvider(9);
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [provider1.watch, provider2.watch],
             callListenerOnInit: true,
             listener: (_, states) => initStates = states,
@@ -415,7 +415,7 @@ void main() {
         final provider = MyProvider();
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [
               for (final item in provider.providersOne) item.watch,
             ],
@@ -442,7 +442,7 @@ void main() {
         final provider2 = CounterProvider(7);
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [provider1.watch, provider2.watch],
             listener: (_, states) => receivedStates = states,
             child: const SizedBox(),
@@ -468,7 +468,7 @@ void main() {
         final provider = MyProvider();
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [
               for (final item in provider.providersOne) item.watch,
             ],
@@ -494,7 +494,7 @@ void main() {
         final provider = MyProvider();
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [
               for (final item in provider.providersOne) item.watch,
             ],
@@ -525,7 +525,7 @@ void main() {
       final provider2 = CounterProvider(7);
 
       await tester.pumpWidget(
-        MultiStateListener(
+        StateListener.multi(
           providers: () => (first: provider1.watch, second: provider2.watch),
           listener: (_, state) {
             receivedState = state;
@@ -549,7 +549,7 @@ void main() {
       final provider2 = CounterProvider(7);
 
       await tester.pumpWidget(
-        MultiStateListener(
+        StateListener.multi(
           providers: () => _CombinedState(
             first: provider1.watch,
             second: provider2.watch.isEven,
@@ -579,7 +579,7 @@ void main() {
       ];
 
       await tester.pumpWidget(
-        MultiStateListener(
+        StateListener.multi(
           providers: () => [for (final provider in providers) provider.watch],
           listener: (_, states) {
             receivedStates = states;
@@ -604,7 +604,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
+        StateListener.multi(
           providers: () => provider.state,
           listener: (_, __) {},
           child: const SizedBox(),
@@ -629,7 +629,7 @@ void main() {
         final provider = CounterProvider();
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () {
               provider.watch;
               throw StateError('providers evaluation failed');
@@ -654,7 +654,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateListener(
+        StateListener.multi(
           providers: () => (first: provider.watch, second: provider.watch),
           listener: (_, state) {
             states.add((state.first, state.second));
@@ -678,7 +678,7 @@ void main() {
         final providerB = CounterProvider(100);
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () {
               if (providerA.state.isEven) {
                 return providerA.watch;
@@ -735,7 +735,7 @@ void main() {
         await tester.pumpWidget(
           StatefulBuilder(
             builder: (context, setState) {
-              return MultiStateListener<List<int>>(
+              return StateListener.multi(
                 providers: () => [
                   for (final provider in activeProviders) provider.watch,
                 ],
@@ -800,7 +800,7 @@ void main() {
                 builder: (context, setState) {
                   return Column(
                     children: [
-                      MultiStateListener<List<int>>(
+                      StateListener.multi(
                         providers: () => [
                           for (final provider in activeProviders)
                             provider.watch,
@@ -1005,7 +1005,7 @@ void main() {
       final provider2 = CounterProvider(10);
 
       await tester.pumpWidget(
-        MultiStateListener<List<int>>(
+        StateListener.multi(
           providers: () => [provider1.watch, provider2.watch],
           listenWhen: (previous, current) {
             listenWhenCallCount++;
@@ -1039,7 +1039,7 @@ void main() {
       final provider2 = CounterProvider(10);
 
       await tester.pumpWidget(
-        MultiStateListener<List<int>>(
+        StateListener.multi(
           providers: () => [provider1.watch, provider2.watch],
           listenWhen: (previous, current) {
             listenWhenCallCount++;
@@ -1092,7 +1092,7 @@ void main() {
         final provider2 = CounterProvider(10);
 
         await tester.pumpWidget(
-          MultiStateListener<List<int>>(
+          StateListener.multi(
             providers: () => [provider1.watch, provider2.watch],
             listenWhen: (previous, current) {
               previousStates.add(previous);
@@ -1131,7 +1131,7 @@ void main() {
       final transitions = <({int previous, int current})>[];
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
+        StateListener.multi(
           providers: () => field.watch,
           callListenerOnInit: true,
           listenWhen: (previous, current) {
@@ -1173,7 +1173,7 @@ void main() {
         final provider = CounterProvider();
 
         await tester.pumpWidget(
-          MultiStateListener<int>(
+          StateListener.multi(
             providers: () => provider.watch,
             listenWhen: (previous, current) {
               previousValues.add(previous);
@@ -1209,7 +1209,7 @@ void main() {
       final providers = provider.providersOne;
 
       await tester.pumpWidget(
-        MultiStateListener<List<int>>(
+        StateListener.multi(
           providers: () => [for (final item in providers) item.watch],
           listenWhen: (_, __) => false,
           listener: (_, statesList) => states.add(statesList),
@@ -1235,7 +1235,7 @@ void main() {
       final providers = provider.providersOne;
 
       await tester.pumpWidget(
-        MultiStateListener<List<int>>(
+        StateListener.multi(
           providers: () => [for (final item in providers) item.watch],
           listenWhen: (_, __) => true,
           listener: (_, statesList) => states.add(statesList),
@@ -1260,7 +1260,7 @@ void main() {
       final provider = StateNotifier<List<String>>(['initial']);
 
       await tester.pumpWidget(
-        MultiStateListener<List<String>>(
+        StateListener.multi(
           providers: () => provider.watch,
           listenWhen: (previous, current) {
             return previous.first.length != current.first.length;
@@ -1297,8 +1297,8 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: MultiStateListener<int>(
-              providers: () => provider.watch,
+            body: StateListener.multi(
+              providers: () => [provider.watch],
               listener: (context, _) {
                 showDialog(
                   context: context,
@@ -1347,7 +1347,7 @@ void main() {
                     child: SizedBox(
                       width: 100,
                       height: 100,
-                      child: MultiStateListener<List<int>>(
+                      child: StateListener.multi(
                         providers: () => [
                           for (final provider in currentProviders)
                             provider.watch,
@@ -1399,8 +1399,8 @@ void main() {
       final provider = CounterProvider(0);
 
       await tester.pumpWidget(
-        MultiStateListener<int>(
-          providers: () => provider.watch,
+        StateListener.multi(
+          providers: () => [provider.watch],
           listener: (_, __) {},
           child: const SizedBox(),
         ),
@@ -1422,8 +1422,8 @@ void main() {
     testWidgets('overrides debugFillProperties correctly', (tester) async {
       final provider = CounterProvider();
 
-      final widget = MultiStateListener<int>(
-        providers: () => provider.watch,
+      final widget = StateListener.multi(
+        providers: () => [provider.watch],
         listener: (_, __) {},
         listenWhen: (previous, current) => previous != current,
         callListenerOnInit: true,
