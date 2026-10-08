@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart';
 import 'package:provider_kit/src/state/notifiers/state_notifier.dart';
 import 'package:provider_kit/src/state/state_field.dart';
-import 'package:provider_kit/src/state/widgets/state_listener/state_listener.dart';
+import 'package:provider_kit/src/state/widgets/listener/state_listener.dart';
 
 import '../../shared/mocks/notifiers.dart';
 import '../../shared/mocks/widgets.dart';

@@ -774,7 +774,7 @@ void main() {
         Widget buildWidget() {
           return Directionality(
             textDirection: TextDirection.ltr,
-            child: MultiViewStateListener(
+            child: ViewStateListener.multi(
               providers: () => (useProvider1 ? provider1 : provider2).watch,
               dataStateListener: (_) => listenerCount++,
               child: const SizedBox(),

@@ -39,7 +39,7 @@ class _MultiViewStateListenerExampleState
   Widget build(BuildContext context) {
     return ScaffoldWithButton(
       title: 'Multi View State Listener',
-      child: MultiViewStateListener(
+      child: ViewStateListener.multi(
         callListenerOnInit: true,
         providers: () => (
           movie: movieProvider.watch,

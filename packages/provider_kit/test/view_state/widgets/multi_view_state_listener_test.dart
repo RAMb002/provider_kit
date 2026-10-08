@@ -8,7 +8,7 @@ import '../../shared/mocks/view_state_notifiers.dart';
 typedef TwoStates = ({ViewState<String> first, ViewState<String> second});
 
 void main() {
-  group('MultiViewStateListener', () {
+  group('ViewStateListener.multi', () {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -42,7 +42,7 @@ void main() {
       Widget? child,
     }) {
       return wrap(
-        MultiViewStateListener<ViewState<String>>(
+        ViewStateListener.multi(
           providers: providers,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
@@ -68,7 +68,7 @@ void main() {
       Widget? child,
     }) {
       return wrap(
-        MultiViewStateListener<TwoStates>(
+        ViewStateListener.multi(
           providers: providers,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
@@ -109,7 +109,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        MultiViewStateListener<ViewState<String>>(
+        ViewStateListener.multi(
           providers: singleProvider(provider),
         ),
       );
@@ -475,7 +475,7 @@ void main() {
 
         await tester.pumpWidget(
           wrap(
-            MultiViewStateListener<TwoStates>(
+            ViewStateListener.multi(
               providers: () => (first: provider.watch, second: provider.watch),
               dataStateListener: (_) {
                 dataCalls++;
@@ -500,7 +500,7 @@ void main() {
 
         await tester.pumpWidget(
           wrap(
-            MultiViewStateListener<String>(
+            ViewStateListener.multi(
               providers: () => field.watch,
               child: const SizedBox(),
             ),
@@ -545,7 +545,7 @@ void main() {
             builder: (BuildContext context, StateSetter setState) {
               return Column(
                 children: <Widget>[
-                  MultiViewStateListener<ViewState<String>>(
+                  ViewStateListener.multi(
                     providers: providers,
                     dataStateListener: (_) {
                       dataCalls++;
@@ -665,7 +665,7 @@ void main() {
           const DataState<String>('data'),
         );
 
-        MultiViewStateListener<ViewState<String>>(
+        ViewStateListener.multi(
           providers: singleProvider(provider),
           initialStateListener: () {},
           loadingStateListener: (_, __) {},

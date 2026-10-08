@@ -87,8 +87,9 @@ part of '../../../state/multi_state/multi_state.dart';
 /// [rebuildWhen] are evaluated as additional user-defined filters.
 /// {@endtemplate}
 
-abstract class _MultiViewStateUtils {
-  static _MultiViewStateAggregate _aggregate(
+@internal
+final class MultiViewStateUtils {
+  static MultiViewStateAggregate _aggregate(
     List<ViewStateNotifier<dynamic>> providers,
   ) {
     ErrorState<dynamic>? firstErrorState;
@@ -140,7 +141,7 @@ abstract class _MultiViewStateUtils {
     }
 
     if (firstErrorState != null) {
-      return _MultiViewStateAggregate.error(
+      return MultiViewStateAggregate.error(
         errorInfo: firstErrorState.errorInfo,
         error: firstErrorState.error,
         stackTrace: firstErrorState.stackTrace,
@@ -149,7 +150,7 @@ abstract class _MultiViewStateUtils {
     }
 
     if (hasInitialState) {
-      return const _MultiViewStateAggregate.initial();
+      return const MultiViewStateAggregate.initial();
     }
 
     if (firstLoadingState != null) {
@@ -157,17 +158,17 @@ abstract class _MultiViewStateUtils {
           ? null
           : loadingProgressTotal / loadingProgressCount;
 
-      return _MultiViewStateAggregate.loading(
+      return MultiViewStateAggregate.loading(
         message: firstLoadingState.message,
         progress: loadingProgress,
       );
     }
 
     if (firstEmptyState != null) {
-      return _MultiViewStateAggregate.empty(message: firstEmptyState.message);
+      return MultiViewStateAggregate.empty(message: firstEmptyState.message);
     }
 
-    return const _MultiViewStateAggregate.data();
+    return const MultiViewStateAggregate.data();
   }
 
   static VoidCallback? _createRetryCallback(
@@ -203,7 +204,7 @@ abstract class _MultiViewStateUtils {
 
   static void handleListener<T>(
     T state,
-    _MultiViewStateAggregate aggregate,
+    MultiViewStateAggregate aggregate,
     ErrorStateListener? errorStateListener,
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,
@@ -211,7 +212,7 @@ abstract class _MultiViewStateUtils {
     DataStateListener<T>? dataStateListener,
   ) {
     switch (aggregate.status) {
-      case _MultiViewStateStatus.error:
+      case MultiViewStateStatus.error:
         final VoidCallback? onRetry = _createRetryCallback(
           aggregate.retryableProviders ?? const [],
         );
@@ -223,26 +224,26 @@ abstract class _MultiViewStateUtils {
           onRetry,
         );
 
-      case _MultiViewStateStatus.initial:
+      case MultiViewStateStatus.initial:
         initialStateListener?.call();
 
-      case _MultiViewStateStatus.loading:
+      case MultiViewStateStatus.loading:
         loadingStateListener?.call(
           aggregate.loadingMessage,
           aggregate.loadingProgress,
         );
 
-      case _MultiViewStateStatus.empty:
+      case MultiViewStateStatus.empty:
         emptyStateListener?.call(aggregate.emptyMessage);
 
-      case _MultiViewStateStatus.data:
+      case MultiViewStateStatus.data:
         dataStateListener?.call(state);
     }
   }
 
   static Widget handleBuilder<T>(
     T state,
-    _MultiViewStateAggregate aggregate,
+    MultiViewStateAggregate aggregate,
     ErrorStateBuilder? errorBuilder,
     BuildContext context,
     bool isSliver,
@@ -252,17 +253,17 @@ abstract class _MultiViewStateUtils {
     DataStateBuilder<T> dataBuilder,
   ) {
     switch (aggregate.status) {
-      case _MultiViewStateStatus.error:
+      case MultiViewStateStatus.error:
         return _buildErrorWidget(aggregate, errorBuilder, context, isSliver);
 
-      case _MultiViewStateStatus.initial:
+      case MultiViewStateStatus.initial:
         return ViewStateWidgetUtils.buildInitialWidget(
           context,
           initialBuilder,
           isSliver,
         );
 
-      case _MultiViewStateStatus.loading:
+      case MultiViewStateStatus.loading:
         return ViewStateWidgetUtils.buildLoadingWidget(
           context,
           loadingBuilder,
@@ -271,7 +272,7 @@ abstract class _MultiViewStateUtils {
           isSliver,
         );
 
-      case _MultiViewStateStatus.empty:
+      case MultiViewStateStatus.empty:
         return ViewStateWidgetUtils.buildEmptyWidget(
           context,
           emptyBuilder,
@@ -279,13 +280,13 @@ abstract class _MultiViewStateUtils {
           isSliver,
         );
 
-      case _MultiViewStateStatus.data:
+      case MultiViewStateStatus.data:
         return dataBuilder(state);
     }
   }
 
   static Widget _buildErrorWidget(
-    _MultiViewStateAggregate aggregate,
+    MultiViewStateAggregate aggregate,
     ErrorStateBuilder? errorBuilder,
     BuildContext context,
     bool isSliver,

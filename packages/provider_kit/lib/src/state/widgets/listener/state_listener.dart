@@ -197,19 +197,24 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
     );
   }
 
+  void debugFillListenWhen(DiagnosticPropertiesBuilder properties) {
+    properties.add(
+      ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen),
+    );
+  }
+
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
 
-    properties
-      ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen))
-      ..add(
-        DiagnosticsProperty<bool>(
-          'callListenerOnInit',
-          callListenerOnInit,
-          defaultValue: false,
-        ),
-      );
+    debugFillListenWhen(properties);
+    properties.add(
+      DiagnosticsProperty<bool>(
+        'callListenerOnInit',
+        callListenerOnInit,
+        defaultValue: false,
+      ),
+    );
   }
 
   /// The public widget name used in diagnostics and assertions.

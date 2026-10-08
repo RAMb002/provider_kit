@@ -17,7 +17,7 @@ part of '../multi_state.dart';
 /// value becomes the combined state, while every `.watch` accessed during
 /// the collection becomes a dependency.
 @internal
-class MultiStateBase<T> extends StatefulWidget {
+final class MultiStateBase<T> extends StatefulWidget {
   const MultiStateBase({
     super.key,
     required this.providers,

@@ -22,7 +22,6 @@ part '../../view_state/multi_view_state/internal/multi_view_state_base.dart';
 part '../../view_state/multi_view_state/internal/multi_view_state_utils.dart';
 part '../../view_state/multi_view_state/widgets/multi_view_state_builder.dart';
 part '../../view_state/multi_view_state/widgets/multi_view_state_consumer.dart';
-part '../../view_state/multi_view_state/widgets/multi_view_state_listener.dart';
 part 'extension/watch_extension.dart';
 part 'internal/dependency_collection.dart';
 part 'internal/dependency_scope.dart';

@@ -212,7 +212,7 @@ class MultiViewStateBuilder<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _MultiViewStateBase<T>(
+    return MultiViewStateBase<T>(
       providers: providers,
       widgetName: runtimeType.toString(),
       rebuildWhen: rebuildWhen,
@@ -223,10 +223,10 @@ class MultiViewStateBuilder<T> extends StatelessWidget {
   Widget _buildState(
     BuildContext context,
     T state,
-    _MultiViewStateAggregate aggregate,
+    MultiViewStateAggregate aggregate,
     Widget? child,
   ) {
-    return _MultiViewStateUtils.handleBuilder(
+    return MultiViewStateUtils.handleBuilder(
       state,
       aggregate,
       errorBuilder,
