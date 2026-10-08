@@ -68,7 +68,7 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
         );
 
     return switch (widget.mode) {
-      MultiStateDemoMode.builder => MultiStateBuilder(
+      MultiStateDemoMode.builder => StateBuilder.multi(
           providers: providers,
           builder: (_, states, child) {
             return DemoCard(

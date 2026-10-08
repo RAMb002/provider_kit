@@ -29,6 +29,5 @@ part 'internal/dependency_subscription.dart';
 part 'internal/dependency_tracker.dart';
 part 'internal/multi_state_base.dart';
 part 'internal/multi_state_core.dart';
-part 'widgets/multi_state_builder.dart';
 part 'widgets/multi_state_consumer.dart';
 part 'widgets/watch_builder.dart';

@@ -15,19 +15,17 @@ part 'state_listener_impl.dart';
 part 'state_listener_of.dart';
 
 /// {@template provider_kit.stateListener}
-/// A widget that listens to a [StateValueListenable] and invokes a callback
-/// whenever its state changes.
+/// A widget that listens to state changes and invokes a callback. It is typically
+/// used for performing side effects in response to state changes, such as navigation,
+/// showing a SnackBar, or displaying a Dialog.
 ///
-/// The [StateListener] is typically used for performing side effects in response
-/// to state changes, such as navigation, showing a SnackBar, or displaying a Dialog.
-/// It ensures that the `listener` callback is called only once per state change.
+/// - Use [StateListener] to listen to state from a single provider.
+/// - Use [StateListener.of] to read a provider from the widget tree.
+/// - Use [StateListener.multi] to listen to and combine state from multiple providers.
 ///
-/// ### Parameters:
-/// - **`provider`** (*Required*) **:** The [StateValueListenable] whose state you want to listen to.
-/// - **`listener`** (*Required*) **:** A callback function that is invoked when the state changes.
-/// - **`listenWhen`** (*Optional*) **:** A function that determines whether the `listener` should be triggered based on the previous and current state. By default, the listener is called when `previous != current`.
-/// - **`callListenerOnInit`** (*Optional*, default: `false`) **:** Determines whether the `listener` should be called when the widget is first initialized.
-/// - **`child`** (*Required*) **:** The child widget that remains in the widget tree and is not affected by state changes.
+/// The [listener] callback is called when the state changes and [listenWhen]
+/// allows the change. The optional [callListenerOnInit] can be used to invoke
+/// the listener once after initialization.
 ///
 /// ### Example Usage:
 /// ```dart

@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider_kit/src/state/multi_state/multi_state.dart';
-import 'package:provider_kit/src/state/state_field.dart';
-import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
+import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/notifiers.dart';
 import '../../shared/mocks/widgets.dart';
@@ -48,7 +46,7 @@ class _MultiBuilderTestAppState extends State<MultiBuilderTestApp> {
       home: Scaffold(
         body: Column(
           children: [
-            MultiStateBuilder<List<int>>(
+            StateBuilder.multi(
               providers: () => [
                 for (final provider in _activeProviders) provider.watch,
               ],
@@ -91,7 +89,7 @@ class _MultiBuilderTestAppState extends State<MultiBuilderTestApp> {
 }
 
 void main() {
-  group('MultiStateBuilder', () {
+  group('StateBuilder.multi', () {
     // =========================================================================
     // SECTION 1: CORE RENDERING & CHILD HANDLING
     // =========================================================================
@@ -105,7 +103,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateBuilder<List<int>>(
+          child: StateBuilder.multi(
             providers: () => [provider1.watch, provider2.watch],
             builder: (_, state, child) {
               return Row(
@@ -135,7 +133,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateBuilder<({int count, bool loading})>(
+          child: StateBuilder.multi(
             providers: () => (count: provider.watch, loading: false),
             builder: (_, state, __) {
               receivedState = state;
@@ -163,7 +161,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateBuilder<int>(
+          child: StateBuilder.multi(
             providers: () => provider.watch,
             builder: (_, state, child) {
               builderBuildCount++;
@@ -202,7 +200,7 @@ void main() {
       List<int>? receivedState;
 
       await tester.pumpWidget(
-        MultiStateBuilder<List<int>>(
+        StateBuilder.multi(
           providers: () => [provider1.watch, provider2.watch],
           builder: (_, state, __) {
             receivedState = state;
@@ -220,7 +218,7 @@ void main() {
       int buildCount = 0;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) {
             buildCount++;
@@ -242,7 +240,7 @@ void main() {
       final states = <int>[];
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () => provider.watch,
           builder: (_, state, __) {
             states.add(state);
@@ -268,7 +266,7 @@ void main() {
       final states = <List<int>>[];
 
       await tester.pumpWidget(
-        MultiStateBuilder<List<int>>(
+        StateBuilder.multi(
           providers: () => [provider1.watch, provider2.watch],
           builder: (_, state, __) {
             states.add(state);
@@ -308,7 +306,7 @@ void main() {
         final states = <List<int>>[];
 
         await tester.pumpWidget(
-          MultiStateBuilder<List<int>>(
+          StateBuilder.multi(
             providers: () => [provider1.watch, provider2.watch],
             builder: (_, state, __) {
               states.add(state);
@@ -342,7 +340,7 @@ void main() {
       final states = <List<int>>[];
 
       await tester.pumpWidget(
-        MultiStateBuilder<List<int>>(
+        StateBuilder.multi(
           providers: () => [provider1.watch, provider2.watch],
           builder: (_, state, __) {
             states.add(state);
@@ -384,7 +382,7 @@ void main() {
       int buildCount = 0;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () => provider.watch,
           rebuildWhen: (previous, current) {
             rebuildWhenCallCount++;
@@ -423,7 +421,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateBuilder<int>(
+          child: StateBuilder.multi(
             providers: () => field.watch,
             builder: (_, state, child) {
               states.add(state);
@@ -457,7 +455,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateBuilder<int>(
+          child: StateBuilder.multi(
             providers: () => field.watch,
             builder: (_, state, child) {
               states.add(state);
@@ -491,7 +489,7 @@ void main() {
       int rebuildWhenCallCount = 0;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () => provider.watch,
           rebuildWhen: (previous, current) {
             rebuildWhenCallCount++;
@@ -540,7 +538,7 @@ void main() {
         final currentStates = <int>[];
 
         await tester.pumpWidget(
-          MultiStateBuilder<int>(
+          StateBuilder.multi(
             providers: () => provider.watch,
             rebuildWhen: (previous, current) {
               previousStates.add(previous);
@@ -571,7 +569,7 @@ void main() {
       int rebuildWhenCallCount = 0;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () => provider.watch,
           rebuildWhen: (_, __) {
             rebuildWhenCallCount++;
@@ -594,7 +592,7 @@ void main() {
       int collectionCount = 0;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () {
             collectionCount++;
             return provider.watch;
@@ -615,7 +613,7 @@ void main() {
       int buildCount = 0;
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () {
             collectionCount++;
 
@@ -652,7 +650,7 @@ void main() {
             builder: (_, setState) {
               return Column(
                 children: [
-                  MultiStateBuilder<int>(
+                  StateBuilder.multi(
                     providers: () => provider.watch,
                     builder: (_, state, __) {
                       buildCount++;
@@ -892,7 +890,7 @@ void main() {
       'throws AssertionError when no watched state source is collected',
       (tester) async {
         await tester.pumpWidget(
-          MultiStateBuilder<int>(
+          StateBuilder.multi(
             providers: () => 0,
             builder: (_, state, __) {
               return Text('$state');
@@ -914,7 +912,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateBuilder<int>(
+        StateBuilder.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
         ),
@@ -936,7 +934,7 @@ void main() {
     testWidgets('overrides debugFillProperties correctly', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
 
-      MultiStateBuilder<int>(
+      StateBuilder.multi(
         providers: () => CounterProvider().watch,
         rebuildWhen: (previous, current) => previous != current,
         child: const SizedBox(),

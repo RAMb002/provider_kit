@@ -38,7 +38,9 @@ class _MultiStateListener<T> extends MultiStateListenerBase<T> {
 }
 
 /// Base class for multi-state listeners.
-/// Provides the public configuration shared by [_MultiStateListener]
+///
+/// Provides the shared public configuration for multi-provider
+/// [StateListener] implementations.
 ///
 /// The actual dependency tracking, state collection, subscriptions,
 /// equality checks, and listener invocation are handled by the internal
