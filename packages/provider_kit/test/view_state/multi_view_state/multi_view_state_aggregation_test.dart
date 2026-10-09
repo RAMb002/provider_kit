@@ -674,7 +674,7 @@ Widget _buildConsumer<T>({
 }) {
   return Directionality(
     textDirection: TextDirection.ltr,
-    child: MultiViewStateConsumer<T>(
+    child: ViewStateConsumer<T>.multi(
       providers: providers,
       callListenerOnInit: callListenerOnInit,
       initialBuilder: (isSliver) {

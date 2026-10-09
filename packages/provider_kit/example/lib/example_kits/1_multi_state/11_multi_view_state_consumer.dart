@@ -23,7 +23,7 @@ class MultiViewStateConsumerExample extends StatelessWidget {
 
         return ScaffoldWithButton(
           title: 'Multi View State Consumer',
-          child: MultiViewStateConsumer(
+          child: ViewStateConsumer.multi(
             callListenerOnInit: true,
             providers: () => (
               movie: movieProvider.watch,

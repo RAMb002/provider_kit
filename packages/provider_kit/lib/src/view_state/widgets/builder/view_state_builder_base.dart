@@ -18,7 +18,7 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     super.isSliver = false,
   }) : super.base();
 
-  /// {@macro provider_kit.view_state_listener.provider}
+  /// {@macro provider_kit.view_state_widget.provider}
   final P? provider;
 
   /// {@template provider_kit.view_state_builder.rebuild_when}

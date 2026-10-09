@@ -19,7 +19,7 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     super.child,
   }) : super.base();
 
-  /// {@template provider_kit.view_state_listener.provider}
+  /// {@template provider_kit.view_state_widget.provider}
   /// The provider whose ViewState should be listened to.
   ///
   /// When null, the provider is resolved from the current [BuildContext].
@@ -37,22 +37,13 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
 
   /// Dispatches the current state to its corresponding callback.
   void onStateChange(BuildContext context, ViewState<T> state) {
-    state.when(
-      initialState: () {
-        initialStateListener?.call();
-      },
-      loadingState: (message, progress) {
-        loadingStateListener?.call(message, progress);
-      },
-      dataState: (data) {
-        dataStateListener?.call(data);
-      },
-      emptyState: (message) {
-        emptyStateListener?.call(message);
-      },
-      errorState: (errorInfo, error, stackTrace, onRetry) {
-        errorStateListener?.call(errorInfo, error, stackTrace, onRetry);
-      },
+    ViewStateWidgetUtils.handleListener<T>(
+      state: state,
+      initialStateListener: initialStateListener,
+      loadingStateListener: loadingStateListener,
+      dataStateListener: dataStateListener,
+      emptyStateListener: emptyStateListener,
+      errorStateListener: errorStateListener,
     );
   }
 
@@ -77,10 +68,8 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
 /// Delegates single-provider listening to [StateListener].
 class _ViewStateListenerBaseState<P extends ViewStateNotifier<T>, T>
     extends SingleChildState<ViewStateListenerBase<P, T>> {
-
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
-
     final ListenerCallback<ViewState<T>> listener = widget.onStateChange;
 
     final provider = widget.provider;

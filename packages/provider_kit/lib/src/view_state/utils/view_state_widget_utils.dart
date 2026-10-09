@@ -117,6 +117,33 @@ abstract class ViewStateWidgetUtils {
           );
   }
 
+  static void handleListener<T>({
+    required ViewState<T> state,
+    InitialStateListener? initialStateListener,
+    LoadingStateListener? loadingStateListener,
+    DataStateListener<T>? dataStateListener,
+    EmptyStateListener? emptyStateListener,
+    ErrorStateListener? errorStateListener,
+  }) {
+    state.when(
+      initialState: () {
+        initialStateListener?.call();
+      },
+      loadingState: (message, progress) {
+        loadingStateListener?.call(message, progress);
+      },
+      dataState: (data) {
+        dataStateListener?.call(data);
+      },
+      emptyState: (message) {
+        emptyStateListener?.call(message);
+      },
+      errorState: (errorInfo, error, stackTrace, onRetry) {
+        errorStateListener?.call(errorInfo, error, stackTrace, onRetry);
+      },
+    );
+  }
+
   static VoidCallback? _getOnRetryFromProvider<P, T>(
     BuildContext context,
     P? providerParam,

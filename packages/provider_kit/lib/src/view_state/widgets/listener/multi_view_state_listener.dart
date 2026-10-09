@@ -62,7 +62,16 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   /// [listenWhen].
   final MultiStateProviders<T> providers;
 
-  /// {@macro provider_kit.multi_state_listener.listen_when}
+  /// {@template provider_kit.multi_view_state_listener.listen_when}
+  /// Determines whether the listener should be called when the combined view
+  /// state changes.
+  ///
+  /// The callback receives the previous and current combined states returned
+  /// by [providers].
+  ///
+  /// When omitted, ProviderKit uses the state's `!=` comparison to determine
+  /// whether the state has changed.
+  /// {@endtemplate}
   final ListenWhen<T>? listenWhen;
 
   void _handleStateChange(

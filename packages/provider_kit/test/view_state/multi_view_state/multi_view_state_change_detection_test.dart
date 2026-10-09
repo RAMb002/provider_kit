@@ -917,7 +917,7 @@ Widget _buildConsumer<T>({
 }) {
   return Directionality(
     textDirection: TextDirection.ltr,
-    child: MultiViewStateConsumer<T>(
+    child: ViewStateConsumer<T>.multi(
       callListenerOnInit: callListenerOnInit,
       providers: providers,
       initialBuilder: (_) {
