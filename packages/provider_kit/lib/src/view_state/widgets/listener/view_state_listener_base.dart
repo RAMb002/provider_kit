@@ -5,56 +5,37 @@ part of 'view_state_listener.dart';
 /// Provides shared configuration and behavior for listening to
 /// [ViewStateNotifier] providers and responding to their state changes.
 abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
-    extends StateListenerBase<P, ViewState<T>> {
-
-  /// {@template provider_kit.view_state.initial_listener}
-  /// Called when the provider is in [InitialState].
-  /// {@endtemplate}
-  final InitialStateListener? initialStateListener;
-
-  /// {@template provider_kit.view_state.loading_listener}
-  /// Called when the provider is in [LoadingState].
-  ///
-  /// The callback receives the loading message and progress.
-  /// {@endtemplate}
-  final LoadingStateListener? loadingStateListener;
-
-  /// {@template provider_kit.view_state.empty_listener}
-  /// Called when the provider is in [EmptyState].
-  ///
-  /// The callback receives the empty-state message.
-  /// {@endtemplate}
-  final EmptyStateListener? emptyStateListener;
-
-  /// {@template provider_kit.view_state.error_listener}
-  /// Called when the provider is in [ErrorState].
-  ///
-  /// The callback receives the error information, error, stack trace, and a
-  /// retry callback.
-  /// {@endtemplate}
-  final ErrorStateListener? errorStateListener;
-
-  /// {@template provider_kit.view_state.data_listener}
-  /// Called when the provider is in [DataState].
-  ///
-  /// The callback receives the data contained in the [DataState].
-  /// {@endtemplate}
-  final DataStateListener<T>? dataStateListener;
-
+    extends ViewStateListener<T> {
   const ViewStateListenerBase({
     super.key,
-    super.provider,
-    this.initialStateListener,
-    this.loadingStateListener,
-    this.emptyStateListener,
-    this.errorStateListener,
-    this.dataStateListener,
-    super.listenWhen,
+    this.provider,
+    this.listenWhen,
+    super.initialStateListener,
+    super.loadingStateListener,
+    super.emptyStateListener,
+    super.errorStateListener,
+    super.dataStateListener,
     super.callListenerOnInit,
     super.child,
-  });
+  }) : super.base();
 
-  @override
+  /// {@template provider_kit.view_state_listener.provider}
+  /// The provider whose ViewState should be listened to.
+  ///
+  /// When null, the provider is resolved from the current [BuildContext].
+  /// {@endtemplate}
+  final P? provider;
+
+  /// {@template provider_kit.view_state_listener.listen_when}
+  /// Determines whether the listener should be called when the view state changes.
+  /// The callback receives the previous and current view states.
+  ///
+  /// When omitted, ProviderKit uses the state's `!=` comparison to determine
+  /// whether the state has changed.
+  /// {@endtemplate}
+  final ListenWhen<ViewState<T>>? listenWhen;
+
+  /// Dispatches the current state to its corresponding callback.
   void onStateChange(BuildContext context, ViewState<T> state) {
     state.when(
       initialState: () {
@@ -76,41 +57,50 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   }
 
   @override
-  String get debugWidgetName => 'ViewStateListener<$T>';
+  State<ViewStateListenerBase<P, T>> createState() =>
+      _ViewStateListenerBaseState<P, T>();
 
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
+      ..add(DiagnosticsProperty<P?>('provider', provider, defaultValue: null))
       ..add(
-        ObjectFlagProperty<InitialStateListener?>.has(
-          'initialStateListener',
-          initialStateListener,
-        ),
-      )
-      ..add(
-        ObjectFlagProperty<LoadingStateListener?>.has(
-          'loadingStateListener',
-          loadingStateListener,
-        ),
-      )
-      ..add(
-        ObjectFlagProperty<EmptyStateListener?>.has(
-          'emptyStateListener',
-          emptyStateListener,
-        ),
-      )
-      ..add(
-        ObjectFlagProperty<ErrorStateListener?>.has(
-          'errorStateListener',
-          errorStateListener,
-        ),
-      )
-      ..add(
-        ObjectFlagProperty<DataStateListener<T>?>.has(
-          'dataStateListener',
-          dataStateListener,
+        ObjectFlagProperty<ListenWhen<ViewState<T>>?>.has(
+          'listenWhen',
+          listenWhen,
         ),
       );
+  }
+}
+
+/// Delegates single-provider listening to [StateListener].
+class _ViewStateListenerBaseState<P extends ViewStateNotifier<T>, T>
+    extends SingleChildState<ViewStateListenerBase<P, T>> {
+
+  @override
+  Widget buildWithChild(BuildContext context, Widget? child) {
+    assert(child != null, '${widget.debugWidgetName} requires a child.');
+
+    final ListenerCallback<ViewState<T>> listener = widget.onStateChange;
+
+    final provider = widget.provider;
+
+    if (provider != null) {
+      return StateListener<ViewState<T>>(
+        provider: provider,
+        listenWhen: widget.listenWhen,
+        callListenerOnInit: widget.callListenerOnInit,
+        listener: listener,
+        child: child,
+      );
+    }
+
+    return StateListener.of<P, ViewState<T>>(
+      listenWhen: widget.listenWhen,
+      callListenerOnInit: widget.callListenerOnInit,
+      listener: listener,
+      child: child,
+    );
   }
 }

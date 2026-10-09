@@ -85,20 +85,54 @@ part 'view_state_listener_of.dart';
 /// providers and handling their combined state.
 ///
 /// {@endtemplate}
-abstract class ViewStateListener<T>
-    extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
+abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   const ViewStateListener.base({
     super.key,
-    super.provider,
-    super.initialStateListener,
-    super.loadingStateListener,
-    super.emptyStateListener,
-    super.errorStateListener,
-    super.dataStateListener,
-    super.listenWhen,
-    super.callListenerOnInit,
+    this.initialStateListener,
+    this.loadingStateListener,
+    this.emptyStateListener,
+    this.errorStateListener,
+    this.dataStateListener,
+    this.callListenerOnInit = false,
     super.child,
   });
+
+  /// {@template provider_kit.view_state.initial_listener}
+  /// Called when the provider is in [InitialState].
+  /// {@endtemplate}
+  final InitialStateListener? initialStateListener;
+
+  /// {@template provider_kit.view_state.loading_listener}
+  /// Called when the provider is in [LoadingState].
+  ///
+  /// The callback receives the loading message and progress.
+  /// {@endtemplate}
+  final LoadingStateListener? loadingStateListener;
+
+  /// {@template provider_kit.view_state.empty_listener}
+  /// Called when the provider is in [EmptyState].
+  ///
+  /// The callback receives the empty-state message.
+  /// {@endtemplate}
+  final EmptyStateListener? emptyStateListener;
+
+  /// {@template provider_kit.view_state.error_listener}
+  /// Called when the provider is in [ErrorState].
+  ///
+  /// The callback receives the error information, error, stack trace, and a
+  /// retry callback.
+  /// {@endtemplate}
+  final ErrorStateListener? errorStateListener;
+
+  /// {@template provider_kit.view_state.data_listener}
+  /// Called when the provider is in [DataState].
+  ///
+  /// The callback receives the data contained in the [DataState].
+  /// {@endtemplate}
+  final DataStateListener<T>? dataStateListener;
+
+  /// {@macro provider_kit.state_listener.call_listener_on_init}
+  final bool callListenerOnInit;
 
   /// {@macro provider_kit.view_state_listener}
   const factory ViewStateListener({
@@ -242,4 +276,50 @@ abstract class ViewStateListener<T>
       child: child,
     );
   }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties
+      ..add(
+        ObjectFlagProperty<InitialStateListener?>.has(
+          'initialStateListener',
+          initialStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<LoadingStateListener?>.has(
+          'loadingStateListener',
+          loadingStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<EmptyStateListener?>.has(
+          'emptyStateListener',
+          emptyStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<ErrorStateListener?>.has(
+          'errorStateListener',
+          errorStateListener,
+        ),
+      )
+      ..add(
+        ObjectFlagProperty<DataStateListener<T>?>.has(
+          'dataStateListener',
+          dataStateListener,
+        ),
+      )
+      ..add(
+        DiagnosticsProperty<bool>(
+          'callListenerOnInit',
+          callListenerOnInit,
+          defaultValue: false,
+        ),
+      );
+  }
+
+  /// The public widget name used in diagnostics and assertions.
+  String get debugWidgetName => 'ViewStateListener<$T>';
 }

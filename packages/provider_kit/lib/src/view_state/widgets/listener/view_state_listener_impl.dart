@@ -3,7 +3,8 @@ part of 'view_state_listener.dart';
 /// Private implementation of [ViewStateListener].
 ///
 /// Configures a listener for a directly provided [ViewStateNotifier].
-class _ViewStateListener<T> extends ViewStateListener<T> {
+class _ViewStateListener<T>
+    extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
   const _ViewStateListener({
     super.key,
     required ViewStateNotifier<T> provider,
@@ -15,5 +16,5 @@ class _ViewStateListener<T> extends ViewStateListener<T> {
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super.base(provider: provider);
+  }) : super(provider: provider);
 }

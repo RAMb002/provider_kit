@@ -31,11 +31,10 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
     super.emptyStateListener,
     super.errorStateListener,
     super.dataStateListener,
-    ListenWhen<T>? listenWhen,
+    this.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : _multiListenWhen = listenWhen,
-       super.base(provider: null, listenWhen: null);
+  }) : super.base();
 
   /// {@template provider_kit.multi_view_state.provider_param}
   /// Builds a combined state from one or more watched [ViewStateNotifier]
@@ -63,11 +62,8 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   /// [listenWhen].
   final MultiStateProviders<T> providers;
 
-  /// The predicate used by the multi-state engine.
-  ///
-  /// This is separate from the inherited [ViewStateListener] predicate,
-  /// whose type is [ListenWhen<ViewState<T>>].
-  final ListenWhen<T>? _multiListenWhen;
+  /// {@macro provider_kit.multi_state_listener.listen_when}
+  final ListenWhen<T>? listenWhen;
 
   void _handleStateChange(
     BuildContext context,
@@ -93,19 +89,13 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
       _MultiViewStateListenerBaseState<T>();
 
   @override
-  void debugFillListenWhen(DiagnosticPropertiesBuilder properties) {
-    properties.add(
-      ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', _multiListenWhen),
-    );
-  }
-
-  @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-
-    properties.add(
-      ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
-    );
+    properties
+      ..add(
+        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      )
+      ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen));
   }
 }
 
@@ -116,7 +106,7 @@ class _MultiViewStateListenerBaseState<T>
     return MultiViewStateBase<T>(
       providers: widget.providers,
       widgetName: widget.debugWidgetName,
-      listenWhen: widget._multiListenWhen,
+      listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
       listener: widget._handleStateChange,
       child: child,
