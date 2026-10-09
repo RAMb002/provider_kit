@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart';
 import 'package:provider_kit/src/state/state_field.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
+import 'package:provider_kit/src/state/widgets/consumer/state_consumer.dart';
 
 import '../../shared/mocks/notifiers.dart';
 import '../../shared/mocks/widgets.dart';
@@ -51,7 +52,7 @@ class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
       home: Scaffold(
         body: Column(
           children: [
-            MultiStateConsumer<List<int>>(
+            StateConsumer.multi(
               providers: () => [
                 for (final provider in _activeProviders) provider.watch,
               ],
@@ -86,7 +87,7 @@ class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
 }
 
 void main() {
-  group('MultiStateConsumer', () {
+  group('StateConsumer.multi', () {
     // =========================================================================
     // SECTION 1: CORE RENDERING & CHILD HANDLING
     // =========================================================================
@@ -100,7 +101,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateConsumer<List<int>>(
+          child: StateConsumer.multi(
             providers: () => [provider1.watch, provider2.watch],
             builder: (_, state, child) {
               return Row(children: [child!, Text('${state[0]}-${state[1]}')]);
@@ -121,7 +122,7 @@ void main() {
       ({int count, bool loading})? receivedState;
 
       await tester.pumpWidget(
-        MultiStateConsumer<({int count, bool loading})>(
+        StateConsumer.multi(
           providers: () => (count: provider.watch, loading: false),
           builder: (_, state, __) {
             receivedState = state;
@@ -147,7 +148,7 @@ void main() {
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
-          child: MultiStateConsumer<int>(
+          child: StateConsumer.multi(
             providers: () => provider.watch,
             builder: (_, state, child) {
               builderBuildCount++;
@@ -189,7 +190,7 @@ void main() {
       final provider = CounterProvider(5);
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) {
             buildCount++;
@@ -212,7 +213,7 @@ void main() {
       final provider = CounterProvider(5);
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) {
             buildCount++;
@@ -238,7 +239,7 @@ void main() {
         await tester.pumpWidget(
           Directionality(
             textDirection: TextDirection.ltr,
-            child: MultiStateConsumer<int>(
+            child: StateConsumer.multi(
               providers: () => field.watch,
               callListenerOnInit: true,
               builder: (_, state, child) =>
@@ -268,7 +269,7 @@ void main() {
         final states = <int>[];
 
         await tester.pumpWidget(
-          MultiStateConsumer<int>(
+          StateConsumer.multi(
             providers: () => field.watch,
             callListenerOnInit: true,
             builder: (_, state, __) {
@@ -300,7 +301,7 @@ void main() {
       final states = <int>[];
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => field.watch,
           callListenerOnInit: true,
           builder: (_, __, ___) {
@@ -349,7 +350,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () {
             collectionCount++;
             return provider.watch;
@@ -389,7 +390,7 @@ void main() {
         final provider2 = CounterProvider(10);
 
         await tester.pumpWidget(
-          MultiStateConsumer<List<int>>(
+          StateConsumer.multi(
             providers: () => [provider1.watch, provider2.watch],
             builder: (_, state, __) {
               buildLog.add(state);
@@ -429,7 +430,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, state, __) {
             buildLog.add(state);
@@ -462,7 +463,7 @@ void main() {
         final provider = CounterProvider();
 
         await tester.pumpWidget(
-          MultiStateConsumer<int>(
+          StateConsumer.multi(
             providers: () => provider.watch,
             builder: (_, state, __) {
               buildLog.add(state);
@@ -506,7 +507,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
@@ -537,7 +538,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
@@ -568,7 +569,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
@@ -777,7 +778,7 @@ void main() {
             builder: (context, setState) {
               return Column(
                 children: [
-                  MultiStateConsumer<int>(
+                  StateConsumer.multi(
                     providers: () {
                       collectionCount++;
                       return provider.watch;
@@ -829,7 +830,7 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => 0,
           builder: (_, state, __) => Text('$state'),
           listener: (_, __) {},
@@ -849,7 +850,7 @@ void main() {
       final provider = CounterProvider();
 
       await tester.pumpWidget(
-        MultiStateConsumer<int>(
+        StateConsumer.multi(
           providers: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
@@ -872,7 +873,7 @@ void main() {
     testWidgets('overrides debugFillProperties correctly', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
       final provider = CounterProvider();
-      MultiStateConsumer<int>(
+      StateConsumer.multi(
         providers: () => provider.watch,
         builder: (_, __, ___) => const SizedBox(),
         listener: (_, __) {},
