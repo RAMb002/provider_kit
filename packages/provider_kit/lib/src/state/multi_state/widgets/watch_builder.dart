@@ -2,7 +2,7 @@ part of '../multi_state.dart';
 
 /// {@template provider_kit.watch_builder}
 /// A widget that automatically rebuilds when any
-/// [StateValueListenable] accessed through `.watch` changes.
+/// [StateListenable] accessed through `.watch` changes.
 /// It provides a simple way to listen to multiple state sources
 /// without explicitly declaring them.
 ///
@@ -42,7 +42,7 @@ part of '../multi_state.dart';
 /// In this example, `userField` is only listened to while the user is logged
 /// in.
 ///
-/// At least one [StateValueListenable] must be accessed through `.watch`
+/// At least one [StateListenable] must be accessed through `.watch`
 /// inside [builder].
 /// {@endtemplate}
 class WatchBuilder extends StatefulWidget {
@@ -51,7 +51,7 @@ class WatchBuilder extends StatefulWidget {
 
   /// Builds the widget and discovers its state dependencies.
   ///
-  /// Access [StateValueListenable] values through `.watch` inside this
+  /// Access [StateListenable] values through `.watch` inside this
   /// callback.
   ///
   /// Every watched state source becomes a dependency of this widget.

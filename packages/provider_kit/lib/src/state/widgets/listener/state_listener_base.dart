@@ -1,7 +1,7 @@
 part of 'state_listener.dart';
 
 /// An abstract base class for [StateListener] that provides common functionality.
-abstract class StateListenerBase<P extends StateValueListenable<T>, T>
+abstract class StateListenerBase<P extends StateListenable<T>, T>
     extends StateListener<T> {
   const StateListenerBase({
     super.key,
@@ -32,9 +32,8 @@ abstract class StateListenerBase<P extends StateValueListenable<T>, T>
   }
 }
 
-class _StateListenerState<P extends StateValueListenable<T>, T>
+class _StateListenerState<P extends StateListenable<T>, T>
     extends SingleChildState<StateListenerBase<P, T>> {
-
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
     return StateEngine<P, T>(

@@ -1,11 +1,11 @@
 part of 'state_listener.dart';
 
 class _StateListener<T>
-    extends _CallbackStateListenerBase<StateValueListenable<T>, T> {
+    extends _CallbackStateListenerBase<StateListenable<T>, T> {
   const _StateListener({
     super.key,
     required super.listener,
-    required StateValueListenable<T> provider,
+    required StateListenable<T> provider,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
@@ -13,7 +13,7 @@ class _StateListener<T>
 }
 
 /// Shared implementation for callback-based [StateListener] variants.
-abstract class _CallbackStateListenerBase<P extends StateValueListenable<T>, T>
+abstract class _CallbackStateListenerBase<P extends StateListenable<T>, T>
     extends StateListenerBase<P, T> {
   const _CallbackStateListenerBase({
     super.key,

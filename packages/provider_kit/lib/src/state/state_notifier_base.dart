@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/observer/change.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
+import 'package:provider_kit/src/observer/change.dart';
 
 abstract class StateNotifierBase<State> extends NotifierBase<State>
-    implements StateValueListenable<State> {
+    implements StateListenable<State> {
   StateNotifierBase(this._state);
 
   /// The current state stored in this notifier.
@@ -17,10 +17,7 @@ abstract class StateNotifierBase<State> extends NotifierBase<State>
   State _state;
 
   set state(State newState) {
-    assert(NotifierBase.debugAssertNotDisposed(
-      this,
-      'set state ($State)',
-    ));
+    assert(NotifierBase.debugAssertNotDisposed(this, 'set state ($State)'));
 
     // Runtime protection (important for async notifiers in release).
     if (!mounted) {
@@ -30,12 +27,7 @@ abstract class StateNotifierBase<State> extends NotifierBase<State>
     try {
       if (_state == newState) return;
 
-      onChange(
-        Change<State>(
-          currentState: _state,
-          nextState: newState,
-        ),
-      );
+      onChange(Change<State>(currentState: _state, nextState: newState));
 
       _state = newState;
       notifyListeners();

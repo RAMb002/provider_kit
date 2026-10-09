@@ -93,7 +93,7 @@ abstract class StateConsumer<T> extends StatefulWidget {
   /// {@macro provider_kit.state_consumer}
   const factory StateConsumer({
     Key? key,
-    required StateValueListenable<T> provider,
+    required StateListenable<T> provider,
     required StateWidgetBuilder<T> builder,
     required ListenerCallback<T> listener,
     RebuildWhen<T>? rebuildWhen,
@@ -218,7 +218,7 @@ abstract class StateConsumer<T> extends StatefulWidget {
   ///   child: SomeWidget(),
   /// )
   /// ```
-  static Widget of<P extends StateValueListenable<T>, T>({
+  static Widget of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     required ListenerCallback<T> listener,

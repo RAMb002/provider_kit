@@ -152,7 +152,7 @@ part 'mutation_state.dart';
 /// - [MutationState], which represents the current state.
 /// - [MutationGroup], for maintaining independent mutation states by key.
 class Mutation<T> extends NotifierBase<MutationState<T>>
-    implements StateValueListenable<MutationState<T>> {
+    implements StateListenable<MutationState<T>> {
   /// Creates a mutation in the [MutationIdle] state.
   Mutation();
 

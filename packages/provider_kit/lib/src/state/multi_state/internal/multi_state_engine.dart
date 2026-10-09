@@ -34,7 +34,7 @@ final class MultiStateEngine<T> extends StatefulWidget {
   /// dependencies through `.watch`.
   ///
   /// The callback is evaluated inside ProviderKit's dependency collector.
-  /// Every watched [StateValueListenable] is recorded automatically.
+  /// Every watched [StateListenable] is recorded automatically.
   final MultiStateProviders<T> providers;
 
   /// Called when the combined state changes and [listenWhen] allows it.
@@ -200,7 +200,7 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
   /// - dependencies missing from the new set are unsubscribed,
   /// - newly discovered dependencies are subscribed,
   /// - unchanged dependencies remain subscribed.
-  void _syncDependencies(Set<StateValueListenable> nextDependencies) {
+  void _syncDependencies(Set<StateListenable> nextDependencies) {
     _core.syncDependencies(nextDependencies);
   }
 

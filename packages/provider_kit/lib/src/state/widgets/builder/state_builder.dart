@@ -80,7 +80,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// {@macro provider_kit.state_builder.multi}
   const factory StateBuilder({
     Key? key,
-    required StateValueListenable<T> provider,
+    required StateListenable<T> provider,
     required StateWidgetBuilder<T> builder,
     RebuildWhen<T>? rebuildWhen,
     Widget? child,
@@ -172,7 +172,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   },
   /// )
   /// ```
-  static Widget of<P extends StateValueListenable<T>, T>({
+  static Widget of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     RebuildWhen<T>? rebuildWhen,

@@ -10,7 +10,7 @@ import 'package:flutter/foundation.dart';
 ///
 /// You can implement this interface in your own classes to integrate
 /// seamlessly with ProviderKit's state widgets.
-abstract class StateValueListenable<T> implements Listenable {
+abstract class StateListenable<T> implements Listenable {
   /// The current state.
   ///
   /// Registered listeners are notified whenever the state changes.

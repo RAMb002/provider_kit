@@ -22,7 +22,7 @@ import 'package:provider_kit/src/utils/equality_check.dart';
 /// When [provider] is null, the provider is resolved from the current
 /// [BuildContext].
 @internal
-final class StateEngine<P extends StateValueListenable<T>, T>
+final class StateEngine<P extends StateListenable<T>, T>
     extends StatefulWidget {
   const StateEngine({
     super.key,
@@ -75,7 +75,7 @@ final class StateEngine<P extends StateValueListenable<T>, T>
 }
 
 /// Manages the subscription and state lifecycle for [StateEngine].
-class _StateEngineState<P extends StateValueListenable<T>, T>
+class _StateEngineState<P extends StateListenable<T>, T>
     extends State<StateEngine<P, T>> {
   late P _provider;
   late T _previousState;

@@ -7,7 +7,7 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 /// [StateField] stores a single state value and notifies its listeners when
 /// the value changes.
 ///
-/// It implements [StateValueListenable], so it can be used directly with
+/// It implements [StateListenable], so it can be used directly with
 /// ProviderKit state widgets such as [StateBuilder], [StateListener], and
 /// [StateConsumer].
 ///
@@ -56,7 +56,7 @@ import 'package:provider_kit/src/base/state_value_listenable.dart';
 ///
 /// This avoids having to manually dispose each [StateField].
 /// {@endtemplate}
-class StateField<T> extends ChangeNotifier implements StateValueListenable<T> {
+class StateField<T> extends ChangeNotifier implements StateListenable<T> {
   /// {@macro provider_kit.state_field}
   StateField(this._state);
 
@@ -77,10 +77,7 @@ class StateField<T> extends ChangeNotifier implements StateValueListenable<T> {
   /// Updating a disposed field is considered a programming error in debug
   /// builds and is safely ignored in release builds.
   set state(T value) {
-    assert(
-      !_disposed,
-      'StateField<$T> was used after being disposed.',
-    );
+    assert(!_disposed, 'StateField<$T> was used after being disposed.');
 
     if (_disposed || _state == value) return;
 

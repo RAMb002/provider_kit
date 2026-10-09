@@ -223,7 +223,7 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
   /// The Multi View State API requires all watched sources to be
   /// [ViewStateNotifier] instances.
   List<ViewStateNotifier<dynamic>> _resolveProviders(
-    Iterable<StateValueListenable> dependencies,
+    Iterable<StateListenable> dependencies,
   ) {
     return dependencies
         .map((dependency) {

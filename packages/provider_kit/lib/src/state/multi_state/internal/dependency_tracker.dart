@@ -16,7 +16,7 @@ final class _DependencyTracker {
   /// Records [dependency] in the currently active collection scope.
   ///
   /// If there is no active collection, the dependency is ignored.
-  static void record(StateValueListenable listenable) {
+  static void record(StateListenable listenable) {
     if (_scopes.isEmpty) {
       return;
     }
@@ -33,7 +33,7 @@ final class _DependencyTracker {
     required String widgetName,
   }) {
     final _DependencyScope scope = _DependencyScope(
-      dependencies: Set<StateValueListenable>.identity(),
+      dependencies: Set<StateListenable>.identity(),
     );
 
     _scopes.add(scope);

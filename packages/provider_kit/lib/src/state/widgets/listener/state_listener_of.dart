@@ -1,6 +1,6 @@
 part of 'state_listener.dart';
 
-class _StateListenerOf<P extends StateValueListenable<T>, T>
+class _StateListenerOf<P extends StateListenable<T>, T>
     extends _CallbackStateListenerBase<P, T> {
   const _StateListenerOf({
     super.key,

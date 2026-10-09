@@ -44,12 +44,12 @@ final class _MultiStateCore<T> {
   /// Synchronizes active subscriptions with [nextDependencies].
   ///
   /// Returns `true` when the dependency set changed.
-  bool syncDependencies(Set<StateValueListenable> nextDependencies) {
+  bool syncDependencies(Set<StateListenable> nextDependencies) {
     return _dependencySubscription.sync(nextDependencies);
   }
 
   /// Returns the currently subscribed dependencies.
-  Iterable<StateValueListenable> get dependencies =>
+  Iterable<StateListenable> get dependencies =>
       _dependencySubscription.dependencies;
 
   /// Releases all resources owned by this core.
