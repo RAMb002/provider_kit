@@ -68,19 +68,11 @@ class _ViewStateBuilderBaseState<P extends ViewStateNotifier<T>, T>
     extends State<ViewStateBuilderBase<P, T>> {
   @override
   Widget build(BuildContext context) {
-    final provider = widget.provider;
-
-    if (provider != null) {
-      return StateBuilder<ViewState<T>>(
-        provider: provider,
-        rebuildWhen: widget.rebuildWhen,
-        builder: widget._buildState,
-      );
-    }
-
-    return StateBuilder.of<P, ViewState<T>>(
+    return StateEngine<P, ViewState<T>>(
+      provider: widget.provider,
       rebuildWhen: widget.rebuildWhen,
       builder: widget._buildState,
+      widgetName: widget.debugWidgetName,
     );
   }
 }

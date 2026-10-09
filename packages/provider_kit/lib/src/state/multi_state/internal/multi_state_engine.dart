@@ -17,8 +17,8 @@ part of '../multi_state.dart';
 /// value becomes the combined state, while every `.watch` accessed during
 /// the collection becomes a dependency.
 @internal
-final class MultiStateBase<T> extends StatefulWidget {
-  const MultiStateBase({
+final class MultiStateEngine<T> extends StatefulWidget {
+  const MultiStateEngine({
     super.key,
     required this.providers,
     this.listener,
@@ -57,7 +57,7 @@ final class MultiStateBase<T> extends StatefulWidget {
 
   /// Builds the widget from the current combined state.
   ///
-  /// When this is null, [MultiStateBase] behaves as a listener-only widget
+  /// When this is null, [MultiStateEngine] behaves as a listener-only widget
   /// and returns [child] directly.
   final StateWidgetBuilder<T>? builder;
 
@@ -72,10 +72,10 @@ final class MultiStateBase<T> extends StatefulWidget {
   final String widgetName;
 
   @override
-  State<MultiStateBase<T>> createState() => _MultiStateBaseState<T>();
+  State<MultiStateEngine<T>> createState() => _MultiStateEngineState<T>();
 }
 
-/// State implementation for [MultiStateBase].
+/// State implementation for [MultiStateEngine].
 ///
 /// The shared dependency, state, listener, and rebuild mechanics are owned
 /// by [_MultiStateCore]. This state coordinates those mechanics with the
@@ -83,7 +83,7 @@ final class MultiStateBase<T> extends StatefulWidget {
 ///
 /// Dependency subscriptions are updated incrementally so that sources which
 /// are no longer used are unsubscribed and newly used sources are subscribed.
-class _MultiStateBaseState<T> extends State<MultiStateBase<T>> {
+class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
   late final _MultiStateCore<T> _core;
   @override
   void initState() {
@@ -117,7 +117,7 @@ class _MultiStateBaseState<T> extends State<MultiStateBase<T>> {
   }
 
   @override
-  void didUpdateWidget(MultiStateBase<T> oldWidget) {
+  void didUpdateWidget(MultiStateEngine<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     // Re-collect when the widget configuration changes. This is important

@@ -17,13 +17,13 @@ import 'package:provider_kit/src/view_state/utils/view_state_widget_utils.dart';
 import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
 
 part '../../view_state/multi_view_state/internal/multi_view_state_aggregate.dart';
-part '../../view_state/multi_view_state/internal/multi_view_state_base.dart';
+part '../../view_state/multi_view_state/internal/multi_view_state_engine.dart';
 part '../../view_state/multi_view_state/internal/multi_view_state_utils.dart';
 part 'extension/watch_extension.dart';
 part 'internal/dependency_collection.dart';
 part 'internal/dependency_scope.dart';
 part 'internal/dependency_subscription.dart';
 part 'internal/dependency_tracker.dart';
-part 'internal/multi_state_base.dart';
+part 'internal/multi_state_engine.dart';
 part 'internal/multi_state_core.dart';
 part 'widgets/watch_builder.dart';

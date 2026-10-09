@@ -112,7 +112,7 @@ class _MultiViewStateListenerBaseState<T>
     extends SingleChildState<MultiViewStateListenerBase<T>> {
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
-    return MultiViewStateBase<T>(
+    return MultiViewStateEngine<T>(
       providers: widget.providers,
       widgetName: widget.debugWidgetName,
       listenWhen: widget.listenWhen,

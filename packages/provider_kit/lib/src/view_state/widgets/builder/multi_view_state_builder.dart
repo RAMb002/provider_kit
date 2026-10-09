@@ -79,16 +79,10 @@ abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
 
     properties
       ..add(
-        ObjectFlagProperty<MultiStateProviders<T>>.has(
-          'providers',
-          providers,
-        ),
+        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
       )
       ..add(
-        ObjectFlagProperty<RebuildWhen<T>?>.has(
-          'rebuildWhen',
-          rebuildWhen,
-        ),
+        ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen),
       );
   }
 }
@@ -97,7 +91,7 @@ class _MultiViewStateBuilderBaseState<T>
     extends State<MultiViewStateBuilderBase<T>> {
   @override
   Widget build(BuildContext context) {
-    return MultiViewStateBase<T>(
+    return MultiViewStateEngine<T>(
       providers: widget.providers,
       widgetName: widget.debugWidgetName,
       rebuildWhen: widget.rebuildWhen,

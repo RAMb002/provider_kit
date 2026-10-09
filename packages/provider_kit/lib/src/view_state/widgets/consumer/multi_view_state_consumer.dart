@@ -22,7 +22,6 @@ class _MultiViewStateConsumer<T> extends MultiViewStateConsumerBase<T> {
   });
 }
 
-
 /// Base class for multi-provider [ViewStateConsumer] implementations.
 ///
 /// Provides the configuration and behavior shared by multi-provider
@@ -104,32 +103,18 @@ abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
 
     properties
       ..add(
-        ObjectFlagProperty<MultiStateProviders<T>>.has(
-          'providers',
-          providers,
-        ),
+        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
       )
-      ..add(
-        ObjectFlagProperty<RebuildWhen<T>?>.has(
-          'rebuildWhen',
-          rebuildWhen,
-        ),
-      )
-      ..add(
-        ObjectFlagProperty<ListenWhen<T>?>.has(
-          'listenWhen',
-          listenWhen,
-        ),
-      );
+      ..add(ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen))
+      ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen));
   }
 }
-
 
 class _MultiViewStateConsumerBaseState<T>
     extends State<MultiViewStateConsumerBase<T>> {
   @override
   Widget build(BuildContext context) {
-    return MultiViewStateBase<T>(
+    return MultiViewStateEngine<T>(
       providers: widget.providers,
       widgetName: widget.debugWidgetName,
       rebuildWhen: widget.rebuildWhen,

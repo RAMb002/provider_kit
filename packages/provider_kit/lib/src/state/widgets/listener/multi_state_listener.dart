@@ -44,7 +44,7 @@ class _MultiStateListener<T> extends MultiStateListenerBase<T> {
 ///
 /// The actual dependency tracking, state collection, subscriptions,
 /// equality checks, and listener invocation are handled by the internal
-/// [MultiStateBase] implementation.
+/// [MultiStateEngine] implementation.
 abstract class MultiStateListenerBase<T> extends StateListener<T> {
   const MultiStateListenerBase({
     super.key,
@@ -99,16 +99,16 @@ abstract class MultiStateListenerBase<T> extends StateListener<T> {
 }
 
 /// State wrapper that connects [MultiStateListenerBase] to the shared
-/// [MultiStateBase] implementation.
+/// [MultiStateEngine] implementation.
 ///
 /// This state intentionally contains no dependency or listener logic.
 /// Its only responsibility is translating the public listener API into the
-/// configuration expected by [MultiStateBase].
+/// configuration expected by [MultiStateEngine].
 class _MultiStateListenerBaseState<T>
     extends SingleChildState<MultiStateListenerBase<T>> {
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
-    return MultiStateBase<T>(
+    return MultiStateEngine<T>(
       providers: widget.providers,
       listener: widget.onStateChange,
       listenWhen: widget.listenWhen,

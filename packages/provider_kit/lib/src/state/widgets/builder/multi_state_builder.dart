@@ -40,7 +40,7 @@ class _MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
 ///
 /// The actual dependency tracking, state collection, subscriptions,
 /// equality checks, and rebuild scheduling are handled by the internal
-/// [MultiStateBase] implementation.
+/// [MultiStateEngine] implementation.
 abstract class MultiStateBuilderBase<T> extends StateBuilder<T> {
   const MultiStateBuilderBase({
     super.key,
@@ -79,7 +79,7 @@ abstract class MultiStateBuilderBase<T> extends StateBuilder<T> {
 class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
   @override
   Widget build(BuildContext context) {
-    return MultiStateBase<T>(
+    return MultiStateEngine<T>(
       providers: widget.providers,
       builder: widget.build,
       rebuildWhen: widget.rebuildWhen,

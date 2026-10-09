@@ -1,12 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
-import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart'
-    show MultiStateBase;
+    show MultiStateEngine;
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
-import 'package:provider_kit/src/state/widgets/listener/state_listener.dart';
+import 'package:provider_kit/src/state/widgets/state_engine.dart';
 
 part 'multi_state_builder.dart';
 part 'state_builder_base.dart';

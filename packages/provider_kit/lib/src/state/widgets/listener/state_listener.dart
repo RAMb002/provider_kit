@@ -1,13 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
-import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
-import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart'
-    show MultiStateBase;
+    show MultiStateEngine;
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
-import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/state/widgets/state_engine.dart';
 
 part 'multi_state_listener.dart';
 part 'state_listener_base.dart';

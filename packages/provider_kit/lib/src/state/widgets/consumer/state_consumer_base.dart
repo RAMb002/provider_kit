@@ -40,72 +40,16 @@ abstract class StateConsumerBase<P extends StateValueListenable<T>, T>
 
 class _StateConsumerBaseState<P extends StateValueListenable<T>, T>
     extends State<StateConsumerBase<P, T>> {
-  late P _provider;
-  final ListenerQueue _listenerQueue = ListenerQueue();
-
-  @override
-  void initState() {
-    super.initState();
-    _provider = widget.provider ?? _readProvider;
-    if (widget.callListenerOnInit) {
-      final T initialState = _provider.state;
-      final ListenerCallback<T> initialListener = widget.onStateChange;
-      _listenerQueue.scheduleInitialListener(
-        initialCallback: () => initialListener(context, initialState),
-        isMounted: () => mounted,
-      );
-    }
-  }
-
-  @override
-  void didUpdateWidget(StateConsumerBase<P, T> oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final oldProvider = oldWidget.provider ?? _readProvider;
-    final currentProvider = widget.provider ?? _readProvider;
-    if (oldProvider != currentProvider) {
-      _provider = widget.provider ?? _readProvider;
-    }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final provider = widget.provider ?? _readProvider;
-    if (_provider != provider) _provider = provider;
-  }
-
-  @override
-  void dispose() {
-    _listenerQueue.clear();
-    super.dispose();
-  }
-
-  bool _handleStateChange(T previous, T current) {
-    final shouldListen = ObjectKit.shouldNotify<T>(
-      previous,
-      current,
-      widget.listenWhen,
-    );
-
-    if (shouldListen) {
-      _listenerQueue.dispatch(() => widget.onStateChange(context, current));
-    }
-
-    return ObjectKit.shouldNotify<T>(previous, current, widget.rebuildWhen);
-  }
-
-  /// Gets the provider from the context.
-  P get _readProvider => context.read<P>();
-
   @override
   Widget build(BuildContext context) {
-    if (widget.provider == null) {
-      context.select<P, bool>((provider) => identical(_provider, provider));
-    }
-    return StateBuilder<T>(
-      provider: _provider,
+    return StateEngine<P, T>(
+      provider: widget.provider,
+      rebuildWhen: widget.rebuildWhen,
       builder: widget.build,
-      rebuildWhen: _handleStateChange,
+      listener: widget.onStateChange,
+      listenWhen: widget.listenWhen,
+      callListenerOnInit: widget.callListenerOnInit,
+      widgetName: widget.debugWidgetName,
       child: widget.child,
     );
   }

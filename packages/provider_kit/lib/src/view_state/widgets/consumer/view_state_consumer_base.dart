@@ -89,25 +89,14 @@ class _ViewStateConsumerBaseState<P extends ViewStateNotifier<T>, T>
     extends State<ViewStateConsumerBase<P, T>> {
   @override
   Widget build(BuildContext context) {
-    final provider = widget.provider;
-
-    if (provider != null) {
-      return StateConsumer<ViewState<T>>(
-        provider: provider,
-        rebuildWhen: widget.rebuildWhen,
-        listenWhen: widget.listenWhen,
-        callListenerOnInit: widget.callListenerOnInit,
-        builder: widget._buildState,
-        listener: widget._handleStateChange,
-      );
-    }
-
-    return StateConsumer.of<P, ViewState<T>>(
+    return StateEngine<P, ViewState<T>>(
+      provider: widget.provider,
       rebuildWhen: widget.rebuildWhen,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
       builder: widget._buildState,
       listener: widget._handleStateChange,
+      widgetName: widget.debugWidgetName,
     );
   }
 }

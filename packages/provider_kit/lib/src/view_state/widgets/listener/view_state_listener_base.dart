@@ -70,24 +70,12 @@ class _ViewStateListenerBaseState<P extends ViewStateNotifier<T>, T>
     extends SingleChildState<ViewStateListenerBase<P, T>> {
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
-    final ListenerCallback<ViewState<T>> listener = widget.onStateChange;
-
-    final provider = widget.provider;
-
-    if (provider != null) {
-      return StateListener<ViewState<T>>(
-        provider: provider,
-        listenWhen: widget.listenWhen,
-        callListenerOnInit: widget.callListenerOnInit,
-        listener: listener,
-        child: child,
-      );
-    }
-
-    return StateListener.of<P, ViewState<T>>(
+    return StateEngine<P, ViewState<T>>(
+      provider: widget.provider,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
-      listener: listener,
+      listener: widget.onStateChange,
+      widgetName: widget.debugWidgetName,
       child: child,
     );
   }

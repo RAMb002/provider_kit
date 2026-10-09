@@ -13,8 +13,8 @@ part of '../../../state/multi_state/multi_state.dart';
 /// Loading, and Empty state information.
 ///
 @internal
-final class MultiViewStateBase<T> extends StatefulWidget {
-  const MultiViewStateBase({
+final class MultiViewStateEngine<T> extends StatefulWidget {
+  const MultiViewStateEngine({
     super.key,
     required this.providers,
     required this.widgetName,
@@ -54,14 +54,15 @@ final class MultiViewStateBase<T> extends StatefulWidget {
   final String widgetName;
 
   @override
-  State<MultiViewStateBase<T>> createState() => _MultiViewStateBaseState<T>();
+  State<MultiViewStateEngine<T>> createState() =>
+      _MultiViewStateEngineState<T>();
 }
 
-/// State implementation for [MultiViewStateBase].
+/// State implementation for [MultiViewStateEngine].
 ///
 /// The state delegates shared dependency and scheduling mechanics to
 /// [_MultiStateCore] and keeps the latest Multi View State aggregate locally.
-class _MultiViewStateBaseState<T> extends State<MultiViewStateBase<T>> {
+class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
   late final _MultiStateCore<T> _core;
 
   /// Providers currently used by the aggregated View State.
@@ -84,7 +85,7 @@ class _MultiViewStateBaseState<T> extends State<MultiViewStateBase<T>> {
   }
 
   @override
-  void didUpdateWidget(MultiViewStateBase<T> oldWidget) {
+  void didUpdateWidget(MultiViewStateEngine<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     _updateAndSync();
   }

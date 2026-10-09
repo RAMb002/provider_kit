@@ -1,13 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_value_listenable.dart';
-import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart'
-    show MultiStateBase;
+    show MultiStateEngine;
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
-import 'package:provider_kit/src/state/widgets/builder/state_builder.dart';
-import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/state/widgets/state_engine.dart';
 
 part 'multi_state_consumer.dart';
 part 'state_consumer_base.dart';

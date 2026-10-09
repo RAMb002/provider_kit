@@ -47,7 +47,7 @@ class _MultiStateConsumer<T> extends MultiStateConsumerBase<T> {
 ///
 /// The actual dependency tracking, state collection, subscriptions,
 /// equality checks, rebuild scheduling, and listener scheduling are handled
-/// by the internal [MultiStateBase] implementation.
+/// by the internal [MultiStateEngine] implementation.
 abstract class MultiStateConsumerBase<T> extends StateConsumer<T> {
   const MultiStateConsumerBase({
     super.key,
@@ -89,7 +89,7 @@ abstract class MultiStateConsumerBase<T> extends StateConsumer<T> {
 class _MultiStateConsumerBaseState<T> extends State<MultiStateConsumerBase<T>> {
   @override
   Widget build(BuildContext context) {
-    return MultiStateBase<T>(
+    return MultiStateEngine<T>(
       providers: widget.providers,
       builder: widget.build,
       listener: widget.onStateChange,
