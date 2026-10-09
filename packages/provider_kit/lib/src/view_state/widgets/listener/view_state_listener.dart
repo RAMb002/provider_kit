@@ -23,6 +23,11 @@ part 'view_state_listener_of.dart';
 /// such as `InitialState`, `LoadingState`, `DataState<DataType>`, `EmptyState`, and `ErrorState`.
 /// It ensures that the appropriate callback is called based on the current view state.
 ///
+/// - Use [ViewStateListener] to listen to a single provider.
+/// - Use [ViewStateListener.of] to resolve a provider from the widget tree.
+/// - Use [ViewStateListener.multi] to listen to multiple providers and handle
+///   their combined view state.
+///
 /// ### Example Usage:
 /// ```dart
 /// ViewStateListener(
@@ -74,12 +79,16 @@ part 'view_state_listener_of.dart';
 ///     profile: profileProvider.watch,
 ///   ),
 ///   dataStateListener: (state) {
-///     // state.user
-///     // state.profile
+///     // state.user.data
+///     // state.profile.data
 ///   },
 ///   child: const MyPage(),
 /// )
 /// ```
+///
+/// The `dataStateListener` receives the combined value returned by the
+/// `providers` callback. Each value is a [ViewState] in the data state, so
+/// its `.data` getter provides the contained data.
 ///
 /// See [ViewStateListener.multi] for details on listening to multiple
 /// providers and handling their combined state.

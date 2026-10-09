@@ -80,7 +80,6 @@ class _ViewStateListenerBaseState<P extends ViewStateNotifier<T>, T>
 
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
-    assert(child != null, '${widget.debugWidgetName} requires a child.');
 
     final ListenerCallback<ViewState<T>> listener = widget.onStateChange;
 

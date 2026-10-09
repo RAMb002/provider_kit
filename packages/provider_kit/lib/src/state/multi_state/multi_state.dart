@@ -19,7 +19,6 @@ import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
 part '../../view_state/multi_view_state/internal/multi_view_state_aggregate.dart';
 part '../../view_state/multi_view_state/internal/multi_view_state_base.dart';
 part '../../view_state/multi_view_state/internal/multi_view_state_utils.dart';
-part '../../view_state/multi_view_state/widgets/multi_view_state_builder.dart';
 part '../../view_state/multi_view_state/widgets/multi_view_state_consumer.dart';
 part 'extension/watch_extension.dart';
 part 'internal/dependency_collection.dart';

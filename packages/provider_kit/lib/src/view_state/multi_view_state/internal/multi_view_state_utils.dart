@@ -46,8 +46,10 @@ part of '../../../state/multi_state/multi_state.dart';
 ///
 /// ### Combined Data state
 ///
-/// The combined value returned by [providers] is passed unchanged to
-/// corresponding data callback, preserving its original type.
+/// The data callback is invoked only when all watched providers are in
+/// [DataState]. The combined value returned by [providers] is passed unchanged
+/// to the callback, preserving its original type. Each value is a [ViewState],
+/// and its `.data` getter provides the underlying data.
 ///
 /// ### Change detection
 ///

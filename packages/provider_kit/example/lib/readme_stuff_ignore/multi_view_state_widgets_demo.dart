@@ -132,7 +132,7 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
       height: 166,
       child: DemoCard(
         cardWidth: 270,
-        child: MultiViewStateBuilder(
+        child: ViewStateBuilder.multi(
           providers: () => [
             _providerOne.watch,
             _providerTwo.watch,
