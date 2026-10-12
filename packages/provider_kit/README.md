@@ -606,13 +606,10 @@ error handling, empty-state handling, and refresh behavior.
 - Transitions to `LoadingState` before fetching.  
 - If the data is `Iterable` and if it's empty, it switches to `EmptyState`.  
 - Catches errors and converts them into `ErrorState`.  
-- Includes a built-in `refresh()` function to re-run the data-fetching logic.
+- Includes a built-in `refresh()` function to re-fetch data with a loading-state transition.
+- Provides refreshSilently() to re-fetch data without automatically transitioning to LoadingState.
 - Passes the `refresh` function, error, and stack trace to `ErrorState`.  
 - Internally guarded with `mounted` – For safe async state updates.  
-
-> **Note:** `FlutterError` exceptions are **re-thrown** and are not converted
-> to `ErrorState`. This prevents fatal programming errors, such as assertion
-> failures, from being masked by the UI.
 
 
 | **Attributes**         | **Type**                                  | **Description**  |
@@ -628,7 +625,8 @@ error handling, empty-state handling, and refresh behavior.
 | `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize the default `ErrorState` Object |
 | `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize the default `LoadingState` Object  |
 | `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize the default `EmptyState` Object  instance. |
-| `refresh()`                  | `Future<void>`                           | Refreshes the provider which will call `init` with `fetchData()` again. |
+| `refresh()` | `Future<void>` | Refreshes data with a loading-state transition. |
+| `refreshSilently()` | `Future<void>` | Refreshes data without a loading-state transition. |
 
 
 When `ErrorState.onRetry` is not provided, View State Widgets use the

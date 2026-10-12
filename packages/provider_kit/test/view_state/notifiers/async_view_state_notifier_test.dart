@@ -56,16 +56,14 @@ class CustomLoadingProvider<T> extends TestProvider<T> {
 /// A provider that overrides `errorStateObject`.
 class CustomErrorProvider extends TestProvider<String> {
   CustomErrorProvider({FutureOr<String> Function()? fetchDataImpl})
-      : super(fetchDataImpl: fetchDataImpl ?? (() => 'data'));
+    : super(fetchDataImpl: fetchDataImpl ?? (() => 'data'));
 
   @override
   ErrorState<String> errorStateObject(Object error, StackTrace stackTrace) {
     return ErrorState<String>(
       error,
       stackTrace,
-      errorInfo: ErrorInfo(
-        message: 'Custom: $error',
-      ),
+      errorInfo: ErrorInfo(message: 'Custom: $error'),
       onRetry: null,
     );
   }
@@ -74,15 +72,44 @@ class CustomErrorProvider extends TestProvider<String> {
 /// A provider that overrides `emptyStateObject`.
 class CustomEmptyProvider extends TestProvider<List<int>> {
   CustomEmptyProvider()
-      : super(
-          fetchDataImpl: () => [],
-          disableEmptyState: false,
-        );
+    : super(fetchDataImpl: () => [], disableEmptyState: false);
 
   @override
   EmptyState<List<int>> emptyStateObject() {
     return const EmptyState<List<int>>('Custom empty message');
   }
+}
+
+class ThrowingOnErrorProvider extends TestProvider<String> {
+  ThrowingOnErrorProvider()
+    : super(fetchDataImpl: () => throw Exception('Fetch failed'));
+
+  @override
+  void onError(Object error, StackTrace stackTrace) {
+    super.onError(error, stackTrace);
+    throw StateError('onError failed');
+  }
+}
+
+class ConstructorDependentProvider extends AsyncViewStateNotifier<String> {
+  ConstructorDependentProvider() {
+    _value = 'initialized';
+  }
+
+  late final String _value;
+
+  @override
+  FutureOr<void> init() {
+    // This accesses a field initialized in the subclass constructor body.
+    state = DataState(_value);
+  }
+
+  @override
+  FutureOr<String> fetchData() => 'unused';
+}
+
+Future<void> flushImmediateBuild() {
+  return Future<void>.delayed(Duration.zero);
 }
 
 // -----------------------------------------------------------------------------
@@ -100,28 +127,27 @@ void main() {
     });
 
     test(
-        'initial state can be overridden via constructor (verified via observer)',
-        () {
-      final spy = SpyObserver();
-      ProviderKit.configure(
-        observer: spy,
-      );
+      'initial state can be overridden via constructor (verified via observer)',
+      () {
+        final spy = SpyObserver();
+        ProviderKit.configure(observer: spy);
 
-      TestProvider<String>(
-        fetchDataImpl: () => 'data',
-        initialState: const DataState('custom'),
-      );
-      expect(spy.capturedInitialState, const DataState('custom'));
+        TestProvider<String>(
+          fetchDataImpl: () => 'data',
+          initialState: const DataState('custom'),
+        );
+        expect(spy.capturedInitialState, const DataState('custom'));
 
-      ProviderKit.resetForTesting();
-    });
+        ProviderKit.resetForTesting();
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 2. _build() flow – success
     // -----------------------------------------------------------------------
     test('_build() sets DataState on successful fetch', () async {
       final provider = TestProvider<String>(fetchDataImpl: () => 'success');
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       expect(provider.state, const DataState('success'));
     });
 
@@ -132,7 +158,7 @@ void main() {
       final provider = TestProvider<String>(
         fetchDataImpl: () => throw Exception('Test error'),
       );
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       final state = provider.state;
       expect(state, isA<ErrorState<String>>());
       final errorState = state as ErrorState<String>;
@@ -141,35 +167,112 @@ void main() {
       expect(errorState.onRetry, provider.refresh);
     });
 
+    test('default error retry callback refreshes the data', () async {
+      var fetchCount = 0;
+
+      final provider = TestProvider<String>(
+        fetchDataImpl: () {
+          fetchCount++;
+
+          if (fetchCount == 1) {
+            throw Exception('Temporary failure');
+          }
+
+          return 'recovered';
+        },
+      );
+      addTearDown(provider.dispose);
+
+      await flushImmediateBuild();
+
+      expect(fetchCount, 1);
+      expect(provider.state, isA<ErrorState<String>>());
+
+      final errorState = provider.state as ErrorState<String>;
+      expect(errorState.onRetry, isNotNull);
+
+      final recovered = Completer<void>();
+
+      void listener() {
+        if (provider.state is DataState<String> && !recovered.isCompleted) {
+          recovered.complete();
+        }
+      }
+
+      provider.addListener(listener);
+
+      try {
+        errorState.onRetry!.call();
+
+        await recovered.future;
+      } finally {
+        provider.removeListener(listener);
+      }
+
+      expect(fetchCount, 2);
+      expect(provider.state, const DataState('recovered'));
+    });
+
+    test('reports errors escaping the initial build', () async {
+      final previousHandler = FlutterError.onError;
+      final reported = Completer<FlutterErrorDetails>();
+
+      FlutterError.onError = (details) {
+        if (!reported.isCompleted) {
+          reported.complete(details);
+        }
+      };
+
+      final provider = ThrowingOnErrorProvider();
+
+      try {
+        final details = await reported.future;
+
+        expect(details.exception, isA<StateError>());
+        expect(details.exception.toString(), contains('onError failed'));
+      } finally {
+        FlutterError.onError = previousHandler;
+        provider.dispose();
+      }
+    });
+
     // -----------------------------------------------------------------------
     // 4. _build() flow – empty state
     // -----------------------------------------------------------------------
     test('_build() sets EmptyState when data is an empty Iterable', () async {
-      final provider = TestProvider<List<int>>(
-        fetchDataImpl: () => [],
-      );
-      await Future.microtask(() {});
+      final provider = TestProvider<List<int>>(fetchDataImpl: () => []);
+      await flushImmediateBuild();
       expect(provider.state, isA<EmptyState<List<int>>>());
     });
 
-    test('_build() does NOT set EmptyState when disableEmptyState is true',
-        () async {
-      final provider = TestProvider<List<int>>(
-        fetchDataImpl: () => [],
-        disableEmptyState: true,
-      );
-      await Future.microtask(() {});
+    test(
+      '_build() does NOT set EmptyState when disableEmptyState is true',
+      () async {
+        final provider = TestProvider<List<int>>(
+          fetchDataImpl: () => [],
+          disableEmptyState: true,
+        );
+        await flushImmediateBuild();
+        expect(provider.state, isA<DataState<List<int>>>());
+        final dataState = provider.state as DataState<List<int>>;
+        expect(dataState.data, []);
+      },
+    );
+
+    test('non-empty Iterable produces DataState', () async {
+      final provider = TestProvider<List<int>>(fetchDataImpl: () => [1, 2, 3]);
+      addTearDown(provider.dispose);
+
+      await flushImmediateBuild();
+
       expect(provider.state, isA<DataState<List<int>>>());
-      final dataState = provider.state as DataState<List<int>>;
-      expect(dataState.data, []);
+      expect((provider.state as DataState<List<int>>).data, [1, 2, 3]);
     });
 
     test('fetchData supports synchronous results', () async {
-      final provider = TestProvider<String>(
-        fetchDataImpl: () => 'sync data',
-      );
+      final provider = TestProvider<String>(fetchDataImpl: () => 'sync data');
 
-      await Future.microtask(() {});
+      await flushImmediateBuild();
 
       expect(provider.state, const DataState('sync data'));
     });
@@ -185,7 +288,7 @@ void main() {
           return 'data$callCount';
         },
       );
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       expect(provider.state, const DataState('data1'));
 
       await provider.refresh();
@@ -203,7 +306,7 @@ void main() {
           return 'data';
         },
       );
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       expect(provider.state, const DataState('data'));
 
       await provider.refresh();
@@ -212,103 +315,101 @@ void main() {
       expect(errorState.message, 'Exception: Refresh error');
     });
 
-    test('concurrent refresh calls reuse the current build operation',
-        () async {
-      final completer = Completer<String>();
-      int fetchCount = 0;
+    test(
+      'concurrent refresh calls reuse the current build operation',
+      () async {
+        final completer = Completer<String>();
+        int fetchCount = 0;
 
-      final provider = TestProvider<String>(
-        fetchDataImpl: () {
-          fetchCount++;
-          return completer.future;
-        },
-      );
+        final provider = TestProvider<String>(
+          fetchDataImpl: () {
+            fetchCount++;
+            return completer.future;
+          },
+        );
 
-      final firstRefresh = provider.refresh();
-      final secondRefresh = provider.refresh();
-      final thirdRefresh = provider.refresh();
+        final firstRefresh = provider.refresh();
+        final secondRefresh = provider.refresh();
+        final thirdRefresh = provider.refresh();
 
-      expect(fetchCount, 1);
-      expect(provider.state, isA<LoadingState<String>>());
+        expect(fetchCount, 1);
+        expect(provider.state, isA<LoadingState<String>>());
 
-      completer.complete('data');
+        completer.complete('data');
 
-      await Future.wait([
-        firstRefresh,
-        secondRefresh,
-        thirdRefresh,
-      ]);
+        await Future.wait([firstRefresh, secondRefresh, thirdRefresh]);
 
-      expect(fetchCount, 1);
-      expect(provider.state, const DataState('data'));
-    });
-
-    test('refresh starts a new operation after the current one completes',
-        () async {
-      int fetchCount = 0;
-
-      final provider = TestProvider<String>(
-        fetchDataImpl: () {
-          fetchCount++;
-          return 'data$fetchCount';
-        },
-      );
-
-      await Future.microtask(() {});
-
-      expect(fetchCount, 1);
-      expect(provider.state, const DataState('data1'));
-
-      await provider.refresh();
-
-      expect(fetchCount, 2);
-      expect(provider.state, const DataState('data2'));
-
-      await provider.refresh();
-
-      expect(fetchCount, 3);
-      expect(provider.state, const DataState('data3'));
-    });
+        expect(fetchCount, 1);
+        expect(provider.state, const DataState('data'));
+      },
+    );
 
     test(
-        'concurrent refresh calls complete when the shared operation completes',
-        () async {
-      final completer = Completer<String>();
-      int fetchCount = 0;
+      'refresh starts a new operation after the current one completes',
+      () async {
+        int fetchCount = 0;
 
-      final provider = TestProvider<String>(
-        fetchDataImpl: () {
-          fetchCount++;
-          return completer.future;
-        },
-      );
+        final provider = TestProvider<String>(
+          fetchDataImpl: () {
+            fetchCount++;
+            return 'data$fetchCount';
+          },
+        );
 
-      final firstRefresh = provider.refresh();
-      final secondRefresh = provider.refresh();
+        await flushImmediateBuild();
 
-      var firstCompleted = false;
-      var secondCompleted = false;
+        expect(fetchCount, 1);
+        expect(provider.state, const DataState('data1'));
 
-      firstRefresh.then((_) => firstCompleted = true);
-      secondRefresh.then((_) => secondCompleted = true);
+        await provider.refresh();
 
-      await Future.microtask(() {});
+        expect(fetchCount, 2);
+        expect(provider.state, const DataState('data2'));
 
-      expect(fetchCount, 1);
-      expect(firstCompleted, false);
-      expect(secondCompleted, false);
+        await provider.refresh();
 
-      completer.complete('data');
+        expect(fetchCount, 3);
+        expect(provider.state, const DataState('data3'));
+      },
+    );
 
-      await Future.wait([
-        firstRefresh,
-        secondRefresh,
-      ]);
+    test(
+      'concurrent refresh calls complete when the shared operation completes',
+      () async {
+        final completer = Completer<String>();
+        int fetchCount = 0;
 
-      expect(firstCompleted, true);
-      expect(secondCompleted, true);
-      expect(provider.state, const DataState('data'));
-    });
+        final provider = TestProvider<String>(
+          fetchDataImpl: () {
+            fetchCount++;
+            return completer.future;
+          },
+        );
+
+        final firstRefresh = provider.refresh();
+        final secondRefresh = provider.refresh();
+
+        var firstCompleted = false;
+        var secondCompleted = false;
+
+        firstRefresh.then((_) => firstCompleted = true);
+        secondRefresh.then((_) => secondCompleted = true);
+
+        await flushImmediateBuild();
+
+        expect(fetchCount, 1);
+        expect(firstCompleted, false);
+        expect(secondCompleted, false);
+
+        completer.complete('data');
+
+        await Future.wait([firstRefresh, secondRefresh]);
+
+        expect(firstCompleted, true);
+        expect(secondCompleted, true);
+        expect(provider.state, const DataState('data'));
+      },
+    );
 
     test('concurrent refresh calls share the same error operation', () async {
       final completer = Completer<String>();
@@ -328,10 +429,7 @@ void main() {
 
       completer.completeError(Exception('Refresh failed'));
 
-      await Future.wait([
-        firstRefresh,
-        secondRefresh,
-      ]);
+      await Future.wait([firstRefresh, secondRefresh]);
 
       expect(fetchCount, 1);
       expect(provider.state, isA<ErrorState<String>>());
@@ -355,7 +453,7 @@ void main() {
         },
       );
 
-      await Future.microtask(() {});
+      await flushImmediateBuild();
 
       expect(provider.state, isA<ErrorState<String>>());
       expect(fetchCount, 1);
@@ -366,32 +464,129 @@ void main() {
       expect(provider.state, const DataState('success'));
     });
 
-    test('refresh reuses the initial build operation when it is still running',
-        () async {
-      final completer = Completer<String>();
-      int fetchCount = 0;
+    test(
+      'refresh reuses the initial build operation when it is still running',
+      () async {
+        final completer = Completer<String>();
+        final fetchStarted = Completer<void>();
+        int fetchCount = 0;
 
-      final provider = TestProvider<String>(
-        fetchDataImpl: () {
-          fetchCount++;
-          return completer.future;
-        },
-      );
+        final provider = TestProvider<String>(
+          fetchDataImpl: () {
+            fetchCount++;
+            if (!fetchStarted.isCompleted) {
+              fetchStarted.complete();
+            }
+            return completer.future;
+          },
+        );
+        addTearDown(provider.dispose);
+        await fetchStarted.future;
+        expect(fetchCount, 1);
+        expect(provider.state, isA<LoadingState<String>>());
 
-      expect(fetchCount, 1);
-      expect(provider.state, isA<LoadingState<String>>());
+        final refreshFuture = provider.refresh();
 
-      final refreshFuture = provider.refresh();
+        expect(fetchCount, 1);
 
-      expect(fetchCount, 1);
+        completer.complete('data');
 
-      completer.complete('data');
+        await refreshFuture;
 
-      await refreshFuture;
+        expect(fetchCount, 1);
+        expect(provider.state, const DataState('data'));
+      },
+    );
 
-      expect(fetchCount, 1);
-      expect(provider.state, const DataState('data'));
-    });
+    test(
+      'refreshSilently preserves existing data until fetch completes',
+      () async {
+        final refreshCompleter = Completer<String>();
+        final refreshStarted = Completer<void>();
+        var fetchCount = 0;
+
+        final provider = TestProvider<String>(
+          fetchDataImpl: () {
+            fetchCount++;
+
+            if (fetchCount == 1) {
+              return 'initial';
+            }
+
+            if (!refreshStarted.isCompleted) {
+              refreshStarted.complete();
+            }
+
+            return refreshCompleter.future;
+          },
+        );
+
+        addTearDown(provider.dispose);
+
+        await flushImmediateBuild();
+
+        expect(fetchCount, 1);
+        expect(provider.state, const DataState('initial'));
+
+        final refreshFuture = provider.refreshSilently();
+
+        await refreshStarted.future;
+
+        expect(fetchCount, 2);
+        expect(provider.state, const DataState('initial'));
+
+        refreshCompleter.complete('updated');
+        await refreshFuture;
+
+        expect(provider.state, const DataState('updated'));
+      },
+    );
+
+    test(
+      'refreshSilently transitions to ErrorState when fetch fails',
+      () async {
+        final refreshCompleter = Completer<String>();
+        final refreshStarted = Completer<void>();
+        var fetchCount = 0;
+
+        final provider = TestProvider<String>(
+          fetchDataImpl: () {
+            fetchCount++;
+
+            if (fetchCount == 1) {
+              return 'initial';
+            }
+
+            if (!refreshStarted.isCompleted) {
+              refreshStarted.complete();
+            }
+
+            return refreshCompleter.future;
+          },
+        );
+
+        addTearDown(provider.dispose);
+
+        await flushImmediateBuild();
+
+        expect(provider.state, const DataState('initial'));
+
+        final refreshFuture = provider.refreshSilently();
+
+        await refreshStarted.future;
+
+        expect(provider.state, const DataState('initial'));
+
+        refreshCompleter.completeError(Exception('Silent refresh failed'));
+
+        await refreshFuture;
+
+        expect(provider.state, isA<ErrorState<String>>());
+
+        final errorState = provider.state as ErrorState<String>;
+        expect(errorState.message, 'Exception: Silent refresh failed');
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 6. Customization overrides
@@ -400,11 +595,13 @@ void main() {
       final provider = CustomErrorProvider(
         fetchDataImpl: () => throw Exception('Forced error'),
       );
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       final state = provider.state;
       expect(state, isA<ErrorState<String>>());
-      expect((state as ErrorState<String>).message,
-          'Custom: Exception: Forced error');
+      expect(
+        (state as ErrorState<String>).message,
+        'Custom: Exception: Forced error',
+      );
     });
 
     test('custom loadingStateObject is used during refresh', () async {
@@ -418,7 +615,7 @@ void main() {
         },
       );
       // Wait for initial _build to complete.
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       expect(provider.state, const DataState('initial'));
 
       // Call refresh – it will use the second fetch which returns the completer.
@@ -436,7 +633,7 @@ void main() {
 
     test('custom emptyStateObject is used', () async {
       final provider = CustomEmptyProvider();
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       final state = provider.state;
       expect(state, isA<EmptyState<List<int>>>());
       expect((state as EmptyState<List<int>>).message, 'Custom empty message');
@@ -448,9 +645,26 @@ void main() {
     test('constructor triggers _build automatically', () async {
       final provider = TestProvider<String>(fetchDataImpl: () => 'auto');
       expect(provider.state, isA<LoadingState<String>>());
-      await Future.microtask(() {});
+      await flushImmediateBuild();
       expect(provider.state, const DataState('auto'));
     });
+
+    test(
+      'defers initial build until the subclass constructor completes',
+      () async {
+        final provider = ConstructorDependentProvider();
+        addTearDown(provider.dispose);
+
+        // The initial build must not have executed yet.
+        expect(provider.state, isA<LoadingState<String>>());
+
+        // Allow the scheduled initial build to execute.
+        await flushImmediateBuild();
+
+        // init() can now safely access the subclass's initialized field.
+        expect(provider.state, const DataState('initialized'));
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 8. Dispose behaviour with pending async operations
@@ -458,9 +672,7 @@ void main() {
 
     group('dispose', () {
       test('dispose can be called multiple times', () {
-        final provider = TestProvider<String>(
-          fetchDataImpl: () => 'data',
-        );
+        final provider = TestProvider<String>(fetchDataImpl: () => 'data');
 
         expect(() {
           provider.dispose();
@@ -473,17 +685,24 @@ void main() {
         'dispose while fetchData is pending prevents state update',
         () async {
           final completer = Completer<String>();
+          final fetchStarted = Completer<void>();
 
           final provider = TestProvider<String>(
-            fetchDataImpl: () => completer.future,
+            fetchDataImpl: () {
+              if (!fetchStarted.isCompleted) {
+                fetchStarted.complete();
+              }
+
+              return completer.future;
+            },
           );
 
+          await fetchStarted.future;
+          expect(provider.state, isA<LoadingState<String>>());
           provider.dispose();
-
           completer.complete('data');
 
-          await Future.microtask(() {});
-
+          await flushImmediateBuild();
           expect(provider.state, isA<LoadingState<String>>());
           expect(provider.state, isNot(isA<DataState<String>>()));
           expect(provider.state, isNot(isA<ErrorState<String>>()));
@@ -494,40 +713,47 @@ void main() {
         'dispose while fetchData is pending prevents error state update',
         () async {
           final completer = Completer<String>();
+          final fetchStarted = Completer<void>();
 
           final provider = TestProvider<String>(
-            fetchDataImpl: () => completer.future,
+            fetchDataImpl: () {
+              if (!fetchStarted.isCompleted) {
+                fetchStarted.complete();
+              }
+
+              return completer.future;
+            },
           );
+
+          await fetchStarted.future;
+
+          expect(provider.state, isA<LoadingState<String>>());
 
           provider.dispose();
 
           completer.completeError(Exception('Delayed error'));
 
-          await Future.microtask(() {});
+          await flushImmediateBuild();
 
           expect(provider.state, isA<LoadingState<String>>());
           expect(provider.state, isNot(isA<ErrorState<String>>()));
+          expect(provider.state, isNot(isA<DataState<String>>()));
         },
       );
 
-      test(
-        'refresh after dispose does nothing',
-        () async {
-          final provider = TestProvider<String>(
-            fetchDataImpl: () => 'data',
-          );
+      test('refresh after dispose does nothing', () async {
+        final provider = TestProvider<String>(fetchDataImpl: () => 'data');
 
-          await Future.microtask(() {});
+        await flushImmediateBuild();
 
-          expect(provider.state, const DataState('data'));
+        expect(provider.state, const DataState('data'));
 
-          provider.dispose();
+        provider.dispose();
 
-          await provider.refresh();
+        await provider.refresh();
 
-          expect(provider.state, const DataState('data'));
-        },
-      );
+        expect(provider.state, const DataState('data'));
+      });
 
       test(
         'setting state after dispose throws FlutterError in debug mode',
@@ -536,10 +762,7 @@ void main() {
 
           notifier.dispose();
 
-          expect(
-            () => notifier.state = 1,
-            throwsFlutterError,
-          );
+          expect(() => notifier.state = 1, throwsFlutterError);
         },
         skip: kReleaseMode,
       );
@@ -552,10 +775,7 @@ void main() {
 
         notifier.dispose();
 
-        expect(
-          () => notifier.notifyListeners(),
-          throwsFlutterError,
-        );
+        expect(() => notifier.notifyListeners(), throwsFlutterError);
       },
       skip: kReleaseMode,
     );
@@ -581,7 +801,7 @@ void main() {
 
         completer.complete();
 
-        await Future.microtask(() {});
+        await flushImmediateBuild();
 
         expect(provider.state, isA<LoadingState<String>>());
         expect(provider.state, isNot(isA<DataState<String>>()));
