@@ -32,10 +32,10 @@ class TestProvider<T> extends FutureNotifier<T> {
   });
 
   @override
-  FutureOr<T> fetchData() => fetchDataImpl();
+  Future<T> fetchData() async => fetchDataImpl();
 
   @override
-  FutureOr<void> init() {
+  Future<void> init() async {
     if (initOverride != null) {
       return initOverride!();
     }
@@ -99,13 +99,13 @@ class ConstructorDependentProvider extends FutureNotifier<String> {
   late final String _value;
 
   @override
-  FutureOr<void> init() {
+  Future<void> init() async {
     // This accesses a field initialized in the subclass constructor body.
     state = DataState(_value);
   }
 
   @override
-  FutureOr<String> fetchData() => 'unused';
+  Future<String> fetchData() async => 'unused';
 }
 
 Future<void> flushImmediateBuild() {

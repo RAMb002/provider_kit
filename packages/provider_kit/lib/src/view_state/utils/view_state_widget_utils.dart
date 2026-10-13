@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/future_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';

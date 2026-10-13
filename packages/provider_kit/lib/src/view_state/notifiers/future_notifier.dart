@@ -13,7 +13,7 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 /// errors into [ErrorState] instances.
 /// Override [init] for full customization.
 /// ```dart
-/// FutureOr<void> init() async {
+/// Future<void> init() async {
 ///   final T data = await fetchData();
 ///   if (!mounted) return;
 ///   if (data is Iterable && data.isEmpty) {
@@ -50,7 +50,7 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 ///   MyProvider({super.initialState, super.disableEmptyState});
 ///
 ///   @override
-///   FutureOr<MyDataType> fetchData() async {
+///   Future<MyDataType> fetchData() async {
 ///     // Fetch data from an API or database
 ///   }
 ///
@@ -160,7 +160,7 @@ abstract class FutureNotifier<T> extends FutureNotifierInterface<T> {
 
   @protected
   @override
-  FutureOr<void> init() async {
+  Future<void> init() async {
     // Fetch data.
     final T data = await fetchData();
 
@@ -175,7 +175,7 @@ abstract class FutureNotifier<T> extends FutureNotifierInterface<T> {
   }
 
   @override
-  FutureOr<T> fetchData();
+  Future<T> fetchData();
 
   @override
   @protected
@@ -252,13 +252,13 @@ abstract class FutureNotifierInterface<T> extends ViewStateNotifier<T> {
   FutureNotifierInterface({ViewState<T>? initialState})
     : super(initialState ?? LoadingState<T>());
 
-  FutureOr<void> init();
+  Future<void> init();
 
   Future<void> refresh();
 
   Future<void> refreshSilently();
 
-  FutureOr<T> fetchData();
+  Future<T> fetchData();
 
   ErrorState<T> errorStateObject(Object error, StackTrace stackTrace);
 

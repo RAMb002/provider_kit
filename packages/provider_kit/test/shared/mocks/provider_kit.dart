@@ -8,7 +8,7 @@ class MockFutureNotifier<T> extends FutureNotifier<T> {
   MockFutureNotifier({required this.fetchDataImpl, super.disableEmptyState});
 
   @override
-  FutureOr<T> fetchData() => fetchDataImpl();
+  Future<T> fetchData() async => fetchDataImpl();
 
   @override
   Future<void> refresh() async {

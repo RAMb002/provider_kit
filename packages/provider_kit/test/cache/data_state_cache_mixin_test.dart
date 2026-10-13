@@ -16,7 +16,7 @@ class TestCachedProvider extends FutureNotifier<String>
   });
 
   @override
-  FutureOr<String> fetchData() async {
+  Future<String> fetchData() async {
     if (exceptionToThrow != null) {
       throw exceptionToThrow!;
     }
