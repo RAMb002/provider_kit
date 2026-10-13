@@ -20,7 +20,7 @@ class SpyObserver extends NotifierObserver {
 
 /// A test provider that allows controlling `fetchData` and optionally
 /// overriding `init` behaviour.
-class TestProvider<T> extends AsyncViewStateNotifier<T> {
+class TestProvider<T> extends FutureNotifier<T> {
   final FutureOr<T> Function() fetchDataImpl;
   final FutureOr<void> Function()? initOverride;
 
@@ -91,7 +91,7 @@ class ThrowingOnErrorProvider extends TestProvider<String> {
   }
 }
 
-class ConstructorDependentProvider extends AsyncViewStateNotifier<String> {
+class ConstructorDependentProvider extends FutureNotifier<String> {
   ConstructorDependentProvider() {
     _value = 'initialized';
   }
@@ -117,7 +117,7 @@ Future<void> flushImmediateBuild() {
 // -----------------------------------------------------------------------------
 
 void main() {
-  group('AsyncViewStateNotifier', () {
+  group('FutureNotifier', () {
     // -----------------------------------------------------------------------
     // 1. Initial state
     // -----------------------------------------------------------------------

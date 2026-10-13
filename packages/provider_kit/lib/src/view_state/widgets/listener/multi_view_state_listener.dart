@@ -44,7 +44,7 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   /// change.
   ///
   /// Each provider accessed through `.watch` must be a [ViewStateNotifier] or
-  /// one of its subclasses, such as [AsyncViewStateNotifier].
+  /// one of its subclasses, such as [FutureNotifier].
   ///
   /// ```dart
   /// providers: () => (

@@ -13,7 +13,7 @@ part of '../core/provider_kit_core.dart';
 /// notifier implementations provided by this package, such as:
 ///
 /// - [StateNotifier] – for simple value state management.
-/// - [AsyncViewStateNotifier] – for asynchronous view‑state fetching.
+/// - [FutureNotifier] – for asynchronous view‑state fetching.
 /// - Future notifier types (e.g., mutations) – will also be built on this base.
 ///
 /// ### Observing notifier lifecycle events
@@ -71,16 +71,19 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   ///
   /// Mirrors Flutter's `ChangeNotifier.debugAssertNotDisposed`.
   @protected
-  static bool debugAssertNotDisposed(NotifierBase<dynamic> notifier,
-      [String? operation]) {
+  static bool debugAssertNotDisposed(
+    NotifierBase<dynamic> notifier, [
+    String? operation,
+  ]) {
     assert(() {
       if (notifier._disposed) {
         throw FlutterError(
           '\n'
           'A ${notifier.runtimeType} was used after being disposed.\n'
           '${operation != null ? ''
-              'Attempted operation:\n'
-              '  - $operation' '\n\n' : ''}'
+                    'Attempted operation:\n'
+                    '  - $operation'
+                    '\n\n' : ''}'
           'Once dispose() has been called on a ${notifier.runtimeType}, '
           'it can no longer be used.',
         );
@@ -132,10 +135,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   /// ```
   @protected
   @mustCallSuper
-  void onError(
-    Object error,
-    StackTrace stackTrace,
-  ) {
+  void onError(Object error, StackTrace stackTrace) {
     assert(debugAssertNotDisposed(this, 'onError'));
     // ignore: invalid_use_of_protected_member
     _observer.onError(this, error, stackTrace);

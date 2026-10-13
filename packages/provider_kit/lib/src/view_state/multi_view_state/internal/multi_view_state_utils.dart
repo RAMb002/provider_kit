@@ -112,7 +112,7 @@ final class MultiViewStateUtils {
       if (state is ErrorState<dynamic>) {
         firstErrorState ??= state;
 
-        if (state.onRetry != null || provider is AsyncViewStateNotifier) {
+        if (state.onRetry != null || provider is FutureNotifier) {
           retryableProviders.add(provider);
         }
         continue;
@@ -180,7 +180,7 @@ final class MultiViewStateUtils {
       final ViewState<dynamic> state = provider.state;
 
       return state is ErrorState<dynamic> &&
-          (state.onRetry != null || provider is AsyncViewStateNotifier);
+          (state.onRetry != null || provider is FutureNotifier);
     });
 
     if (!hasRetry) {
@@ -197,7 +197,7 @@ final class MultiViewStateUtils {
 
         if (state.onRetry != null) {
           state.onRetry!.call();
-        } else if (provider is AsyncViewStateNotifier) {
+        } else if (provider is FutureNotifier) {
           provider.refresh();
         }
       }

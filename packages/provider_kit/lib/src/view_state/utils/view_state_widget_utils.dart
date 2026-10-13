@@ -149,7 +149,7 @@ abstract class ViewStateWidgetUtils {
     P? providerParam,
   ) {
     final provider = providerParam ?? context.read<P>();
-    if (provider is AsyncViewStateNotifier<T>) {
+    if (provider is FutureNotifier<T>) {
       return provider.refresh;
     }
     return null;

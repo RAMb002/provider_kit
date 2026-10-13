@@ -4,10 +4,10 @@ import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 
-/// {@template provider_kit.asyncViewStateNotifier}
-/// An abstract class that extends [AsyncViewStateNotifierInterface] and provides default implementations for state management.
+/// {@template provider_kit.future_notifier}
+/// An abstract class that extends [FutureNotifierInterface] and provides default implementations for state management.
 ///
-/// The [AsyncViewStateNotifier] class is designed to handle common state transitions such as loading, error, and empty states.
+/// The [FutureNotifier] class is designed to handle common state transitions such as loading, error, and empty states.
 /// It guards the initialization and refresh operations, prevents duplicate
 /// asynchronous operations while a build is already running, and converts
 /// errors into [ErrorState] instances.
@@ -39,14 +39,14 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 /// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
 /// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
 ///
-/// When [AsyncViewStateNotifier] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
+/// When [FutureNotifier] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
 /// the **`onRetry`** function for the `ErrorState` will be determined as follows:
 /// 1. If `onRetry` is explicitly set in the `ErrorState`, that function will be used.
 /// 2. If `onRetry` is `null`, the provider’s [refresh] function will be automatically used for retrying.
 ///
 /// ### Example Usage:
 /// ```dart
-/// class MyProvider extends AsyncViewStateNotifier<MyDataType> {
+/// class MyProvider extends FutureNotifier<MyDataType> {
 ///   MyProvider({super.initialState, super.disableEmptyState});
 ///
 ///   @override
@@ -111,18 +111,14 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 /// - By default, the initial state is set to **`LoadingState`**.
 /// {@endtemplate}
 
-abstract class AsyncViewStateNotifier<T>
-    extends AsyncViewStateNotifierInterface<T> {
-  /// {@macro provider_kit.asyncViewStateNotifier}
-  AsyncViewStateNotifier({
-    super.initialState,
-    this._disableEmptyState = false,
-  }) {
+abstract class FutureNotifier<T> extends FutureNotifierInterface<T> {
+  /// {@macro provider_kit.future_notifier}
+  FutureNotifier({super.initialState, this._disableEmptyState = false}) {
     scheduleMicrotask(_startInitialBuild);
   }
 
   final bool _disableEmptyState;
-  final _AsyncBuildManager _buildManager = _AsyncBuildManager();
+  final _BuildManager _buildManager = _BuildManager();
 
   void _startInitialBuild() {
     unawaited(
@@ -240,9 +236,9 @@ abstract class AsyncViewStateNotifier<T>
   }
 }
 
-/// An abstract class that provides the interface for [AsyncViewStateNotifier].
+/// An abstract class that provides the interface for [FutureNotifier].
 ///
-/// The [AsyncViewStateNotifierInterface] class defines the methods that must be implemented by subclasses.
+/// The [FutureNotifierInterface] class defines the methods that must be implemented by subclasses.
 /// It extends [ViewStateNotifier] and provides a default initial state of **`LoadingState`**.
 ///
 /// ### Methods:
@@ -252,8 +248,8 @@ abstract class AsyncViewStateNotifier<T>
 /// - **`errorStateObject`** (*Required*) **:** A method that provides the error state object.
 /// - **`loadingStateObject`** (*Required*) **:** A method that provides the loading state object.
 /// - **`emptyStateObject`** (*Required*) **:** A method that provides the empty state object.
-abstract class AsyncViewStateNotifierInterface<T> extends ViewStateNotifier<T> {
-  AsyncViewStateNotifierInterface({ViewState<T>? initialState})
+abstract class FutureNotifierInterface<T> extends ViewStateNotifier<T> {
+  FutureNotifierInterface({ViewState<T>? initialState})
     : super(initialState ?? LoadingState<T>());
 
   FutureOr<void> init();
@@ -275,7 +271,7 @@ abstract class AsyncViewStateNotifierInterface<T> extends ViewStateNotifier<T> {
 ///
 /// Concurrent callers receive the same future. The active operation is
 /// cleared after success or failure, allowing a subsequent build to start.
-final class _AsyncBuildManager {
+final class _BuildManager {
   Future<void>? _currentBuild;
 
   Future<void> run(Future<void> Function() operation) {

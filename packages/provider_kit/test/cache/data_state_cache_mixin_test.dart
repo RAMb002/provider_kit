@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-class TestCachedProvider extends AsyncViewStateNotifier<String>
+class TestCachedProvider extends FutureNotifier<String>
     with DataStateCacheMixin<String> {
   String? dataToReturn;
   Exception? exceptionToThrow;
@@ -37,7 +37,7 @@ class TestCachedProvider extends AsyncViewStateNotifier<String>
 // Test Suite
 // -----------------------------------------------------------------------------
 void main() {
-  group('DataStateCacheMixin with AsyncViewStateNotifier', () {
+  group('DataStateCacheMixin with FutureNotifier', () {
     late TestCachedProvider provider;
 
     setUp(() {
@@ -118,7 +118,7 @@ void main() {
     );
 
     test(
-      'preserves cached DataState across AsyncViewStateNotifier error refresh cycles',
+      'preserves cached DataState across FutureNotifier error refresh cycles',
       () async {
         await Future<void>.delayed(Duration.zero);
 

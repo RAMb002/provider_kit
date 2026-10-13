@@ -543,9 +543,9 @@ void main() {
     );
 
     testWidgets(
-      'uses AsyncViewStateNotifier refresh when an ErrorState has no retry callback',
+      'uses FutureNotifier refresh when an ErrorState has no retry callback',
       (tester) async {
-        final asyncProvider = MockAsyncViewStateNotifier<String>(
+        final asyncProvider = MockFutureNotifier<String>(
           fetchDataImpl: () => 'data',
         );
 

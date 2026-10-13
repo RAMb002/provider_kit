@@ -1,8 +1,9 @@
 import 'dart:async';
+
 import 'package:example/repository/repository.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-class FeedProvider extends AsyncViewStateNotifier<List<Item>> {
+class FeedProvider extends FutureNotifier<List<Item>> {
   @override
   FutureOr<List<Item>> fetchData() => Repository().getItems(10);
 }
