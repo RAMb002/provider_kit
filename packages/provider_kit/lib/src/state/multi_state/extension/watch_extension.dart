@@ -1,6 +1,6 @@
 part of '../multi_state.dart';
 
-extension StateValueListenableWatch<T> on StateValueListenable<T> {
+extension StateListenableWatch<T> on StateListenable<T> {
   /// Reads the current state and registers this source as a dependency.
   ///
   /// `.watch` can only be used inside a dependency-collecting callback,

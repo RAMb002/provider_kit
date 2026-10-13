@@ -66,7 +66,7 @@ architecture you already know while writing less boilerplate.
   - [Multi State Widgets](#multi-state-widgets)
 - [View State](#viewstate)
   - [View State Notifier](#viewstatenotifier)
-  - [Async View State Notifier](#asyncviewstatenotifier)
+  - [Future Notifier](#futurenotifier)
   - [View State Widgets Provider](#viewstatewidgetsprovider)
   - [View State Widgets](#view-state-widgets)
   - [Multi View State Widgets](#multi-view-state-widgets)
@@ -550,12 +550,12 @@ widgets to react to each state through ProviderKit's View State widgets.
 
 
 **Tired of manually implementing the same logic for every provider?**
-No worries! Introducing **AsyncViewStateNotifier**—a more efficient way to manage our view state.
+No worries! Introducing **FutureNotifier**—a more efficient way to manage our view state.
 
 
-## AsyncViewStateNotifier
+## FutureNotifier
 
-`AsyncViewStateNotifier` automatically handles much of the boilerplate required
+`FutureNotifier` automatically handles much of the boilerplate required
 for asynchronous `ViewState` management:
 
 <table>
@@ -587,7 +587,7 @@ Instead of manually managing loading, data, empty, error, and refresh states,
 implement `fetchData()`:
 
 ```dart
-class MyViewStateProvider extends AsyncViewStateNotifier<List<Item>> {
+class MyViewStateProvider extends FutureNotifier<List<Item>> {
   @override
   FutureOr<List<Item>> fetchData() => Repository().getItems(10);
 }
@@ -601,18 +601,15 @@ error handling, empty-state handling, and refresh behavior.
 > `EmptyState`. Use `disableEmptyState` to treat an empty `Iterable` as
 > `DataState` instead.
 
-### What does `AsyncViewStateNotifier` handle?
+### What does `FutureNotifier` handle?
 - Automatically fetches data upon initialization.  
 - Transitions to `LoadingState` before fetching.  
 - If the data is `Iterable` and if it's empty, it switches to `EmptyState`.  
 - Catches errors and converts them into `ErrorState`.  
-- Includes a built-in `refresh()` function to re-run the data-fetching logic.
+- Includes a built-in `refresh()` function to re-fetch data with a loading-state transition.
+- Provides refreshSilently() to re-fetch data without automatically transitioning to LoadingState.
 - Passes the `refresh` function, error, and stack trace to `ErrorState`.  
 - Internally guarded with `mounted` – For safe async state updates.  
-
-> **Note:** `FlutterError` exceptions are **re-thrown** and are not converted
-> to `ErrorState`. This prevents fatal programming errors, such as assertion
-> failures, from being masked by the UI.
 
 
 | **Attributes**         | **Type**                                  | **Description**  |
@@ -628,13 +625,14 @@ error handling, empty-state handling, and refresh behavior.
 | `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize the default `ErrorState` Object |
 | `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize the default `LoadingState` Object  |
 | `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize the default `EmptyState` Object  instance. |
-| `refresh()`                  | `Future<void>`                           | Refreshes the provider which will call `init` with `fetchData()` again. |
+| `refresh()` | `Future<void>` | Refreshes data with a loading-state transition. |
+| `refreshSilently()` | `Future<void>` | Refreshes data without a loading-state transition. |
 
 
 When `ErrorState.onRetry` is not provided, View State Widgets use the
-`refresh()` method of the `AsyncViewStateNotifier` as the retry callback.
+`refresh()` method of the `FutureNotifier` as the retry callback.
 
-Before moving on to the widgets that listen to `ViewStateNotifier` and `AsyncViewStateNotifier`, let's first look at `ViewStateWidgetsProvider`, which allows us to define the default widgets used to represent different `ViewState`s.
+Before moving on to the widgets that listen to `ViewStateNotifier` and `FutureNotifier`, let's first look at `ViewStateWidgetsProvider`, which allows us to define the default widgets used to represent different `ViewState`s.
 
 
 ## ViewStateWidgetsProvider
@@ -734,7 +732,7 @@ With `ViewStateWidgetsProvider`, we can significantly reduce the amount of UI bo
 View State Widgets are similar to [State Widgets](#state-widgets), but are
 designed to work with [`ViewState`](#viewstate). They listen to providers that
 extend [`ViewStateNotifier`](#viewstatenotifier) or
-[`AsyncViewStateNotifier`](#asyncviewstatenotifier) and automatically respond to
+[`FutureNotifier`](#futurenotifier) and automatically respond to
 changes between `InitialState`, `LoadingState`, `DataState`, `EmptyState`, and
 `ErrorState`.
 
@@ -907,7 +905,7 @@ When multiple providers have different view states, the combined `ViewState` fol
 
 **`DataState` is used only when all providers are in `DataState`**. Their data is combined into a single typed value and passed to the `builder` or `listener`.
 
-> If some providers are in `DataState` while another is in `EmptyState`, the combined state becomes `EmptyState`. If you want to avoid this, keep the provider in `DataState` with an empty value instead, or use `disableEmptyState` with `AsyncViewStateNotifier`.
+> If some providers are in `DataState` while another is in `EmptyState`, the combined state becomes `EmptyState`. If you want to avoid this, keep the provider in `DataState` with an empty value instead, or use `disableEmptyState` with `FutureNotifier`.
 
 
 ## MultiViewStateListener
@@ -994,7 +992,7 @@ when needed.
 
 `ExViewStateCacheMixin` can be used with providers that support `ViewState`, such
 as [`ViewStateNotifier`](#viewstatenotifier) and
-[`AsyncViewStateNotifier`](#asyncviewstatenotifier).
+[`FutureNotifier`](#futurenotifier).
 
 It keeps track of the most recent state of each `ViewState` type and provides
 access to the cached states.
@@ -1022,16 +1020,16 @@ class MyViewStateProvider extends ViewStateNotifier<MyDataType> with ExViewState
 
 It can be used with providers that support `ViewState`,
 such as [`ViewStateNotifier`](#viewstatenotifier) and
-[`AsyncViewStateNotifier`](#asyncviewstatenotifier).
+[`FutureNotifier`](#futurenotifier).
 It lets you cache a `DataState` so you can temporarily change the current
 data and restore the cached data later.
 This is useful for operations such as filtering, searching, or locally
 modifying data while keeping the original data available.
 
-#### Example with `AsyncViewStateNotifier`:
+#### Example with `FutureNotifier`:
 
 ```dart
-class MyViewStateProvider extends AsyncViewStateNotifier<List<String>>
+class MyViewStateProvider extends FutureNotifier<List<String>>
     with DataStateCacheMixin<List<String>> {
 
   @override
@@ -1502,7 +1500,7 @@ you do not need to manually dispose each resource.
 
 Use `NotifierResourcesMixin` with any `ChangeNotifier`, including ProviderKit
 notifiers such as `StateNotifier`, `ViewStateNotifier`, and
-`AsyncViewStateNotifier`.
+`FutureNotifier`.
 
 ```dart
 class SearchNotifier extends ChangeNotifier

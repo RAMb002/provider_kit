@@ -14,5 +14,5 @@ final class _DependencyCollection<T> {
   final T value;
 
   /// The dependencies discovered during the providers evaluation.
-  final Set<StateValueListenable> dependencies;
+  final Set<StateListenable> dependencies;
 }

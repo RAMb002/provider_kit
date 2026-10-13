@@ -18,7 +18,7 @@ const _defaultEmptyKey = Key('default_empty');
 const _defaultErrorKey = Key('default_error');
 
 void main() {
-  group('MultiViewStateConsumer', () {
+  group('ViewStateConsumer.multi', () {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -58,7 +58,7 @@ void main() {
       bool withDefaultProvider = false,
     }) {
       Widget widget = wrap(
-        MultiViewStateConsumer<T>(
+        ViewStateConsumer<T>.multi(
           providers: providers,
           initialBuilder: initialBuilder,
           loadingBuilder: loadingBuilder,
@@ -619,7 +619,7 @@ void main() {
             emptyStateBuilder: (_, __) => const SizedBox(),
             errorStateBuilder: (_, __, ___, ____, _____) => const SizedBox(),
             child: wrap(
-              MultiViewStateConsumer<ViewState<String>>(
+              ViewStateConsumer.multi(
                 providers: () => provider.watch,
                 dataBuilder: (_) => const SizedBox(),
                 isSliver: true,
@@ -721,7 +721,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           wrap(
-            MultiViewStateConsumer<ViewState<String>>(
+            ViewStateConsumer.multi(
               providers: () => const DataState<String>('data'),
               dataBuilder: (_) => const SizedBox(),
             ),
@@ -749,7 +749,7 @@ void main() {
 
         await tester.pumpWidget(
           wrap(
-            MultiViewStateConsumer<String>(
+            ViewStateConsumer.multi(
               providers: () => field.watch,
               dataBuilder: (_) => const SizedBox(),
             ),
@@ -795,7 +795,7 @@ void main() {
             builder: (context, setState) {
               return Column(
                 children: <Widget>[
-                  MultiViewStateConsumer<ViewState<String>>(
+                  ViewStateConsumer.multi(
                     providers: providers,
                     dataBuilder: (state) {
                       builderCalls++;
@@ -875,7 +875,7 @@ void main() {
               builder: (context, setState) {
                 return Column(
                   children: <Widget>[
-                    MultiViewStateConsumer<ViewState<String>>(
+                    ViewStateConsumer.multi(
                       providers: () => provider.watch,
                       dataBuilder: (_) {
                         builderCalls++;
@@ -961,7 +961,7 @@ void main() {
 
         final provider = TestViewStateNotifier<int>(const DataState<int>(1));
 
-        MultiViewStateConsumer<({ViewState<int> value})>(
+        ViewStateConsumer.multi(
           providers: () => (value: provider.watch),
           initialBuilder: (_) => const SizedBox(),
           loadingBuilder: (_, __, ___) => const SizedBox(),

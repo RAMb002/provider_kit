@@ -68,7 +68,7 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
         );
 
     return switch (widget.mode) {
-      MultiStateDemoMode.builder => MultiStateBuilder(
+      MultiStateDemoMode.builder => StateBuilder.multi(
           providers: providers,
           builder: (_, states, child) {
             return DemoCard(
@@ -81,7 +81,7 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
             );
           },
         ),
-      MultiStateDemoMode.listener => MultiStateListener(
+      MultiStateDemoMode.listener => StateListener.multi(
           providers: providers,
           listener: (_, states) {
             _handleStateChange(states);
@@ -97,7 +97,7 @@ class _MultiStateWidgetsDemoState extends State<MultiStateWidgetsDemo>
             ),
           ),
         ),
-      MultiStateDemoMode.consumer => MultiStateConsumer(
+      MultiStateDemoMode.consumer => StateConsumer.multi(
           providers: providers,
           listener: (_, states) {
             _handleStateChange(states);

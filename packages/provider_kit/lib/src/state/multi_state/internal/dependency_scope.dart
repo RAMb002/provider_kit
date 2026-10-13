@@ -5,10 +5,8 @@ part of '../multi_state.dart';
 /// A scope owns the dependencies discovered during a single providers
 /// evaluation.
 final class _DependencyScope {
-  _DependencyScope({
-    required this.dependencies,
-  });
+  _DependencyScope({required this.dependencies});
 
   /// Dependencies discovered while this scope is active.
-  final Set<StateValueListenable> dependencies;
+  final Set<StateListenable> dependencies;
 }

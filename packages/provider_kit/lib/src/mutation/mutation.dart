@@ -4,7 +4,7 @@ library provider_kit_mutation;
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/observer/change.dart';
@@ -152,7 +152,7 @@ part 'mutation_state.dart';
 /// - [MutationState], which represents the current state.
 /// - [MutationGroup], for maintaining independent mutation states by key.
 class Mutation<T> extends NotifierBase<MutationState<T>>
-    implements StateValueListenable<MutationState<T>> {
+    implements StateListenable<MutationState<T>> {
   /// Creates a mutation in the [MutationIdle] state.
   Mutation();
 

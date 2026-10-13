@@ -37,7 +37,7 @@ class _MultiStateListenerExampleState extends State<MultiStateListenerExample> {
   @override
   Widget build(BuildContext context) {
     return _buildScaffold(
-      MultiStateListener(
+      StateListener.multi(
         providers: () => (
           profile: profileProvider.watch,
           cart: cartProvider.watch,

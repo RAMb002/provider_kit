@@ -543,9 +543,9 @@ void main() {
     );
 
     testWidgets(
-      'uses AsyncViewStateNotifier refresh when an ErrorState has no retry callback',
+      'uses FutureNotifier refresh when an ErrorState has no retry callback',
       (tester) async {
-        final asyncProvider = MockAsyncViewStateNotifier<String>(
+        final asyncProvider = MockFutureNotifier<String>(
           fetchDataImpl: () => 'data',
         );
 
@@ -674,7 +674,7 @@ Widget _buildConsumer<T>({
 }) {
   return Directionality(
     textDirection: TextDirection.ltr,
-    child: MultiViewStateConsumer<T>(
+    child: ViewStateConsumer<T>.multi(
       providers: providers,
       callListenerOnInit: callListenerOnInit,
       initialBuilder: (isSliver) {

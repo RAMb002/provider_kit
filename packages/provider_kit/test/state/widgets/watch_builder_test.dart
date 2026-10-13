@@ -944,7 +944,7 @@ void main() {
 // TEST HELPERS
 // =============================================================================
 
-class _TestStateSource<T> implements StateValueListenable<T> {
+class _TestStateSource<T> implements StateListenable<T> {
   _TestStateSource(this._value);
 
   T _value;

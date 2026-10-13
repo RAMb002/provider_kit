@@ -1,4 +1,4 @@
-import 'package:example/example_kits/providers/2_async_view_state_notifier.dart';
+import 'package:example/example_kits/providers/2_future_notifier.dart';
 import 'package:example/scaffold_with_button.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -22,7 +22,7 @@ class MultiViewStateBuilderExample extends StatelessWidget {
 
         return ScaffoldWithButton(
           title: 'Multi View State Builder',
-          child: MultiViewStateBuilder(
+          child: ViewStateBuilder.multi(
             providers: () => (
               movie: movieProvider.watch,
               similarMovies: similarMoviesProvider.watch,

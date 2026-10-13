@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:example/repository/repository.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-class ItemsProvider extends AsyncViewStateNotifier<List<Item>> {
+class ItemsProvider extends FutureNotifier<List<Item>> {
   final Repository _repo = Repository();
 
   @override
-  FutureOr<List<Item>> fetchData() => _repo.getItems(10);
+  Future<List<Item>> fetchData() => _repo.getItems(10);
 }
 
 typedef ItemsViewState = ViewState<List<Item>>;
@@ -22,23 +22,23 @@ typedef ItemsViewStateBuilder = ViewStateBuilder<List<Item>>;
 typedef ItemsViewStateListener = ViewStateListener<List<Item>>;
 typedef ItemsViewStateConsumer = ViewStateConsumer<List<Item>>;
 
-class MovieProvider extends AsyncViewStateNotifier<Movie> {
+class MovieProvider extends FutureNotifier<Movie> {
   final Repository _repo = Repository();
 
   @override
-  FutureOr<Movie> fetchData() => _repo.getMovie();
+  Future<Movie> fetchData() => _repo.getMovie();
 }
 
-class SimilarMoviesProvider extends AsyncViewStateNotifier<List<Movie>> {
+class SimilarMoviesProvider extends FutureNotifier<List<Movie>> {
   final Repository _repo = Repository();
 
   @override
-  FutureOr<List<Movie>> fetchData() => _repo.getSimilarMovies();
+  Future<List<Movie>> fetchData() => _repo.getSimilarMovies();
 }
 
-class TrailersProvider extends AsyncViewStateNotifier<List<Trailer>> {
+class TrailersProvider extends FutureNotifier<List<Trailer>> {
   final Repository _repo = Repository();
 
   @override
-  FutureOr<List<Trailer>> fetchData() => _repo.getTrailers();
+  Future<List<Trailer>> fetchData() => _repo.getTrailers();
 }

@@ -9,10 +9,13 @@ part of '../../../state/multi_state/multi_state.dart';
 ///
 /// The current combined value and aggregated View State are maintained as
 /// separate snapshots. The combined value is used for Data-state equality,
-/// while [_MultiViewStateAggregate] represents the observable Error, Initial,
+/// while [MultiViewStateAggregate] represents the observable Error, Initial,
 /// Loading, and Empty state information.
-class _MultiViewStateBase<T> extends StatefulWidget {
-  const _MultiViewStateBase({
+///
+@internal
+final class MultiViewStateEngine<T> extends StatefulWidget {
+  const MultiViewStateEngine({
+    super.key,
     required this.providers,
     required this.widgetName,
     this.listener,
@@ -28,10 +31,10 @@ class _MultiViewStateBase<T> extends StatefulWidget {
 
   /// Receives the current combined state and aggregated View State when a
   /// meaningful change passes [listenWhen].
-  final _MultiViewStateListenerCallback<T>? listener;
+  final MultiViewStateListenerCallback<T>? listener;
 
   /// Builds the widget from the current combined state and aggregate.
-  final _MultiViewStateBuilder<T>? builder;
+  final MultiViewStateBuilderCallback<T>? builder;
 
   /// Determines whether a meaningful Multi View State change should invoke
   /// [listener].
@@ -51,14 +54,15 @@ class _MultiViewStateBase<T> extends StatefulWidget {
   final String widgetName;
 
   @override
-  State<_MultiViewStateBase<T>> createState() => _MultiViewStateBaseState<T>();
+  State<MultiViewStateEngine<T>> createState() =>
+      _MultiViewStateEngineState<T>();
 }
 
-/// State implementation for [_MultiViewStateBase].
+/// State implementation for [MultiViewStateEngine].
 ///
 /// The state delegates shared dependency and scheduling mechanics to
 /// [_MultiStateCore] and keeps the latest Multi View State aggregate locally.
-class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
+class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
   late final _MultiStateCore<T> _core;
 
   /// Providers currently used by the aggregated View State.
@@ -68,7 +72,7 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
   late List<ViewStateNotifier<dynamic>> _providers;
 
   /// Latest aggregated View State snapshot.
-  late _MultiViewStateAggregate _currentAggregate;
+  late MultiViewStateAggregate _currentAggregate;
 
   @override
   void initState() {
@@ -81,7 +85,7 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
   }
 
   @override
-  void didUpdateWidget(_MultiViewStateBase<T> oldWidget) {
+  void didUpdateWidget(MultiViewStateEngine<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     _updateAndSync();
   }
@@ -91,7 +95,7 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
 
     _core.state = collection.value;
     _providers = _resolveProviders(collection.dependencies);
-    _currentAggregate = _MultiViewStateUtils._aggregate(_providers);
+    _currentAggregate = MultiViewStateUtils._aggregate(_providers);
 
     _core.syncDependencies(collection.dependencies);
   }
@@ -100,8 +104,8 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
   /// during initialization.
   void _scheduleInitialListener() {
     final T initialState = _core.state;
-    final _MultiViewStateAggregate initialAggregate = _currentAggregate;
-    final _MultiViewStateListenerCallback<T> initialListener = widget.listener!;
+    final MultiViewStateAggregate initialAggregate = _currentAggregate;
+    final MultiViewStateListenerCallback<T> initialListener = widget.listener!;
 
     _core.listenerQueue.scheduleInitialListener(
       initialCallback: () {
@@ -122,7 +126,7 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
     }
 
     final T previousState = _core.state;
-    final _MultiViewStateAggregate previousAggregate = _currentAggregate;
+    final MultiViewStateAggregate previousAggregate = _currentAggregate;
 
     final _DependencyCollection<T> collection = _collect();
     final T currentState = collection.value;
@@ -135,8 +139,8 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
       _providers = _resolveProviders(collection.dependencies);
     }
 
-    final _MultiViewStateAggregate currentAggregate =
-        _MultiViewStateUtils._aggregate(_providers);
+    final MultiViewStateAggregate currentAggregate =
+        MultiViewStateUtils._aggregate(_providers);
 
     _core.state = currentState;
     _currentAggregate = currentAggregate;
@@ -161,14 +165,14 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
   bool _hasMeaningfulChange(
     T previousState,
     T currentState,
-    _MultiViewStateAggregate previousAggregate,
-    _MultiViewStateAggregate currentAggregate,
+    MultiViewStateAggregate previousAggregate,
+    MultiViewStateAggregate currentAggregate,
   ) {
     if (!previousAggregate.isSameAs(currentAggregate)) {
       return true;
     }
 
-    if (currentAggregate.status != _MultiViewStateStatus.data) {
+    if (currentAggregate.status != MultiViewStateStatus.data) {
       return false;
     }
 
@@ -194,11 +198,11 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
     }
 
     if (shouldListen) {
-      final _MultiViewStateListenerCallback<T>? listener = widget.listener;
+      final MultiViewStateListenerCallback<T>? listener = widget.listener;
 
       if (listener != null) {
         final T state = currentState;
-        final _MultiViewStateAggregate aggregate = _currentAggregate;
+        final MultiViewStateAggregate aggregate = _currentAggregate;
 
         _core.listenerQueue.dispatch(() => listener(context, state, aggregate));
       }
@@ -219,7 +223,7 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
   /// The Multi View State API requires all watched sources to be
   /// [ViewStateNotifier] instances.
   List<ViewStateNotifier<dynamic>> _resolveProviders(
-    Iterable<StateValueListenable> dependencies,
+    Iterable<StateListenable> dependencies,
   ) {
     return dependencies
         .map((dependency) {
@@ -244,7 +248,7 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final _MultiViewStateBuilder<T>? builder = widget.builder;
+    final MultiViewStateBuilderCallback<T>? builder = widget.builder;
 
     if (builder != null) {
       return builder(context, _core.state, _currentAggregate, widget.child);
@@ -259,17 +263,19 @@ class _MultiViewStateBaseState<T> extends State<_MultiViewStateBase<T>> {
   }
 }
 
-typedef _MultiViewStateListenerCallback<T> =
+@internal
+typedef MultiViewStateListenerCallback<T> =
     void Function(
       BuildContext context,
       T state,
-      _MultiViewStateAggregate aggregate,
+      MultiViewStateAggregate aggregate,
     );
 
-typedef _MultiViewStateBuilder<T> =
+@internal
+typedef MultiViewStateBuilderCallback<T> =
     Widget Function(
       BuildContext context,
       T state,
-      _MultiViewStateAggregate aggregate,
+      MultiViewStateAggregate aggregate,
       Widget? child,
     );

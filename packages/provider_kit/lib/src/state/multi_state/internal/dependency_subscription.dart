@@ -1,37 +1,35 @@
 part of '../multi_state.dart';
-/// Manages subscriptions to a dynamic set of [StateValueListenable] sources.
+
+/// Manages subscriptions to a dynamic set of [StateListenable] sources.
 ///
 /// Only dependencies that were added or removed since the previous
 /// synchronization are subscribed or unsubscribed.
 final class _DependencySubscription {
-  _DependencySubscription({
-    required this.onChange,
-  });
+  _DependencySubscription({required this.onChange});
 
   final void Function() onChange;
 
-  Set<StateValueListenable> _dependencies =
-      Set<StateValueListenable>.identity();
+  Set<StateListenable> _dependencies = Set<StateListenable>.identity();
 
   /// The currently subscribed dependencies.
-  Iterable<StateValueListenable> get dependencies => _dependencies;
+  Iterable<StateListenable> get dependencies => _dependencies;
 
   /// Synchronizes the active subscriptions with [nextDependencies].
   ///
   /// Returns `true` when the dependency set changed.
-  bool sync(Set<StateValueListenable> nextDependencies) {
-    final Set<StateValueListenable> previousDependencies = _dependencies;
+  bool sync(Set<StateListenable> nextDependencies) {
+    final Set<StateListenable> previousDependencies = _dependencies;
 
     bool changed = previousDependencies.length != nextDependencies.length;
 
-    for (final StateValueListenable dependency in previousDependencies) {
+    for (final StateListenable dependency in previousDependencies) {
       if (!nextDependencies.contains(dependency)) {
         changed = true;
         dependency.removeListener(onChange);
       }
     }
 
-    for (final StateValueListenable dependency in nextDependencies) {
+    for (final StateListenable dependency in nextDependencies) {
       if (!previousDependencies.contains(dependency)) {
         changed = true;
         dependency.addListener(onChange);
@@ -45,7 +43,7 @@ final class _DependencySubscription {
 
   /// Removes every active subscription.
   void dispose() {
-    for (final StateValueListenable dependency in _dependencies) {
+    for (final StateListenable dependency in _dependencies) {
       dependency.removeListener(onChange);
     }
 

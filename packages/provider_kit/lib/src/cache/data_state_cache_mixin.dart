@@ -44,13 +44,13 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 /// }
 /// ```
 ///
-/// ### AsyncViewStateNotifier
+/// ### FutureNotifier
 ///
-/// With [AsyncViewStateNotifier], you can cache the original data directly
+/// With [FutureNotifier], you can cache the original data directly
 /// inside [fetchData] before returning it.
 ///
 /// ```dart
-/// class MoviesProvider extends AsyncViewStateNotifier<List<Movie>>
+/// class MoviesProvider extends FutureNotifier<List<Movie>>
 ///     with DataStateCacheMixin<List<Movie>> {
 ///
 ///   @override

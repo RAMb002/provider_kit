@@ -19,7 +19,7 @@ const _defaultEmptyKey = Key('default_empty');
 const _defaultErrorKey = Key('default_error');
 
 void main() {
-  group('MultiViewStateBuilder', () {
+  group('ViewStateBuilder.multi', () {
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------
@@ -53,7 +53,7 @@ void main() {
     }) {
       Widget widget = Directionality(
         textDirection: TextDirection.ltr,
-        child: MultiViewStateBuilder<T>(
+        child: ViewStateBuilder.multi(
           providers: providers,
           initialBuilder: initialBuilder,
           loadingBuilder: loadingBuilder,
@@ -604,7 +604,7 @@ void main() {
 
         await tester.pumpWidget(
           wrap(
-            MultiViewStateBuilder<TwoStates>(
+           ViewStateBuilder.multi(
               providers: () => (first: provider.watch, second: provider.watch),
               dataBuilder: (_) {
                 dataBuilds++;
@@ -632,7 +632,7 @@ void main() {
 
         await tester.pumpWidget(
           wrap(
-            MultiViewStateBuilder<String>(
+            ViewStateBuilder.multi(
               providers: () => field.watch,
               dataBuilder: (_) => const SizedBox(),
             ),
@@ -655,7 +655,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           wrap(
-            MultiViewStateBuilder<ViewState<String>>(
+            ViewStateBuilder.multi(
               providers: () => const DataState<String>('data'),
               dataBuilder: (_) => const SizedBox(),
             ),
@@ -703,7 +703,7 @@ void main() {
             builder: (context, setState) {
               return Column(
                 children: <Widget>[
-                  MultiViewStateBuilder<ViewState<String>>(
+                  ViewStateBuilder.multi(
                     providers: providers,
                     dataBuilder: (state) {
                       dataBuilds++;
@@ -828,7 +828,7 @@ void main() {
 
         final provider = TestViewStateNotifier<int>(const DataState<int>(1));
 
-        MultiViewStateBuilder<({ViewState<int> value})>(
+        ViewStateBuilder.multi(
           providers: () => (value: provider.watch),
           initialBuilder: (_) => const SizedBox(),
           loadingBuilder: (_, __, ___) => const SizedBox(),

@@ -1,6 +1,7 @@
 part of '../../../state/multi_state/multi_state.dart';
 
-enum _MultiViewStateStatus { error, initial, loading, empty, data }
+@internal
+enum MultiViewStateStatus { error, initial, loading, empty, data }
 
 /// Internal snapshot of the values that are observable from the aggregated
 /// Multi View State.
@@ -8,9 +9,10 @@ enum _MultiViewStateStatus { error, initial, loading, empty, data }
 /// This is intentionally different from the individual provider states.
 /// It contains only the information that affects the combined state exposed
 /// by Multi View State widgets.
+@internal
 @immutable
-final class _MultiViewStateAggregate {
-  const _MultiViewStateAggregate._({
+final class MultiViewStateAggregate {
+  const MultiViewStateAggregate._({
     required this.status,
     this.errorInfo,
     this.error,
@@ -21,38 +23,38 @@ final class _MultiViewStateAggregate {
     this.emptyMessage,
   });
 
-  const _MultiViewStateAggregate.error({
+  const MultiViewStateAggregate.error({
     required ErrorInfo errorInfo,
     required Object error,
     required StackTrace stackTrace,
     required List<ViewStateNotifier<dynamic>> retryableProviders,
   }) : this._(
-         status: _MultiViewStateStatus.error,
+         status: MultiViewStateStatus.error,
          errorInfo: errorInfo,
          error: error,
          stackTrace: stackTrace,
          retryableProviders: retryableProviders,
        );
 
-  const _MultiViewStateAggregate.initial()
-    : this._(status: _MultiViewStateStatus.initial);
+  const MultiViewStateAggregate.initial()
+    : this._(status: MultiViewStateStatus.initial);
 
-  const _MultiViewStateAggregate.loading({
+  const MultiViewStateAggregate.loading({
     required String? message,
     required double? progress,
   }) : this._(
-         status: _MultiViewStateStatus.loading,
+         status: MultiViewStateStatus.loading,
          loadingMessage: message,
          loadingProgress: progress,
        );
 
-  const _MultiViewStateAggregate.empty({required String? message})
-    : this._(status: _MultiViewStateStatus.empty, emptyMessage: message);
+  const MultiViewStateAggregate.empty({required String? message})
+    : this._(status: MultiViewStateStatus.empty, emptyMessage: message);
 
-  const _MultiViewStateAggregate.data()
-    : this._(status: _MultiViewStateStatus.data);
+  const MultiViewStateAggregate.data()
+    : this._(status: MultiViewStateStatus.data);
 
-  final _MultiViewStateStatus status;
+  final MultiViewStateStatus status;
 
   // Error aggregate.
   final ErrorInfo? errorInfo;
@@ -77,21 +79,21 @@ final class _MultiViewStateAggregate {
   ///
   /// The comparison intentionally checks only values that can affect the
   /// corresponding Multi View State callback or builder.
-  bool isSameAs(_MultiViewStateAggregate other) {
+  bool isSameAs(MultiViewStateAggregate other) {
     if (status != other.status) {
       return false;
     }
 
     return switch (status) {
-      _MultiViewStateStatus.initial || _MultiViewStateStatus.data => true,
+      MultiViewStateStatus.initial || MultiViewStateStatus.data => true,
 
-      _MultiViewStateStatus.loading =>
+      MultiViewStateStatus.loading =>
         loadingMessage == other.loadingMessage &&
             loadingProgress == other.loadingProgress,
 
-      _MultiViewStateStatus.empty => emptyMessage == other.emptyMessage,
+      MultiViewStateStatus.empty => emptyMessage == other.emptyMessage,
 
-      _MultiViewStateStatus.error =>
+      MultiViewStateStatus.error =>
         errorInfo == other.errorInfo &&
             error == other.error &&
             stackTrace == other.stackTrace &&
@@ -99,7 +101,7 @@ final class _MultiViewStateAggregate {
     };
   }
 
-  bool _sameRetryableProviders(_MultiViewStateAggregate other) {
+  bool _sameRetryableProviders(MultiViewStateAggregate other) {
     final List<ViewStateNotifier<dynamic>>? previous = retryableProviders;
     final List<ViewStateNotifier<dynamic>>? current = other.retryableProviders;
 

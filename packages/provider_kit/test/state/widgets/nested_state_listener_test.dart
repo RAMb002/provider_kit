@@ -62,7 +62,7 @@ void main() {
                 stateListenerCalls++;
               },
             ),
-            MultiStateListener(
+            StateListener.multi(
               providers: () => secondProvider.watch,
               listener: (_, __) {
                 secondListenerCalls++;

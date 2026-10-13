@@ -1,4 +1,4 @@
-import 'package:example/example_kits/providers/2_async_view_state_notifier.dart';
+import 'package:example/example_kits/providers/2_future_notifier.dart';
 import 'package:example/scaffold_with_button.dart';
 import 'package:example/toast.dart';
 import 'package:flutter/material.dart';
@@ -39,7 +39,7 @@ class _MultiViewStateListenerExampleState
   Widget build(BuildContext context) {
     return ScaffoldWithButton(
       title: 'Multi View State Listener',
-      child: MultiViewStateListener(
+      child: ViewStateListener.multi(
         callListenerOnInit: true,
         providers: () => (
           movie: movieProvider.watch,
