@@ -1,4 +1,6 @@
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -150,26 +152,35 @@ void main() {
     // 6. Dispose behaviour with pending state changes
     // -----------------------------------------------------------------------
     group('dispose behaviour', () {
-      test('setting state after dispose throws AssertionError (debug mode)',
-          () {
-        final notifier = StateNotifier<int>(0);
-        notifier.dispose();
-        expect(() => notifier.state = 1, throwsAssertionError);
-        expect(notifier.state, 0); // state unchanged
-      });
+      test(
+        'setting state after dispose throws FlutterError in debug mode',
+        () {
+          final notifier = StateNotifier<int>(0);
+          notifier.dispose();
+          expect(() => notifier.state = 1, throwsFlutterError);
+          expect(notifier.state, 0);
+        },
+        skip: kReleaseMode,
+      );
 
       test(
-          'calling notifyListeners after dispose throws AssertionError (debug mode)',
-          () {
-        final notifier = StateNotifier<int>(0);
-        notifier.dispose();
-        expect(() => notifier.notifyListeners(), throwsAssertionError);
-      });
+        'notifyListeners after dispose throws FlutterError in debug mode',
+        () {
+          final notifier = StateNotifier<int>(0);
+          notifier.dispose();
+          expect(() => notifier.notifyListeners(), throwsFlutterError);
+        },
+        skip: kReleaseMode,
+      );
 
-      test('multiple dispose calls are safe (second call does nothing)', () {
+      test('dispose can be called multiple times', () {
         final notifier = StateNotifier<int>(0);
-        notifier.dispose();
-        expect(notifier.dispose, returnsNormally);
+
+        expect(() {
+          notifier.dispose();
+          notifier.dispose();
+          notifier.dispose();
+        }, returnsNormally);
       });
 
       test('setting state inside dispose does not cause issue', () {
@@ -179,18 +190,20 @@ void main() {
         expect(notifier.state, 999);
       });
 
-      test('setting state after dispose (via async callback) does not recurse',
-          () async {
-        final completer = Completer<int>();
-        final notifier = StateNotifier<int>(0);
+      test(
+        'setting state after dispose (via async callback) does not recurse',
+        () async {
+          final completer = Completer<int>();
+          final notifier = StateNotifier<int>(0);
 
-        Future.delayed(Duration.zero, () {});
+          Future.delayed(Duration.zero, () {});
 
-        notifier.dispose();
-        completer.complete(42);
-        await completer.future;
-        expect(notifier.state, 0);
-      });
+          notifier.dispose();
+          completer.complete(42);
+          await completer.future;
+          expect(notifier.state, 0);
+        },
+      );
     });
   });
 }

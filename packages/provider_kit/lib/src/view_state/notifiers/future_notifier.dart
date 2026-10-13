@@ -1,123 +1,98 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 
 /// {@template provider_kit.future_notifier}
-/// An abstract class that extends [FutureNotifierInterface] and provides default implementations for state management.
+/// An abstract [AsyncViewStateNotifier] that manages asynchronous data
+/// retrieval through a [Future].
 ///
-/// The [FutureNotifier] class is designed to handle common state transitions such as loading, error, and empty states.
-/// It guards the initialization and refresh operations, prevents duplicate
-/// asynchronous operations while a build is already running, and converts
-/// errors into [ErrorState] instances.
-/// Override [init] for full customization.
+/// [FutureNotifier] handles the initial build, loading and error states,
+/// empty results, and refresh operations. It also coordinates concurrent
+/// builds to prevent duplicate fetch operations.
+///
+/// The initial build is scheduled in a microtask so that subclass
+/// initialization completes before data loading begins.
+///
+/// ### Default behavior
+///
+/// By default, [FutureNotifier]:
+///
+/// 1. Starts with a [LoadingState], unless an initial state is provided.
+/// 2. Calls [init], which awaits [fetchData].
+/// 3. Transitions to [EmptyState] if the fetched result is an empty
+///    [Iterable], unless [AsyncViewStateNotifier.disableEmptyState] is `true`.
+/// 4. Transitions to [DataState] when data is available.
+/// 5. Converts errors into an [ErrorState].
+///
+/// ### Constructor parameters
+///
+/// - `initialState`: The initial view state. Defaults to [LoadingState].
+/// - [AsyncViewStateNotifier.disableEmptyState]: If `true`, empty
+///   [Iterable] results are represented by [DataState] instead of
+///   [EmptyState]. Defaults to `false`.
+///
+/// ### Implementing a notifier
+///
+/// Subclasses must implement [fetchData] to provide the data source.
+///
 /// ```dart
-/// Future<void> init() async {
-///   final T data = await fetchData();
-///   if (!mounted) return;
-///   if (data is Iterable && data.isEmpty) {
-///     state = emptyStateObject();
-///   } else {
-///     state = DataState<T>(data);
+/// class UserNotifier extends FutureNotifier<User> {
+///   UserNotifier({super.initialState, super.disableEmptyState});
+///
+///   @override
+///   Future<User> fetchData() {
+///     return repository.fetchUser();
 ///   }
 /// }
 /// ```
 ///
-/// ### Constructor Parameters:
-/// - **`initialState`** (*Optional*) **:** Override the default initial state (which is `LoadingState<T>()`).
-/// - **`disableEmptyState`** (*Optional*, default: `false`) **:** If `true`, an empty `Iterable` result will **not** be converted to `EmptyState`; instead, it will be stored as a `DataState` with the empty collection.
+/// ### Customization
 ///
-/// ### Customization:
-/// Users can override the following methods to customize state handling inside default init:
-/// - **`fetchData`** (*Required*) **:** The method that actually fetches the data. Must be implemented by subclasses.
-/// - **`init`** (*Optional*) **:** Customize the initialization and state transition flow.
-/// - **`refresh`** (*Optional*): Customize the refresh behavior, which transitions to [LoadingState] before rebuilding when appropriate.
-/// - **`refreshSilently`** (*Optional*): Customize the silent refresh behavior, which preserves the current state while fetching without automatically transitioning to [LoadingState].
-/// - **`errorStateObject`** (*Optional*) **:** Customize the [ErrorState],
-///   including its [ErrorInfo] and retry callback.
-/// - **`loadingStateObject`** (*Optional*) **:** Customize the loading state object to define different loading representations.
-/// - **`emptyStateObject`** (*Optional*) **:** Customize the empty state object, such as by providing a custom message when there is no data.
+/// The following methods can be overridden when custom behavior is required:
 ///
-/// When [FutureNotifier] is used inside **ViewStateBuilder, ViewStateListener, ViewStateConsumer, MultiViewStateBuilder, MultiViewStateListener and MultiViewStateConsumer**,
-/// the **`onRetry`** function for the `ErrorState` will be determined as follows:
-/// 1. If `onRetry` is explicitly set in the `ErrorState`, that function will be used.
-/// 2. If `onRetry` is `null`, the provider’s [refresh] function will be automatically used for retrying.
+/// - [fetchData]: Provides the data to be fetched.
+/// - [init]: Customizes initialization and state transitions.
+/// - [refresh]: Customizes the refresh operation.
+/// - [refreshSilently]: Customizes refresh behavior without automatically
+///   showing a loading state.
+/// - [errorStateObject]: Customizes the resulting [ErrorState], including its
+///   error information and retry callback.
+/// - [loadingStateObject]: Customizes the [LoadingState].
+/// - [emptyStateObject]: Customizes the [EmptyState].
+/// - [onError]: Customizes error handling.
 ///
-/// ### Example Usage:
-/// ```dart
-/// class MyProvider extends FutureNotifier<MyDataType> {
-///   MyProvider({super.initialState, super.disableEmptyState});
+/// The default implementations of error handling and retry behavior are
+/// documented in [AsyncViewStateNotifier].
 ///
-///   @override
-///   Future<MyDataType> fetchData() async {
-///     // Fetch data from an API or database
-///   }
+/// ### Refreshing
 ///
-/// @override
-/// ErrorState<MyDataType> errorStateObject(
-///   Object error,
-///   StackTrace stackTrace,
-/// ) {
-///   return ErrorState<MyDataType>(
-///     error,
-///     stackTrace,
-///     errorInfo: const ErrorInfo(
-///       message: 'Unable to load data.',
-///       code: 'load_failed',
-///     ),
-///     onRetry: refresh,
-///   );
-/// }
+/// [refresh] transitions to [LoadingState] before fetching data, unless the
+/// current state is already loading.
 ///
-///   @override
-///   LoadingState<MyDataType> loadingStateObject() {
-///     // Customize the loading state object
-///     return LoadingState<MyDataType>('Loading...', 0.0);
-///   }
+/// [refreshSilently] fetches data without automatically transitioning to
+/// [LoadingState] while the operation is in progress.
 ///
-///   @override
-///   EmptyState<MyDataType> emptyStateObject() {
-///     // Customize the empty state object
-///     return EmptyState<MyDataType>('No data available');
-///   }
+/// Both operations transition to [DataState], [EmptyState], or [ErrorState]
+/// as appropriate.
 ///
-///   @override
-///   Future<void> refresh() async {
-///     // Optionally override refresh behavior
-///     await super.refresh();
-///   }
+/// If a build operation is already in progress, additional refresh calls reuse
+/// that operation rather than starting another fetch. The active operation's
+/// refresh mode is retained. Once the operation completes, a subsequent
+/// refresh can start a new build.
 ///
-///   @override
-///   Future<void> refreshSilently() async {
-///     // Optionally override refreshSilently behavior
-///     await super.refreshSilently();
-///   }
 ///
-///   @override
-///   void onError(Object error, StackTrace stackTrace) {
-///     // Optionally override error handling
-///     super.onError(error, stackTrace);
-///   }
-/// }
-/// ```
-///
-/// ### Error Handling:
-/// - The `onError` method updates the state to [ErrorState] and notifies the configured [NotifierObserver].
-/// - The `refresh` method can be used to retry fetching data and will set the state to loading before retrying.
-/// - If a build operation is already in progress, additional `refresh` calls reuse the current operation instead of starting another fetch.
-///
-/// ### Initial State:
-/// - By default, the initial state is set to **`LoadingState`**.
 /// {@endtemplate}
 
-abstract class FutureNotifier<T> extends FutureNotifierInterface<T> {
+abstract class FutureNotifier<T> extends AsyncViewStateNotifier<T> {
   /// {@macro provider_kit.future_notifier}
-  FutureNotifier({super.initialState, this._disableEmptyState = false}) {
+  FutureNotifier({super.initialState, super.disableEmptyState}) {
     scheduleMicrotask(_startInitialBuild);
   }
 
-  final bool _disableEmptyState;
+  Future<T> fetchData();
+
   final _BuildManager _buildManager = _BuildManager();
 
   void _startInitialBuild() {
@@ -166,39 +141,12 @@ abstract class FutureNotifier<T> extends FutureNotifierInterface<T> {
 
     if (!mounted) return;
     // Set the state to empty if the data is an empty iterable.
-    if (!_disableEmptyState && data is Iterable && data.isEmpty) {
+    if (!disableEmptyState && data is Iterable && data.isEmpty) {
       state = emptyStateObject();
     } else {
       // Set the state to data if the data is not null or empty.
       state = DataState<T>(data);
     }
-  }
-
-  @override
-  Future<T> fetchData();
-
-  @override
-  @protected
-  ErrorState<T> errorStateObject(Object error, StackTrace stackTrace) =>
-      ErrorState<T>(error, stackTrace, onRetry: refresh);
-
-  @override
-  @protected
-  LoadingState<T> loadingStateObject() => LoadingState<T>();
-
-  @override
-  @protected
-  EmptyState<T> emptyStateObject() => EmptyState<T>();
-
-  @protected
-  @override
-  @mustCallSuper
-  /// Handles errors thrown during initialization and updates the state
-  /// with an [ErrorState].
-  void onError(Object error, StackTrace stackTrace) {
-    if (!mounted) return;
-    state = errorStateObject(error, stackTrace);
-    super.onError(error, stackTrace);
   }
 
   @mustCallSuper
@@ -234,37 +182,6 @@ abstract class FutureNotifier<T> extends FutureNotifierInterface<T> {
     }
     await _build(silent: true);
   }
-}
-
-/// An abstract class that provides the interface for [FutureNotifier].
-///
-/// The [FutureNotifierInterface] class defines the methods that must be implemented by subclasses.
-/// It extends [ViewStateNotifier] and provides a default initial state of **`LoadingState`**.
-///
-/// ### Methods:
-/// - **`init`** (*Required*) **:** A method that is called during initialization and is responsible for fetching data and setting the appropriate state.
-/// - **`refresh`** (*Required*) **:** A method that can be used to retry fetching data.
-/// - **`fetchData`** (*Required*) **:** A method that must be implemented by subclasses to fetch data.
-/// - **`errorStateObject`** (*Required*) **:** A method that provides the error state object.
-/// - **`loadingStateObject`** (*Required*) **:** A method that provides the loading state object.
-/// - **`emptyStateObject`** (*Required*) **:** A method that provides the empty state object.
-abstract class FutureNotifierInterface<T> extends ViewStateNotifier<T> {
-  FutureNotifierInterface({ViewState<T>? initialState})
-    : super(initialState ?? LoadingState<T>());
-
-  Future<void> init();
-
-  Future<void> refresh();
-
-  Future<void> refreshSilently();
-
-  Future<T> fetchData();
-
-  ErrorState<T> errorStateObject(Object error, StackTrace stackTrace);
-
-  LoadingState<T> loadingStateObject();
-
-  EmptyState<T> emptyStateObject();
 }
 
 // Coordinates a single in-flight asynchronous build.

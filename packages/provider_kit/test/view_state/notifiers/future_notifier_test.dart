@@ -4,20 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-/// A spy observer that records the initial state via `onCreate`.
-class SpyObserver extends NotifierObserver {
-  ViewState? capturedInitialState;
-  NotifierBase? lastNotifier;
-
-  @override
-  void onCreate(NotifierBase notifier) {
-    super.onCreate(notifier);
-    lastNotifier = notifier;
-    // Capture the initial state.
-    capturedInitialState = (notifier as dynamic).state;
-  }
-}
-
 /// A test provider that allows controlling `fetchData` and optionally
 /// overriding `init` behaviour.
 class TestProvider<T> extends FutureNotifier<T> {
@@ -121,26 +107,16 @@ void main() {
     // -----------------------------------------------------------------------
     // 1. Initial state
     // -----------------------------------------------------------------------
-    test('default initial state is LoadingState', () {
-      final provider = TestProvider<String>(fetchDataImpl: () => 'data');
-      expect(provider.state, isA<LoadingState<String>>());
+
+    test('initialState is respected before the initial build', () {
+      final provider = TestProvider<String>(
+        fetchDataImpl: () => 'data',
+        initialState: const DataState('custom'),
+      );
+      addTearDown(provider.dispose);
+
+      expect(provider.state, const DataState('custom'));
     });
-
-    test(
-      'initial state can be overridden via constructor (verified via observer)',
-      () {
-        final spy = SpyObserver();
-        ProviderKit.configure(observer: spy);
-
-        TestProvider<String>(
-          fetchDataImpl: () => 'data',
-          initialState: const DataState('custom'),
-        );
-        expect(spy.capturedInitialState, const DataState('custom'));
-
-        ProviderKit.resetForTesting();
-      },
-    );
 
     // -----------------------------------------------------------------------
     // 2. _build() flow – success
@@ -671,16 +647,6 @@ void main() {
     // -----------------------------------------------------------------------
 
     group('dispose', () {
-      test('dispose can be called multiple times', () {
-        final provider = TestProvider<String>(fetchDataImpl: () => 'data');
-
-        expect(() {
-          provider.dispose();
-          provider.dispose();
-          provider.dispose();
-        }, returnsNormally);
-      });
-
       test(
         'dispose while fetchData is pending prevents state update',
         () async {
@@ -754,31 +720,7 @@ void main() {
 
         expect(provider.state, const DataState('data'));
       });
-
-      test(
-        'setting state after dispose throws FlutterError in debug mode',
-        () {
-          final notifier = StateNotifier<int>(0);
-
-          notifier.dispose();
-
-          expect(() => notifier.state = 1, throwsFlutterError);
-        },
-        skip: kReleaseMode,
-      );
     });
-
-    test(
-      'notifyListeners after dispose throws FlutterError in debug mode',
-      () {
-        final notifier = StateNotifier<int>(0);
-
-        notifier.dispose();
-
-        expect(() => notifier.notifyListeners(), throwsFlutterError);
-      },
-      skip: kReleaseMode,
-    );
 
     test(
       'dispose while custom init is pending prevents further execution',

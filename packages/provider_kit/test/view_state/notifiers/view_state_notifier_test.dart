@@ -7,6 +7,16 @@ class TestNotifier extends ViewStateNotifier<int> {
   TestNotifier(super.state);
 }
 
+class SpyObserver extends NotifierObserver {
+  ViewState? capturedInitialState;
+
+  @override
+  void onCreate(NotifierBase notifier) {
+    super.onCreate(notifier);
+    capturedInitialState = (notifier as dynamic).state as ViewState?;
+  }
+}
+
 void main() {
   group('ViewStateNotifier', () {
     test('initial state is set correctly', () {
@@ -74,6 +84,21 @@ void main() {
       final notifier = TestViewStateNotifier<String>(const DataState('hello'));
 
       expect(notifier.dataOrNull, 'hello');
+    });
+
+    test('observer captures the initial state on creation', () {
+      final observer = SpyObserver();
+      ProviderKit.configure(observer: observer);
+
+      const initialState = DataState<int>(42);
+      final notifier = TestNotifier(initialState);
+
+      addTearDown(() {
+        notifier.dispose();
+        ProviderKit.resetForTesting();
+      });
+
+      expect(observer.capturedInitialState, initialState);
     });
   });
 }
