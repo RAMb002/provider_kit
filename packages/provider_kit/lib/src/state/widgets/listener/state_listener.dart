@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:nested/nested.dart';
-import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart'
     show MultiStateEngine;
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';

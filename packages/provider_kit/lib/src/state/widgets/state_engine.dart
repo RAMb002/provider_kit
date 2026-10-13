@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
 import 'package:provider_kit/src/state/index.dart';
 import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';

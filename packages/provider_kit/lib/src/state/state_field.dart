@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
 
 /// {@template provider_kit.state_field}
 /// A lightweight observable state field.

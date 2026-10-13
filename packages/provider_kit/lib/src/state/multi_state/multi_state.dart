@@ -3,7 +3,7 @@ library provider_kit_multi_state;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
-import 'package:provider_kit/src/base/state_value_listenable.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
