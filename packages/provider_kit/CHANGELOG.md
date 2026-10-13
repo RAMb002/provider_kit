@@ -2,15 +2,15 @@
 
 **Multi-State**
 
-- Updated `MultiState` and `MultiViewState` widget APIs with type-safe support for combining
-providers of different types into customizable combined states.
-- Replaced the previous `MultiState` and `MultiViewState` widget APIs with the new APIs.
-- Added `WatchBuilder`, a new widget for simply listening to multiple providers on the go using `.watch`.
+- Added type-safe, heterogeneous provider combinations to `MultiState` and `MultiViewState`.
+- Standardized multi-provider APIs with `.multi` constructors across state and view-state widgets.
+- Added `WatchBuilder` for conveniently watching multiple providers with `.watch`.
 
 **State**
 
 - Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
 - Added `data` and `dataOrNull` getters to `ViewState` and `ViewStateNotifier`.
+- Renamed `AsyncViewStateNotifier` to `FutureNotifier`.
 
 **Mixins**
 
