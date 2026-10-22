@@ -27,12 +27,14 @@ abstract class StateNotifierBase<State> extends NotifierBase<State>
     try {
       if (_state == newState) return;
 
-      onChange(Change<State>(currentState: _state, nextState: newState));
+      dispatchChange(Change<State>(currentState: _state, nextState: newState));
+
+      if (!mounted) return;
 
       _state = newState;
       notifyListeners();
     } catch (error, stackTrace) {
-      onError(error, stackTrace);
+      dispatchError(error, stackTrace);
       rethrow;
     }
   }

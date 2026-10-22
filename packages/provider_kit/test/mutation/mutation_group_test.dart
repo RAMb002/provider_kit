@@ -2,6 +2,7 @@
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
 import 'package:provider_kit/src/mutation/mutation.dart';
@@ -858,37 +859,47 @@ void main() {
 
         expect(observer.disposed, contains(mutation));
       });
-      test('reports errors thrown while publishing mutation state', () async {
-        final observer = _TestNotifierObserver();
-        ProviderKit.configure(observer: observer);
+      test(
+        'reports observer onChange exceptions without failing mutation execution',
+        () async {
+          final observer = _TestNotifierObserver()..throwOnChange = true;
 
-        final mutation = Mutation<int>();
+          final reportedErrors = <FlutterErrorDetails>[];
+          final previousHandler = FlutterError.onError;
 
-        observer.throwOnChange = true;
+          FlutterError.onError = reportedErrors.add;
+          addTearDown(() {
+            FlutterError.onError = previousHandler;
+          });
 
-        await expectLater(
-          mutation.run(() async => 42),
-          throwsA(
-            isA<StateError>().having(
-              (error) => error.message,
-              'message',
-              'observer onChange failed',
+          ProviderKit.configure(observer: observer);
+
+          final mutation = Mutation<int>();
+          addTearDown(mutation.dispose);
+
+          final result = await mutation.run(() async => 42);
+
+          expect(result, 42);
+          expect(mutation.isSuccess, isTrue);
+          expect(mutation.data, 42);
+
+          // Observer failures aren't mutation execution errors.
+          expect(observer.errors, isEmpty);
+
+          // Both Loading and Success transitions invoke the observer.
+          expect(reportedErrors, hasLength(2));
+          expect(
+            reportedErrors.every(
+              (details) =>
+                  details.exception is StateError &&
+                  details.exception.toString().contains(
+                    'observer onChange failed',
+                  ),
             ),
-          ),
-        );
-
-        expect(observer.errors, hasLength(1));
-        expect(
-          observer.errors.single,
-          isA<StateError>().having(
-            (error) => error.message,
-            'message',
-            'observer onChange failed',
-          ),
-        );
-
-        mutation.dispose();
-      });
+            isTrue,
+          );
+        },
+      );
     });
   });
 }

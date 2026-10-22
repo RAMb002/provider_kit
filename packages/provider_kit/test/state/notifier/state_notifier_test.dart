@@ -17,41 +17,6 @@ class OnChangeNotifier extends StateNotifier<int> {
   }
 }
 
-/// A notifier that tracks whether `onError` was called.
-class OnErrorNotifier extends StateNotifier<int> {
-  OnErrorNotifier(super.state);
-
-  bool onErrorCalled = false;
-
-  @override
-  void onError(Object error, StackTrace stackTrace) {
-    super.onError(error, stackTrace);
-    onErrorCalled = true;
-  }
-}
-
-/// A notifier that throws inside `onChange` to trigger `onError`.
-class ThrowingOnChangeNotifier extends StateNotifier<int> {
-  ThrowingOnChangeNotifier(super.state);
-
-  @override
-  void onChange(Change<int> change) {
-    super.onChange(change);
-    throw Exception('Intentional error in onChange');
-  }
-}
-
-/// A notifier that extends `OnErrorNotifier` and also throws in `onChange`.
-class CombinedErrorNotifier extends OnErrorNotifier {
-  CombinedErrorNotifier(super.state);
-
-  @override
-  void onChange(Change<int> change) {
-    super.onChange(change);
-    throw Exception('Forced error');
-  }
-}
-
 // A helper notifier that sets state in dispose (bad practice, but we test it).
 class BadDisposeNotifier extends StateNotifier<int> {
   BadDisposeNotifier(super.state);
@@ -127,16 +92,14 @@ void main() {
     // -----------------------------------------------------------------------
     // 4. Protected methods can be overridden
     // -----------------------------------------------------------------------
-    test('onChange can be overridden (and super is called)', () {
+    test('calls overridden onChange when state changes', () {
       final notifier = OnChangeNotifier(1);
-      notifier.state = 2;
-      expect(notifier.onChangeCallCount, 1);
-    });
+      addTearDown(notifier.dispose);
 
-    test('onError can be overridden (and super is called)', () {
-      final notifier = CombinedErrorNotifier(1);
-      expect(() => notifier.state = 2, throwsException);
-      expect(notifier.onErrorCalled, true);
+      notifier.state = 2;
+
+      expect(notifier.onChangeCallCount, 1);
+      expect(notifier.state, 2);
     });
 
     // -----------------------------------------------------------------------

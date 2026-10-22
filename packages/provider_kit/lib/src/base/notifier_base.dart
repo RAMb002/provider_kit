@@ -14,7 +14,6 @@ part of '../core/provider_kit_core.dart';
 ///
 /// - [StateNotifier] – for simple value state management.
 /// - [FutureNotifier] – for asynchronous view‑state fetching.
-/// - Future notifier types (e.g., mutations) – will also be built on this base.
 ///
 /// ### Observing notifier lifecycle events
 ///
@@ -27,16 +26,29 @@ part of '../core/provider_kit_core.dart';
 /// );
 /// ```
 ///
-/// The observer receives `onCreate`, `onChange`, `onError`, and `onDispose`
-/// events for notifiers created after the observer is configured.
+/// The observer receives `onChange`, `onError`, and `onDispose` events for
+/// every live notifier. `onCreate` is delivered only for notifiers created
+/// after the observer is configured.
+///
+/// ### Overriding hooks
+///
+/// [onChange] and [onError] are optional hooks for subclasses:
+///
+/// - [onChange] runs before the state is updated.
+/// - [onError] runs when the notifier reports an error.
+///
+/// Exceptions thrown from a hook are reported to Flutter through
+/// [FlutterError.reportError]. They never prevent the state update, and they
+/// never prevent the observer from being notified.
 ///
 /// ### Subclassing guidelines
 ///
-/// If you do need to create a custom notifier, always:
-/// - Call `super.onCreate(this)` in your constructor (handled by the base).
-/// - Call `super.onChange(change)` first in any override of `onChange`.
-/// - Call `super.onError(error, stackTrace)` last in any override of `onError`.
-/// - Call `super.dispose()` in your `dispose` method.
+/// When creating a custom notifier:
+///
+/// - Override [onChange] or [onError] to add custom behavior.
+/// - Call `super` in an override when needed to preserve behavior from
+///   an intermediate superclass.
+/// - Call `super.dispose()` in an override of [dispose].
 ///
 /// See also:
 /// - [NotifierObserver] – the interface for global observers.
@@ -48,7 +60,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
   /// Flutter memory allocation events when enabled.
   NotifierBase() {
     // ignore: invalid_use_of_protected_member
-    _observer.onCreate(this);
+    _notifyObserver('onCreate', () => _observer.onCreate(this));
 
     if (kFlutterMemoryAllocationsEnabled) {
       ChangeNotifier.maybeDispatchObjectCreation(this);
@@ -94,58 +106,162 @@ abstract class NotifierBase<State> extends ChangeNotifier {
     return true;
   }
 
-  /// Called whenever a [Change] occurs.
-  /// A [Change] occurs before the notifier's state has been updated.
+  /// A hook called before the notifier's state is updated.
   ///
-  /// This method notifies the global [NotifierObserver] that a state change
-  /// is about to occur.
+  /// Override this to run logic when a [Change] is about to occur, such as
+  /// logging or analytics. [Change.currentState] is the state before the
+  /// update and [Change.nextState] is the state about to be applied.
   ///
-  /// **Note:** `super.onChange` should always be called first.
+  /// The default implementation does nothing.
+  ///
+  /// Exceptions thrown here are reported to Flutter. They do not prevent the
+  /// state update or the observer notification, so this hook can observe a
+  /// change but cannot cancel it.
+  ///
+  /// Avoid assigning state from inside this hook. It re-enters the state
+  /// setter while a change is already in progress.
+  ///
+  /// Framework code should call [dispatchChange] instead of calling this
+  /// method directly.
   ///
   /// ```dart
   /// @override
-  /// void onChange(Change change) {
-  ///   // Always call super.onChange with the current change
-  ///   super.onChange(change);
-  ///
-  ///   // Custom onChange logic goes here
+  /// void onChange(Change<int> change) {
+  ///   debugPrint('${change.currentState} -> ${change.nextState}');
   /// }
   /// ```
   @protected
-  @mustCallSuper
-  void onChange(Change<State> change) {
-    assert(debugAssertNotDisposed(this, 'onChange'));
-    // ignore: invalid_use_of_protected_member
-    _observer.onChange(this, change);
+  void onChange(Change<State> change) {}
+
+  /// Runs the [onChange] hook, then notifies the global [NotifierObserver].
+  ///
+  /// Exceptions thrown by the hook are reported to Flutter. If the hook
+  /// disposes the notifier, observer notification is skipped.
+  @protected
+  @nonVirtual
+  void dispatchChange(Change<State> change) {
+    assert(debugAssertNotDisposed(this, 'dispatchChange'));
+
+    try {
+      onChange(change);
+    } catch (error, stackTrace) {
+      _reportToFlutter(
+        error,
+        stackTrace,
+        'While running onChange of $runtimeType',
+      );
+    }
+
+    if (!mounted) return;
+
+    _notifyObserver(
+      'onChange',
+      // ignore: invalid_use_of_protected_member
+      () => _observer.onChange(this, change),
+    );
   }
 
-  /// Called whenever an error occurs.
-  /// This method notifies the global [NotifierObserver] of the error.
+  /// A hook called when this notifier reports an error.
   ///
-  /// **Note:** `super.onError` should always be called last.
+  /// Override this to react to errors, such as logging them. The default
+  /// implementation does nothing.
+  ///
+  /// Exceptions thrown here are reported to Flutter. They do not replace the
+  /// original [error] and do not prevent the observer notification.
+  ///
+  /// Framework code should call [dispatchError] instead of calling this
+  /// method directly.
   ///
   /// ```dart
   /// @override
   /// void onError(Object error, StackTrace stackTrace) {
-  ///   // Custom onError logic goes here
-  ///
-  ///   // Always call super.onError with the current error and stackTrace
-  ///   super.onError(error, stackTrace);
+  ///   debugPrint('Notifier failed: $error');
   /// }
   /// ```
   @protected
-  @mustCallSuper
-  void onError(Object error, StackTrace stackTrace) {
-    assert(debugAssertNotDisposed(this, 'onError'));
-    // ignore: invalid_use_of_protected_member
-    _observer.onError(this, error, stackTrace);
+  void onError(Object error, StackTrace stackTrace) {}
+
+  /// Runs the [onError] hook, then notifies the global [NotifierObserver].
+  ///
+  /// Exceptions thrown by the hook are reported to Flutter without replacing
+  /// the original error. If the hook disposes the notifier, observer
+  /// notification is skipped.
+  @protected
+  @nonVirtual
+  void dispatchError(Object error, StackTrace stackTrace) {
+    assert(debugAssertNotDisposed(this, 'dispatchError'));
+
+    if (!mounted) return;
+
+    try {
+      onError(error, stackTrace);
+    } catch (hookError, hookStackTrace) {
+      _reportToFlutter(
+        hookError,
+        hookStackTrace,
+        'While running onError of $runtimeType',
+      );
+    }
+
+    if (!mounted) return;
+
+    _notifyObserver(
+      'onError',
+      // ignore: invalid_use_of_protected_member
+      () => _observer.onError(this, error, stackTrace),
+    );
   }
 
-  /// disposes the instance.
-  /// This method should be called when the instance is no longer needed.
-  /// Before disposal, the global [NotifierObserver] is notified.
+  /// Notifies the global [NotifierObserver] of an error without invoking
+  /// the overridable [onError] hook.
   ///
-  /// This method should always call `super.dispose()`.
+  /// Does nothing if the notifier has been disposed.
+  @protected
+  @nonVirtual
+  void dispatchErrorToObserver(Object error, StackTrace stackTrace) {
+    assert(debugAssertNotDisposed(this, 'dispatchErrorToObserver'));
+
+    if (!mounted) return;
+
+    _notifyObserver(
+      'onError',
+      // ignore: invalid_use_of_protected_member
+      () => _observer.onError(this, error, stackTrace),
+    );
+  }
+
+  /// Calls the observer, reporting any exception it throws to Flutter instead
+  /// of letting it break notifier behavior.
+  void _notifyObserver(String event, void Function() call) {
+    try {
+      call();
+    } catch (error, stackTrace) {
+      _reportToFlutter(
+        error,
+        stackTrace,
+        'While notifying the observer of $event',
+      );
+    }
+  }
+
+  void _reportToFlutter(Object error, StackTrace stackTrace, String message) {
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: error,
+        stack: stackTrace,
+        library: 'provider_kit',
+        context: ErrorDescription(message),
+      ),
+    );
+  }
+
+  /// Disposes this notifier.
+  ///
+  /// Call this when the notifier is no longer needed. The global
+  /// [NotifierObserver] is notified before the underlying [ChangeNotifier] is
+  /// disposed. Calling it more than once has no effect.
+  ///
+  /// Subclasses overriding this method must call `super.dispose()`.
   @override
   @mustCallSuper
   void dispose() {
@@ -156,7 +272,7 @@ abstract class NotifierBase<State> extends ChangeNotifier {
     _disposed = true;
 
     // ignore: invalid_use_of_protected_member
-    _observer.onDispose(this);
+    _notifyObserver('onDispose', () => _observer.onDispose(this));
     super.dispose();
   }
 }

@@ -8,6 +8,7 @@ import 'package:provider_kit/src/base/state_listenable.dart';
 import 'package:provider_kit/src/core/provider_kit_core.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/observer/change.dart';
+import 'package:provider_kit/src/utils/generation_guard.dart';
 
 part 'mutation_group.dart';
 part 'mutation_state.dart';
@@ -246,18 +247,15 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
 
     if (_state == newState) return;
 
-    try {
-      onChange(
-        Change<MutationState<T>>(currentState: _state, nextState: newState),
-      );
+    dispatchChange(
+      Change<MutationState<T>>(currentState: _state, nextState: newState),
+    );
 
-      _state = newState;
-      notifyListeners();
-      _onStateChanged?.call();
-    } catch (error, stackTrace) {
-      onError(error, stackTrace);
-      rethrow;
-    }
+    if (!mounted) return;
+
+    _state = newState;
+    notifyListeners();
+    _onStateChanged?.call();
   }
 
   /// Whether the mutation has not been executed yet.
