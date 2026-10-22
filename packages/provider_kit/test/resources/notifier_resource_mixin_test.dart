@@ -82,10 +82,7 @@ void main() {
           expect(mutation.mounted, isFalse);
           expect(groupedMutation.mounted, isFalse);
 
-          expectLater(
-            mutation.run(() async {}),
-            throwsA(isA<FlutterError>()),
-          );
+          expectLater(mutation.run(() async {}), throwsA(isA<FlutterError>()));
 
           expectLater(
             groupedMutation.run(() async {}),
@@ -108,9 +105,7 @@ void main() {
               duration: const Duration(seconds: 1),
             );
 
-            notifier.throttleRun(
-              () => throttleCalls++,
-            );
+            notifier.throttleRun(() => throttleCalls++);
 
             // Default throttle is leading, so this runs immediately.
             expect(throttleCalls, 1);
@@ -162,39 +157,24 @@ void main() {
           throwsA(isA<StateError>()),
         );
 
-        expect(
-          () => notifier.mutation<void>(),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => notifier.mutation<void>(), throwsA(isA<StateError>()));
 
         expect(
           () => notifier.mutationGroup<void>(),
           throwsA(isA<StateError>()),
         );
 
-        expect(
-          () => notifier.debounce(),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => notifier.debounce(), throwsA(isA<StateError>()));
 
-        expect(
-          () => notifier.throttle(),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => notifier.throttle(), throwsA(isA<StateError>()));
       });
 
       test('shared rate resources reject initialization after disposal', () {
         disposeNotifier();
 
-        expect(
-          () => notifier.debounceRun(() {}),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => notifier.debounceRun(() {}), throwsA(isA<StateError>()));
 
-        expect(
-          () => notifier.throttleRun(() {}),
-          throwsA(isA<StateError>()),
-        );
+        expect(() => notifier.throttleRun(() {}), throwsA(isA<StateError>()));
       });
     });
 
@@ -231,15 +211,9 @@ void main() {
         var firstCalls = 0;
         var secondCalls = 0;
 
-        notifier.throttleRun(
-          () => firstCalls++,
-          key: 'first',
-        );
+        notifier.throttleRun(() => firstCalls++, key: 'first');
 
-        notifier.throttleRun(
-          () => secondCalls++,
-          key: 'second',
-        );
+        notifier.throttleRun(() => secondCalls++, key: 'second');
 
         expect(firstCalls, 1);
         expect(secondCalls, 1);

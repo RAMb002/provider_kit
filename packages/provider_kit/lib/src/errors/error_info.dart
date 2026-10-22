@@ -20,10 +20,7 @@
 /// {@endtemplate}
 final class ErrorInfo {
   /// {@macro provider_kit.error_info}
-  const ErrorInfo({
-    required this.message,
-    this.code,
-  });
+  const ErrorInfo({required this.message, this.code});
 
   /// A human-readable description of the error.
   final String message;
@@ -37,10 +34,7 @@ final class ErrorInfo {
   }
 
   @override
-  int get hashCode => Object.hash(
-        message,
-        code,
-      );
+  int get hashCode => Object.hash(message, code);
 
   @override
   String toString() {

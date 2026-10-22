@@ -59,34 +59,36 @@ void main() {
         mutation.dispose();
       });
 
-      test('handles error state and receives error, stack trace and error info',
-          () async {
-        final mutation = Mutation<int>();
-        final exception = StateError('failure');
+      test(
+        'handles error state and receives error, stack trace and error info',
+        () async {
+          final mutation = Mutation<int>();
+          final exception = StateError('failure');
 
-        try {
-          await mutation.run(() async {
-            throw exception;
-          });
-        } catch (_) {}
+          try {
+            await mutation.run(() async {
+              throw exception;
+            });
+          } catch (_) {}
 
-        final result = mutation.state.when(
-          idle: () => 'idle',
-          loading: () => 'loading',
-          success: (_) => 'success',
-          error: (errorInfo, error, stackTrace) {
-            expect(error, same(exception));
-            expect(stackTrace.toString(), isNotEmpty);
-            expect(errorInfo.message, exception.toString());
-            expect(errorInfo.code, isNull);
-            return 'error';
-          },
-        );
+          final result = mutation.state.when(
+            idle: () => 'idle',
+            loading: () => 'loading',
+            success: (_) => 'success',
+            error: (errorInfo, error, stackTrace) {
+              expect(error, same(exception));
+              expect(stackTrace.toString(), isNotEmpty);
+              expect(errorInfo.message, exception.toString());
+              expect(errorInfo.code, isNull);
+              return 'error';
+            },
+          );
 
-        expect(result, 'error');
+          expect(result, 'error');
 
-        mutation.dispose();
-      });
+          mutation.dispose();
+        },
+      );
     });
 
     group('map', () {
@@ -304,9 +306,7 @@ void main() {
       test('executes the matching callback and returns its result', () {
         final mutation = Mutation<int>();
 
-        final result = mutation.state.whenOrNull(
-          idle: () => 'idle',
-        );
+        final result = mutation.state.whenOrNull(idle: () => 'idle');
 
         expect(result, 'idle');
 
@@ -435,16 +435,14 @@ void main() {
       });
     });
 
-// -------------------------------------------------------------------------
-// mapOrNull
-// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // mapOrNull
+    // -------------------------------------------------------------------------
     group('mapOrNull', () {
       test('executes the matching mapper and returns its result', () {
         final mutation = Mutation<int>();
 
-        final result = mutation.state.mapOrNull(
-          idle: (state) => state.isIdle,
-        );
+        final result = mutation.state.mapOrNull(idle: (state) => state.isIdle);
 
         expect(result, isTrue);
 
@@ -698,10 +696,7 @@ void main() {
 
         final state = mutation.state;
 
-        expect(
-          state.toString(),
-          'MutationSuccess { data: success }',
-        );
+        expect(state.toString(), 'MutationSuccess { data: success }');
 
         mutation.dispose();
       });

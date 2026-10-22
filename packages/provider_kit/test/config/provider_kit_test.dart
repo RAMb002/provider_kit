@@ -16,10 +16,7 @@ void main() {
         final error = Exception('Something went wrong.');
         final stackTrace = StackTrace.current;
 
-        final info = ProviderKit.resolveErrorInfo(
-          error,
-          stackTrace,
-        );
+        final info = ProviderKit.resolveErrorInfo(error, stackTrace);
 
         expect(info.message, error.toString());
         expect(info.code, isNull);
@@ -31,10 +28,7 @@ void main() {
         final error = Exception('Something went wrong.');
         final stackTrace = StackTrace.current;
 
-        final info = ProviderKit.resolveErrorInfo(
-          error,
-          stackTrace,
-        );
+        final info = ProviderKit.resolveErrorInfo(error, stackTrace);
 
         expect(info.message, error.toString());
         expect(info.code, isNull);
@@ -73,9 +67,7 @@ void main() {
             receivedError = error;
             receivedStackTrace = stackTrace;
 
-            return const ErrorInfo(
-              message: 'Mapped error.',
-            );
+            return const ErrorInfo(message: 'Mapped error.');
           },
         );
 
@@ -95,9 +87,7 @@ void main() {
         const observer = _TestObserver();
 
         expect(
-          () => ProviderKit.configure(
-            observer: observer,
-          ),
+          () => ProviderKit.configure(observer: observer),
           returnsNormally,
         );
       });
@@ -130,10 +120,7 @@ void main() {
 
     group('configuration', () {
       test('can be configured once', () {
-        expect(
-          () => ProviderKit.configure(),
-          returnsNormally,
-        );
+        expect(() => ProviderKit.configure(), returnsNormally);
       });
 
       test('throws StateError when configured more than once', () {
@@ -158,10 +145,7 @@ void main() {
 
         ProviderKit.resetForTesting();
 
-        expect(
-          () => ProviderKit.configure(),
-          returnsNormally,
-        );
+        expect(() => ProviderKit.configure(), returnsNormally);
       });
 
       test('restores the default error mapper', () {
@@ -178,10 +162,7 @@ void main() {
 
         final error = Exception('Original error');
 
-        final info = ProviderKit.resolveErrorInfo(
-          error,
-          StackTrace.current,
-        );
+        final info = ProviderKit.resolveErrorInfo(error, StackTrace.current);
 
         expect(info.message, error.toString());
         expect(info.code, isNull);

@@ -1,5 +1,4 @@
 class ObjectKit {
-
   static bool shouldNotify<T extends Object?>(
     T previous,
     T current,

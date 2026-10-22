@@ -1,10 +1,8 @@
 part of 'provider_kit_core.dart';
 
 final class _ProviderKitConfig {
-  _ProviderKitConfig({
-    ErrorInfoMapper? errorInfoMapper,
-    this.observer,
-  }) : errorInfoMapper = errorInfoMapper ?? _defaultErrorInfoMapper;
+  _ProviderKitConfig({ErrorInfoMapper? errorInfoMapper, this.observer})
+    : errorInfoMapper = errorInfoMapper ?? _defaultErrorInfoMapper;
 
   /// Converts errors into [ErrorInfo] instances.
   ///
@@ -21,8 +19,6 @@ final class _ProviderKitConfig {
     Object error,
     StackTrace stackTrace,
   ) {
-    return ErrorInfo(
-      message: error.toString(),
-    );
+    return ErrorInfo(message: error.toString());
   }
 }

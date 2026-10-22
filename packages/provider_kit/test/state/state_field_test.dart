@@ -95,10 +95,7 @@ void main() {
 
       field.dispose();
 
-      expect(
-        () => field.state = 'updated',
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => field.state = 'updated', throwsA(isA<AssertionError>()));
     });
   });
 }

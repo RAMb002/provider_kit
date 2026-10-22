@@ -24,27 +24,15 @@ void main() {
       final owner = ResourceOwner();
       final disposalOrder = <String>[];
 
-      owner.own(
-        Object(),
-        onDispose: (_) => disposalOrder.add('first'),
-      );
+      owner.own(Object(), onDispose: (_) => disposalOrder.add('first'));
 
-      owner.own(
-        Object(),
-        onDispose: (_) => disposalOrder.add('second'),
-      );
+      owner.own(Object(), onDispose: (_) => disposalOrder.add('second'));
 
-      owner.own(
-        Object(),
-        onDispose: (_) => disposalOrder.add('third'),
-      );
+      owner.own(Object(), onDispose: (_) => disposalOrder.add('third'));
 
       owner.dispose();
 
-      expect(
-        disposalOrder,
-        ['third', 'second', 'first'],
-      );
+      expect(disposalOrder, ['third', 'second', 'first']);
     });
 
     test('dispose is safe when no resources are owned', () {
@@ -57,10 +45,7 @@ void main() {
       final owner = ResourceOwner();
       var disposeCount = 0;
 
-      owner.own(
-        Object(),
-        onDispose: (_) => disposeCount++,
-      );
+      owner.own(Object(), onDispose: (_) => disposeCount++);
 
       owner.dispose();
       owner.dispose();
@@ -100,53 +85,41 @@ void main() {
           },
         );
 
-        expect(
-          owner.dispose,
-          throwsA(same(firstEncounteredError)),
-        );
+        expect(owner.dispose, throwsA(same(firstEncounteredError)));
 
-        expect(
-          disposalOrder,
-          ['third', 'second', 'first'],
-        );
+        expect(disposalOrder, ['third', 'second', 'first']);
 
         // All callbacks were processed despite the error.
         expect(owner.dispose, returnsNormally);
-        expect(
-          disposalOrder,
-          ['third', 'second', 'first'],
-        );
+        expect(disposalOrder, ['third', 'second', 'first']);
       },
     );
 
-    test(
-      'rethrows a disposal error with its original stack trace',
-      () {
-        final owner = ResourceOwner();
-        final error = StateError('boom');
-        late StackTrace originalStackTrace;
+    test('rethrows a disposal error with its original stack trace', () {
+      final owner = ResourceOwner();
+      final error = StateError('boom');
+      late StackTrace originalStackTrace;
 
-        owner.own(
-          Object(),
-          onDispose: (_) {
-            try {
-              throw error;
-            } catch (_, stackTrace) {
-              originalStackTrace = stackTrace;
-              rethrow;
-            }
-          },
-        );
+      owner.own(
+        Object(),
+        onDispose: (_) {
+          try {
+            throw error;
+          } catch (_, stackTrace) {
+            originalStackTrace = stackTrace;
+            rethrow;
+          }
+        },
+      );
 
-        try {
-          owner.dispose();
-          fail('Expected dispose to throw.');
-        } catch (caughtError, caughtStackTrace) {
-          expect(caughtError, same(error));
-          expect(caughtStackTrace, same(originalStackTrace));
-        }
-      },
-    );
+      try {
+        owner.dispose();
+        fail('Expected dispose to throw.');
+      } catch (caughtError, caughtStackTrace) {
+        expect(caughtError, same(error));
+        expect(caughtStackTrace, same(originalStackTrace));
+      }
+    });
 
     test(
       'disposes a resource immediately and throws when owned after disposal',
@@ -156,52 +129,31 @@ void main() {
 
         owner.dispose();
 
-        expect(
-          () {
-            owner.own(
-              Object(),
-              onDispose: (_) => resourceDisposed = true,
-            );
-          },
-          throwsA(isA<StateError>()),
-        );
+        expect(() {
+          owner.own(Object(), onDispose: (_) => resourceDisposed = true);
+        }, throwsA(isA<StateError>()));
 
         expect(resourceDisposed, isTrue);
 
         // The owner remains disposed after the failed registration.
-        expect(
-          () {
-            owner.own(
-              Object(),
-              onDispose: (_) {},
-            );
-          },
-          throwsA(isA<StateError>()),
-        );
+        expect(() {
+          owner.own(Object(), onDispose: (_) {});
+        }, throwsA(isA<StateError>()));
 
         expect(owner.dispose, returnsNormally);
       },
     );
 
-    test(
-      'propagates the disposal error when immediate disposal fails',
-      () {
-        final owner = ResourceOwner();
-        final error = StateError('immediate disposal failed');
+    test('propagates the disposal error when immediate disposal fails', () {
+      final owner = ResourceOwner();
+      final error = StateError('immediate disposal failed');
 
-        owner.dispose();
+      owner.dispose();
 
-        expect(
-          () {
-            owner.own(
-              Object(),
-              onDispose: (_) => throw error,
-            );
-          },
-          throwsA(same(error)),
-        );
-      },
-    );
+      expect(() {
+        owner.own(Object(), onDispose: (_) => throw error);
+      }, throwsA(same(error)));
+    });
 
     test(
       're-entrant ownership during disposal disposes immediately and throws',
@@ -214,17 +166,14 @@ void main() {
         owner.own(
           Object(),
           onDispose: (_) {
-            expect(
-              () {
-                owner.own(
-                  Object(),
-                  onDispose: (_) {
-                    reentrantResourceDisposed = true;
-                  },
-                );
-              },
-              throwsA(isA<StateError>()),
-            );
+            expect(() {
+              owner.own(
+                Object(),
+                onDispose: (_) {
+                  reentrantResourceDisposed = true;
+                },
+              );
+            }, throwsA(isA<StateError>()));
           },
         );
 
@@ -255,17 +204,11 @@ void main() {
         },
       );
 
-      owner.own(
-        Object(),
-        onDispose: (_) => order.add('second'),
-      );
+      owner.own(Object(), onDispose: (_) => order.add('second'));
 
       owner.dispose();
 
-      expect(
-        order,
-        ['second', 'first', 'first-after-reentrant'],
-      );
+      expect(order, ['second', 'first', 'first-after-reentrant']);
     });
 
     test('supports disposing a nested owner from a disposal callback', () {
@@ -274,15 +217,9 @@ void main() {
 
       var innerDisposed = false;
 
-      inner.own(
-        Object(),
-        onDispose: (_) => innerDisposed = true,
-      );
+      inner.own(Object(), onDispose: (_) => innerDisposed = true);
 
-      outer.own(
-        Object(),
-        onDispose: (_) => inner.dispose(),
-      );
+      outer.own(Object(), onDispose: (_) => inner.dispose());
 
       outer.dispose();
 

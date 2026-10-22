@@ -38,10 +38,7 @@ void main() {
 
       notifier.dispose();
 
-      expect(
-        () => field.addListener(() {}),
-        throwsA(isA<FlutterError>()),
-      );
+      expect(() => field.addListener(() {}), throwsA(isA<FlutterError>()));
     });
   });
 }

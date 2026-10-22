@@ -14,9 +14,7 @@ void main() {
     });
 
     test('code defaults to null', () {
-      const info = ErrorInfo(
-        message: 'Something went wrong.',
-      );
+      const info = ErrorInfo(message: 'Something went wrong.');
 
       expect(info.code, isNull);
     });

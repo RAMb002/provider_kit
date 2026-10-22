@@ -63,9 +63,7 @@ abstract final class ProviderKit {
     NotifierObserver? observer,
   }) {
     if (_isConfigured) {
-      throw StateError(
-        'ProviderKit has already been configured.',
-      );
+      throw StateError('ProviderKit has already been configured.');
     }
 
     _config = _ProviderKitConfig(
@@ -84,14 +82,8 @@ abstract final class ProviderKit {
   ///
   /// The [ErrorInfoMapper] configured through [configure] is used to perform
   /// the conversion.
-  static ErrorInfo resolveErrorInfo(
-    Object error,
-    StackTrace stackTrace,
-  ) {
-    return _config.errorInfoMapper(
-      error,
-      stackTrace,
-    );
+  static ErrorInfo resolveErrorInfo(Object error, StackTrace stackTrace) {
+    return _config.errorInfoMapper(error, stackTrace);
   }
 
   /// Resets ProviderKit's global configuration for testing.

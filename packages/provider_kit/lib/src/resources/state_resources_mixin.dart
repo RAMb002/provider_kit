@@ -61,9 +61,7 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     Set<KeepAliveState> keepAliveStates = const {},
   }) {
     return _resourceOwner.own(
-      MutationGroup<TValue>(
-        keepAliveStates: keepAliveStates,
-      ),
+      MutationGroup<TValue>(keepAliveStates: keepAliveStates),
       onDispose: (resource) => resource.dispose(),
     );
   }
@@ -99,11 +97,7 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     Object? key,
     Duration? duration,
   }) {
-    _defaultDebounce.run(
-      operation,
-      key: key,
-      duration: duration,
-    );
+    _defaultDebounce.run(operation, key: key, duration: duration);
   }
 
   /// Creates a [Throttle] managed by this mixin.
@@ -117,11 +111,7 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
     bool trailing = false,
   }) {
     return _resourceOwner.own(
-      Throttle(
-        duration: duration,
-        leading: leading,
-        trailing: trailing,
-      ),
+      Throttle(duration: duration, leading: leading, trailing: trailing),
       onDispose: (resource) => resource.dispose(),
     );
   }
@@ -130,14 +120,8 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
   ///
   /// The shared throttle is created lazily on first use and is automatically
   /// disposed when the state is disposed.
-  void throttleRun(
-    void Function() operation, {
-    Object? key,
-  }) {
-    _defaultThrottle.run(
-      operation,
-      key: key,
-    );
+  void throttleRun(void Function() operation, {Object? key}) {
+    _defaultThrottle.run(operation, key: key);
   }
 
   @override

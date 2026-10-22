@@ -16,13 +16,10 @@ abstract class NotifierObserver {
 
   /// Called whenever a [Change] occurs in any notifier.
   /// A [change] occurs when a new state is triggered.
-  /// [onChange] is called before the notifier's state is updated. 
+  /// [onChange] is called before the notifier's state is updated.
   @protected
   @mustCallSuper
-  void onChange(
-    NotifierBase<dynamic> notifier,
-    Change<dynamic> change,
-  ) {}
+  void onChange(NotifierBase<dynamic> notifier, Change<dynamic> change) {}
 
   /// Called whenever an [error] is thrown in any notifier.
   ///

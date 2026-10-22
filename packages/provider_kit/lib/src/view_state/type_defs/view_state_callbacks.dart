@@ -13,10 +13,7 @@ typedef InitialStateCallback<R> = R Function();
 /// [message] is the optional loading message.
 /// [progress] is the optional loading progress value.
 /// {@endtemplate}
-typedef LoadingStateCallback<R> = R Function(
-  String? message,
-  double? progress,
-);
+typedef LoadingStateCallback<R> = R Function(String? message, double? progress);
 
 /// {@template provider_kit.data_state_callback}
 /// A callback invoked for the [DataState].
@@ -40,57 +37,48 @@ typedef EmptyStateCallback<R> = R Function(String? message);
 /// [stackTrace] is the stack trace associated with the error.
 /// [onRetry] is the optional retry callback.
 /// {@endtemplate}
-typedef ErrorStateCallback<R> = R Function(
-  ErrorInfo errorInfo,
-  Object error,
-  StackTrace stackTrace,
-  VoidCallback? onRetry,
-);
+typedef ErrorStateCallback<R> =
+    R Function(
+      ErrorInfo errorInfo,
+      Object error,
+      StackTrace stackTrace,
+      VoidCallback? onRetry,
+    );
 
 /// {@template provider_kit.initial_state_mapper}
 /// A callback that maps an [InitialState] to a value of type [R].
 ///
 /// The [initialState] parameter contains the complete [InitialState] object.
 /// {@endtemplate}
-typedef InitialStateMapper<R, T> = R Function(
-  InitialState<T> initialState,
-);
+typedef InitialStateMapper<R, T> = R Function(InitialState<T> initialState);
 
 /// {@template provider_kit.loading_state_mapper}
 /// A callback that maps a [LoadingState] to a value of type [R].
 ///
 /// The [loadingState] parameter contains the complete [LoadingState] object.
 /// {@endtemplate}
-typedef LoadingStateMapper<R, T> = R Function(
-  LoadingState<T> loadingState,
-);
+typedef LoadingStateMapper<R, T> = R Function(LoadingState<T> loadingState);
 
 /// {@template provider_kit.data_state_mapper}
 /// A callback that maps a [DataState] to a value of type [R].
 ///
 /// The [dataState] parameter contains the complete [DataState] object.
 /// {@endtemplate}
-typedef DataStateMapper<R, T> = R Function(
-  DataState<T> dataState,
-);
+typedef DataStateMapper<R, T> = R Function(DataState<T> dataState);
 
 /// {@template provider_kit.empty_state_mapper}
 /// A callback that maps an [EmptyState] to a value of type [R].
 ///
 /// The [emptyState] parameter contains the complete [EmptyState] object.
 /// {@endtemplate}
-typedef EmptyStateMapper<R, T> = R Function(
-  EmptyState<T> emptyState,
-);
+typedef EmptyStateMapper<R, T> = R Function(EmptyState<T> emptyState);
 
 /// {@template provider_kit.error_state_mapper}
 /// A callback that maps an [ErrorState] to a value of type [R].
 ///
 /// The [errorState] parameter contains the complete [ErrorState] object.
 /// {@endtemplate}
-typedef ErrorStateMapper<R, T> = R Function(
-  ErrorState<T> errorState,
-);
+typedef ErrorStateMapper<R, T> = R Function(ErrorState<T> errorState);
 
 /// {@macro provider_kit.initial_state_callback}
 typedef InitialStateListener = InitialStateCallback<void>;
@@ -117,11 +105,8 @@ typedef InitialStateBuilder = Widget Function(bool isSliver);
 /// [message] provides an optional loading message.
 /// [progress] provides an optional loading progress value.
 /// [isSliver] indicates whether the widget should be built as a sliver.
-typedef LoadingStateBuilder = Widget Function(
-  String? message,
-  double? progress,
-  bool isSliver,
-);
+typedef LoadingStateBuilder =
+    Widget Function(String? message, double? progress, bool isSliver);
 
 /// A callback that builds a widget for the data state.
 ///
@@ -135,19 +120,17 @@ typedef DataStateBuilder<T> = Widget Function(T data);
 /// [stackTrace] provides the stack trace associated with the error.
 /// [onRetry] provides an optional retry callback.
 /// [isSliver] indicates whether the widget should be built as a sliver.
-typedef ErrorStateBuilder = Widget Function(
-  ErrorInfo errorInfo,
-  Object error,
-  StackTrace stackTrace,
-  VoidCallback? onRetry,
-  bool isSliver,
-);
+typedef ErrorStateBuilder =
+    Widget Function(
+      ErrorInfo errorInfo,
+      Object error,
+      StackTrace stackTrace,
+      VoidCallback? onRetry,
+      bool isSliver,
+    );
 
 /// A callback that builds a widget for the empty state.
 ///
 /// [message] provides an optional empty-state message.
 /// [isSliver] indicates whether the widget should be built as a sliver.
-typedef EmptyStateBuilder = Widget Function(
-  String? message,
-  bool isSliver,
-);
+typedef EmptyStateBuilder = Widget Function(String? message, bool isSliver);
