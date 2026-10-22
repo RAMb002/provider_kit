@@ -1,3 +1,3 @@
-export 'future_notifier.dart';
+export 'async/async_notifiers.dart'
+    show AsyncViewStateNotifier, FutureNotifier, StreamNotifier;
 export 'view_state_notifier.dart';
-export 'async_view_state_notifier.dart';

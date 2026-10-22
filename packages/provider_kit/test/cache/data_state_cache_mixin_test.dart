@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -16,7 +14,7 @@ class TestCachedProvider extends FutureNotifier<String>
   });
 
   @override
-  Future<String> fetchData() async {
+  Future<String> build() async {
     if (exceptionToThrow != null) {
       throw exceptionToThrow!;
     }
@@ -117,31 +115,28 @@ void main() {
       },
     );
 
-    test(
-      'preserves cached DataState across FutureNotifier error refresh cycles',
-      () async {
-        await Future<void>.delayed(Duration.zero);
+    test('preserves current and cached DataState when refresh fails', () async {
+      await Future<void>.delayed(Duration.zero);
 
-        // Cache the original successful state.
-        final originalDataState = provider.state as DataState<String>;
-        provider.cacheDataState(originalDataState);
+      // Cache the original successful state.
+      final originalDataState = provider.state as DataState<String>;
+      provider.cacheDataState(originalDataState);
 
-        // Trigger an error.
-        provider.exceptionToThrow = Exception('Network error');
-        await provider.refresh();
+      // Trigger a refresh failure.
+      final refreshError = Exception('Network error');
+      provider.exceptionToThrow = refreshError;
 
-        expect(provider.state, isA<ErrorState<String>>());
+      // The refresh future still propagates the original error.
+      await expectLater(provider.refresh(), throwsA(same(refreshError)));
 
-        // The cached DataState remains unchanged.
-        expect(provider.cachedDataState, equals(originalDataState));
-        expect(provider.cachedData, equals('Initial Data'));
+      // Existing usable data remains visible.
+      expect(provider.state, equals(originalDataState));
+      expect(provider.state, isA<DataState<String>>());
 
-        // Restore the cached state.
-        provider.restoreCachedData();
-
-        expect(provider.state, equals(originalDataState));
-      },
-    );
+      // The explicitly cached state and data are unchanged.
+      expect(provider.cachedDataState, equals(originalDataState));
+      expect(provider.cachedData, equals('Initial Data'));
+    });
 
     test('clearDataStateCache clears all cached values', () async {
       await Future<void>.delayed(Duration.zero);

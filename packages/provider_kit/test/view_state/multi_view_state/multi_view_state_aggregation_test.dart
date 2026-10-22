@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-import '../../shared/mocks/provider_kit.dart';
+import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
 
 void main() {
@@ -546,7 +546,7 @@ void main() {
       'uses FutureNotifier refresh when an ErrorState has no retry callback',
       (tester) async {
         final asyncProvider = MockFutureNotifier<String>(
-          fetchDataImpl: () => 'data',
+          buildImpl: () => 'data',
         );
 
         await tester.pumpAndSettle();

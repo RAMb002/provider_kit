@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -16,7 +14,7 @@ class TestExCachedProvider extends FutureNotifier<List<String>>
   });
 
   @override
-  Future<List<String>> fetchData() async {
+  Future<List<String>> build() async {
     if (exceptionToThrow != null) {
       throw exceptionToThrow!;
     }
@@ -71,12 +69,16 @@ void main() {
 
           await pumpEventQueue();
 
-          provider.exceptionToThrow = Exception('Network error');
-          final refreshFuture = provider.refresh();
-          await pumpEventQueue();
-          await refreshFuture;
+          final originalDataState = provider.state as DataState<List<String>>;
 
-          expect(provider.exDataState, isA<DataState<List<String>>>());
+          // Explicitly transition away from DataState.
+          provider.state = ErrorState<List<String>>(
+            Exception('Transition to error state'),
+            StackTrace.current,
+          );
+
+          expect(provider.state, isA<ErrorState<List<String>>>());
+          expect(provider.exDataState, equals(originalDataState));
           expect(provider.exDataStateObject, equals(['Apple', 'Banana']));
         },
       );
@@ -117,10 +119,12 @@ void main() {
         provider = TestExCachedProvider(dataToReturn: ['Data']);
         await pumpEventQueue();
 
-        provider.exceptionToThrow = Exception('Error');
-        final refreshFuture = provider.refresh();
-        await pumpEventQueue();
-        await refreshFuture;
+        provider.state = ErrorState<List<String>>(
+          Exception('Transition to error state'),
+          StackTrace.current,
+        );
+
+        expect(provider.exDataState, isNotNull);
 
         expect(provider.exDataState, isNotNull);
 
@@ -140,10 +144,10 @@ void main() {
           provider = TestExCachedProvider(dataToReturn: ['Data']);
           await pumpEventQueue();
 
-          provider.exceptionToThrow = Exception('Error');
-          final refreshFuture = provider.refresh();
-          await pumpEventQueue();
-          await refreshFuture;
+          provider.state = ErrorState<List<String>>(
+            Exception('Transition to error state'),
+            StackTrace.current,
+          );
 
           expect(provider.exDataState, isNotNull);
 

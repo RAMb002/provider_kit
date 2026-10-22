@@ -9,7 +9,7 @@ import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
-import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/async/async_notifiers.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';

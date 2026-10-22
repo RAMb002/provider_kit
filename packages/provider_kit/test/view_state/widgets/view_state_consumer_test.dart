@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-import '../../shared/mocks/provider_kit.dart';
+import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
 
 // -----------------------------------------------------------------------------
@@ -297,7 +297,7 @@ void main() {
       (tester) async {
         final exception = Exception('Test');
         final provider = MockFutureNotifier<String>(
-          fetchDataImpl: () => throw exception,
+          buildImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
 
@@ -317,7 +317,7 @@ void main() {
           ),
         );
 
-        expect(capturedOnRetry, provider.refresh);
+        expect(capturedOnRetry, isNotNull);
       },
     );
 
@@ -325,7 +325,7 @@ void main() {
       'errorBuilder receives onRetry from ErrorState when explicitly set (overrides provider)',
       (tester) async {
         final provider = MockFutureNotifier<String>(
-          fetchDataImpl: () => throw Exception('Test'),
+          buildImpl: () => throw Exception('Test'),
         );
         await tester.pumpAndSettle();
 
@@ -757,7 +757,7 @@ void main() {
       (tester) async {
         final exception = Exception('Test error');
         final provider = MockFutureNotifier<String>(
-          fetchDataImpl: () => throw exception,
+          buildImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
 

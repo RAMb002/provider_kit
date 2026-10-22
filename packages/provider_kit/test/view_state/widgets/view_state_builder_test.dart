@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-import '../../shared/mocks/provider_kit.dart';
+import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
 
 // -----------------------------------------------------------------------------
@@ -298,8 +298,9 @@ void main() {
       (tester) async {
         final exception = Exception('Test');
         final provider = MockFutureNotifier<String>(
-          fetchDataImpl: () => throw exception,
+          buildImpl: () => throw exception,
         );
+        addTearDown(provider.dispose);
         await tester.pumpAndSettle();
 
         VoidCallback? capturedOnRetry;
@@ -318,7 +319,7 @@ void main() {
           ),
         );
 
-        expect(capturedOnRetry, provider.refresh);
+        expect(capturedOnRetry, isNotNull);
         capturedOnRetry!();
         expect(provider.refreshCalls, 1);
       },
@@ -328,7 +329,7 @@ void main() {
       'errorBuilder receives onRetry from ErrorState when explicitly set (overrides provider)',
       (tester) async {
         final provider = MockFutureNotifier<String>(
-          fetchDataImpl: () => throw Exception('Test'),
+          buildImpl: () => throw Exception('Test'),
         );
         await tester.pumpAndSettle();
         var retryCalls = 0;
@@ -396,7 +397,7 @@ void main() {
 
     testWidgets('invokes explicit ErrorState onRetry callback', (tester) async {
       final provider = MockFutureNotifier<String>(
-        fetchDataImpl: () => throw Exception('Test'),
+        buildImpl: () => throw Exception('Test'),
       );
 
       await tester.pumpAndSettle();
@@ -435,39 +436,61 @@ void main() {
     testWidgets(
       'uses context provider refresh when ErrorState has no onRetry callback',
       (tester) async {
-        final provider = MockFutureNotifierWithoutRetry(
-          fetchDataImpl: () => throw Exception('Test'),
+        var buildCalls = 0;
+
+        final provider = MockFutureNotifier<String>(
+          buildImpl: () => 'data${++buildCalls}',
         );
 
-        await tester.pumpAndSettle();
+        addTearDown(provider.dispose);
 
         VoidCallback? capturedOnRetry;
 
         await tester.pumpWidget(
           Directionality(
             textDirection: TextDirection.ltr,
-            child: ChangeNotifierProvider<MockFutureNotifierWithoutRetry>.value(
+            child: ChangeNotifierProvider<MockFutureNotifier<String>>.value(
               value: provider,
-              child:
-                  ViewStateBuilder.of<MockFutureNotifierWithoutRetry, String>(
-                    errorBuilder: (_, ___, __, onRetry, ____) {
-                      capturedOnRetry = onRetry;
-                      return const SizedBox();
-                    },
-                    dataBuilder: (_) => const SizedBox(),
-                  ),
+              child: ViewStateBuilder.of<MockFutureNotifier<String>, String>(
+                errorBuilder: (_, __, ___, onRetry, ____) {
+                  capturedOnRetry = onRetry;
+                  return const SizedBox();
+                },
+                dataBuilder: (_) => const SizedBox(),
+              ),
             ),
           ),
         );
 
-        expect(capturedOnRetry, provider.refresh);
+        // Finish the initial build.
+        await tester.pumpAndSettle();
 
+        expect(provider.state, const DataState<String>('data1'));
+        expect(buildCalls, 1);
+
+        // Simulate an ErrorState without a retry callback.
+        provider.state = ErrorState<String>(
+          Exception('Test'),
+          StackTrace.current,
+          onRetry: null,
+        );
+
+        await tester.pump();
+
+        expect(capturedOnRetry, isNotNull);
+
+        // The widget should fall back to the provider's refresh method.
         capturedOnRetry!();
 
         expect(provider.refreshCalls, 1);
+
+        // Verify that the refresh actually runs and succeeds.
+        await tester.pumpAndSettle();
+
+        expect(buildCalls, 2);
+        expect(provider.state, const DataState<String>('data2'));
       },
     );
-
     // -----------------------------------------------------------------------
     // 4. rebuildWhen filtering
     // -----------------------------------------------------------------------

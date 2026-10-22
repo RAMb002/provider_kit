@@ -10,7 +10,10 @@
 
 - Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
 - Added `data` and `dataOrNull` getters to `ViewState` and `ViewStateNotifier`.
-- Renamed `AsyncViewStateNotifier` to `FutureNotifier`.
+
+**Async Notifiers**
+- Overhauled `FutureNotifier` refresh, rebuild, error handling, and stale-operation protection.
+- Added `StreamNotifier` for stream-based state management with shared async build management.
 
 **Mixins**
 

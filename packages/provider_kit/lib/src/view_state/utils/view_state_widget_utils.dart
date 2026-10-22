@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
-import 'package:provider_kit/src/view_state/notifiers/async_view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/notifiers/async/async_notifiers.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
@@ -150,7 +152,7 @@ abstract class ViewStateWidgetUtils {
   ) {
     final provider = providerParam ?? context.read<P>();
     if (provider is AsyncViewStateNotifier<T>) {
-      return provider.refresh;
+      return () => provider.refresh().ignore();
     }
     return null;
   }

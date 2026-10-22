@@ -1,0 +1,267 @@
+part of 'async_notifiers.dart';
+
+/// {@template provider_kit.stream_notifier}
+/// An asynchronous notifier that manages data updates through a [Stream].
+///
+/// Subclasses implement [build] to provide the stream for the current inputs.
+/// ProviderKit manages subscription setup, state transitions, refreshes,
+/// rebuilds, and the validity of stream events.
+///
+/// The initial subscription is scheduled in a microtask so that subclass
+/// initialization completes before [build] is called.
+///
+/// ### Default behavior
+///
+/// - Starts with [LoadingState], unless an initial state is provided.
+/// - Subscribes to the stream returned by [build].
+/// - Converts emitted values into [DataState] or [EmptyState].
+/// - Converts stream errors into [ErrorState] when no usable data exists.
+/// - Preserves existing data when reporting a stream error.
+/// - Transitions to [EmptyState] when a stream completes without emitting
+///   values or errors and no existing data needs to be preserved.
+/// - Invalidates previous stream events when refreshing or rebuilding.
+/// - Cancels the previous subscription when it is replaced or disposed.
+///
+/// State assignments made from within [build] are protected against outdated
+/// generations. However, implementations should generally return a stream
+/// rather than use direct state assignments to publish stream events.
+///
+/// ### Implementing a notifier
+///
+/// Subclasses must implement [build] and return the stream to observe.
+///
+/// ```dart
+/// class MessagesNotifier extends StreamNotifier<List<Message>> {
+///   MessagesNotifier(this._repository);
+///
+///   final MessageRepository _repository;
+///
+///   @override
+///   Stream<List<Message>> build() {
+///     return _repository.watchMessages();
+///   }
+/// }
+/// ```
+///
+/// ### Rebuilding
+///
+/// Call [rebuild] when inputs that determine the stream change. It invalidates
+/// the current generation immediately and schedules a replacement subscription.
+///
+/// Multiple requests made before the replacement starts are coalesced into one
+/// operation using the latest inputs.
+///
+/// If a build is superseded while a caller is awaiting [rebuild], the returned
+/// future follows the replacement rather than waiting for outdated setup work
+/// to finish. Errors from outdated operations are ignored; an error from the
+/// latest relevant operation is propagated with its original stack trace.
+///
+/// Events and state assignments from outdated builds cannot change the current
+/// state. Underlying asynchronous work is not necessarily cancelled immediately.
+///
+/// ### Refreshing
+///
+/// [refresh] restarts the subscription using the current inputs. Existing data
+/// remains visible while the replacement subscription is established.
+///
+/// If a valid setup operation is already running, refresh joins that operation.
+/// If it becomes outdated while waiting, refresh follows the replacement.
+///
+/// Setup failures are propagated to callers that await [refresh]. Errors emitted
+/// after subscription setup completes are handled through the stream's error
+/// callback and cannot generally be propagated through the future returned by
+/// [refresh].
+///
+/// {@endtemplate}
+abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
+  /// {@macro provider_kit.stream_notifier}
+  StreamNotifier({super.initialState, super.disableEmptyState});
+
+  StreamSubscription<T>? _subscription;
+
+  bool _hasReceivedData = false;
+  bool _hasReceivedError = false;
+
+  /// Builds the stream for the current inputs.
+  ///
+  /// Subclasses must implement this method. When the inputs change, call
+  /// [rebuild] to replace the current subscription.
+  ///
+  /// Return a stream rather than assigning [state] directly to publish stream
+  /// values. Any state assignments made within this method are protected
+  /// against outdated build generations.
+  @protected
+  Stream<T> build();
+
+  @override
+  Future<void> _executeBuild(int token, AsyncBuildReason reason) async {
+    if (!_isCurrentBuild(token)) return;
+
+    try {
+      final hasData = state.isData;
+
+      // Rebuilds invalidate the meaning of the previous result.
+      // Initial setup and refresh preserve usable data.
+      final preserveData = reason != AsyncBuildReason.rebuild && hasData;
+
+      // Detach the old subscription before notifying listeners. Its events
+      // are already stale because the manager has issued a new generation.
+      final previousSubscription = _subscription;
+      _subscription = null;
+
+      _hasReceivedData = false;
+      _hasReceivedError = false;
+
+      if (!state.isLoading && !preserveData) {
+        state = LoadingState<T>();
+      }
+
+      // Always cancel the old subscription, even if a listener requested
+      // another rebuild or disposed this notifier during the state change.
+      await _cancelSubscription(
+        previousSubscription,
+        errorMessage:
+            'While cancelling the previous stream subscription '
+            'for $runtimeType',
+      );
+
+      if (!_isCurrentBuild(token)) return;
+
+      // Both stream creation and listening happen inside the token Zone.
+      //
+      // This matters for async* generators: their bodies execute as the
+      // stream is listened to, and may assign state after an await.
+      await runZoned<Future<void>>(() async {
+        final stream = build();
+
+        // build() can synchronously trigger another rebuild or disposal.
+        if (!_isCurrentBuild(token)) return;
+
+        await _subscribe(stream, token);
+      }, zoneValues: {_buildZoneKey: token});
+    } catch (error, stackTrace) {
+      _handleBuildError(token, error, stackTrace);
+    }
+  }
+
+  /// Applies the default error policy to a failed subscription setup.
+  ///
+  /// Existing data is preserved and the error is reported. Without usable
+  /// data, the notifier transitions to [ErrorState].
+  ///
+  /// The original failure is rethrown so an explicitly awaited refresh or
+  /// rebuild can receive it.
+  void _handleBuildError(int token, Object error, StackTrace stackTrace) {
+    if (!_isCurrentBuild(token)) return;
+
+    if (state.isData || state.isError) {
+      dispatchErrorToObserver(error, stackTrace);
+    } else {
+      _onError(error, stackTrace);
+    }
+
+    // Error handling and observer callbacks can trigger another operation.
+    if (!_isCurrentBuild(token)) return;
+
+    Error.throwWithStackTrace(error, stackTrace);
+  }
+
+  Future<void> _subscribe(Stream<T> stream, int token) async {
+    var subscriptionDone = false;
+
+    final subscription = stream.listen(
+      (data) => _handleData(token, data),
+      onError: (Object error, StackTrace stackTrace) {
+        _handleError(token, error, stackTrace);
+      },
+      onDone: () {
+        subscriptionDone = true;
+        _handleDone(token);
+      },
+    );
+
+    // Synchronous streams may emit data, errors, or completion before
+    // listen() returns. Their callbacks can also trigger rebuild or disposal.
+    if (!_isCurrentBuild(token)) {
+      await _cancelSubscription(
+        subscription,
+        errorMessage:
+            'While cancelling an outdated stream subscription '
+            'for $runtimeType',
+      );
+      return;
+    }
+
+    // A synchronous stream may already have completed during listen().
+    if (!subscriptionDone) {
+      _subscription = subscription;
+    }
+  }
+
+  void _handleData(int token, T data) {
+    if (!_isCurrentBuild(token)) return;
+
+    _hasReceivedData = true;
+
+    if (_isEmptyState(data)) {
+      state = EmptyState<T>();
+    } else {
+      state = DataState<T>(data);
+    }
+  }
+
+  /// Handles an error emitted after subscription setup.
+  ///
+  /// Such errors cannot be propagated through an already-completed setup
+  /// future. They are handled through state and observer notifications.
+  void _handleError(int token, Object error, StackTrace stackTrace) {
+    if (!_isCurrentBuild(token)) return;
+
+    _hasReceivedError = true;
+
+    runZoned<void>(() {
+      if (state.isData || state.isError) {
+        dispatchErrorToObserver(error, stackTrace);
+      } else {
+        _onError(error, stackTrace);
+      }
+    }, zoneValues: {_buildZoneKey: null});
+  }
+
+  void _handleDone(int token) {
+    if (!_isCurrentBuild(token)) return;
+
+    _subscription = null;
+
+    // Preserve existing data, and do not replace an error state with empty
+    // merely because the stream completed without emitting data.
+    if (!_hasReceivedData && !_hasReceivedError && !state.isData) {
+      state = EmptyState<T>();
+    }
+  }
+
+  Future<void> _cancelSubscription(
+    StreamSubscription<T>? subscription, {
+    required String errorMessage,
+  }) async {
+    if (subscription == null) return;
+
+    try {
+      await subscription.cancel();
+    } catch (error, stackTrace) {
+      _reportErrorToFlutter(error, stackTrace, message: errorMessage);
+    }
+  }
+
+  @override
+  void _disposeAsyncResources() {
+    final subscription = _subscription;
+    _subscription = null;
+
+    if (subscription != null) {
+      subscription.cancel().reportOnError(
+        message: 'While cancelling the stream subscription for $runtimeType',
+      );
+    }
+  }
+}
