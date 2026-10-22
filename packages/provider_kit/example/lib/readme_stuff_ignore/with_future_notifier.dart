@@ -5,7 +5,7 @@ import 'package:provider_kit/provider_kit.dart';
 
 class FeedProvider extends FutureNotifier<List<Item>> {
   @override
-  Future<List<Item>> fetchData() => Repository().getItems(10);
+  Future<List<Item>> build() => Repository().getItems(10);
 }
 
 // Via Snippet

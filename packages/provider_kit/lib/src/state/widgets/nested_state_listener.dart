@@ -53,7 +53,5 @@ class NestedStateListener extends Nested {
     super.key,
     required List<SingleChildWidget> listeners,
     required super.child,
-  }) : super(
-          children: listeners,
-        );
+  }) : super(children: listeners);
 }

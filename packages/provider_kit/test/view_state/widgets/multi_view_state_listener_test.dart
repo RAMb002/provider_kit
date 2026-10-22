@@ -109,9 +109,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ViewStateListener.multi(
-          providers: singleProvider(provider),
-        ),
+        ViewStateListener.multi(providers: singleProvider(provider)),
       );
 
       expect(

@@ -162,7 +162,7 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   @override
   MutationState<T> get state => _state;
 
-  int _runGeneration = 0;
+  final GenerationGuard _generationGuard = GenerationGuard();
 
   /// Executes [executor] and updates the mutation state according to
   /// the result.
@@ -209,22 +209,24 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   Future<T> run(Future<T> Function() executor) async {
     assert(NotifierBase.debugAssertNotDisposed(this, 'run'));
 
-    final generation = ++_runGeneration;
+    final generation = _generationGuard.next();
 
     _setState(MutationLoading<T>._());
 
     try {
       final result = await executor();
 
-      if (!mounted || generation != _runGeneration) return result;
+      if (!mounted || !_generationGuard.isCurrent(generation)) return result;
 
       _setState(MutationSuccess<T>._(result));
       return result;
     } catch (error, stackTrace) {
-      if (!mounted || generation != _runGeneration) rethrow;
+      if (!mounted || !_generationGuard.isCurrent(generation)) rethrow;
 
       _setState(MutationError<T>._(error, stackTrace));
-      onError(error, stackTrace);
+      if (mounted) {
+        dispatchError(error, stackTrace);
+      }
       rethrow;
     }
   }
@@ -236,7 +238,7 @@ class Mutation<T> extends NotifierBase<MutationState<T>>
   /// state when it completes.
   void reset() {
     assert(NotifierBase.debugAssertNotDisposed(this, 'reset'));
-    ++_runGeneration;
+    _generationGuard.invalidate();
     _setState(MutationIdle<T>._());
   }
 

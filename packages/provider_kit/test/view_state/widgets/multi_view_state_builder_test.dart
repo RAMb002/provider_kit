@@ -604,7 +604,7 @@ void main() {
 
         await tester.pumpWidget(
           wrap(
-           ViewStateBuilder.multi(
+            ViewStateBuilder.multi(
               providers: () => (first: provider.watch, second: provider.watch),
               dataBuilder: (_) {
                 dataBuilds++;

@@ -41,7 +41,8 @@ sealed class MutationState<T> {
       ErrorInfo errorInfo,
       Object error,
       StackTrace stackTrace,
-    ) error,
+    )
+    error,
   }) {
     final state = this;
 
@@ -49,8 +50,11 @@ sealed class MutationState<T> {
       MutationIdle<T>() => idle(),
       MutationLoading<T>() => loading(),
       MutationSuccess<T>() => success(state.data),
-      MutationError<T>() =>
-        error(state.errorInfo, state.error, state.stackTrace),
+      MutationError<T>() => error(
+        state.errorInfo,
+        state.error,
+        state.stackTrace,
+      ),
     };
   }
 
@@ -78,11 +82,7 @@ sealed class MutationState<T> {
     R Function()? idle,
     R Function()? loading,
     R Function(T data)? success,
-    R Function(
-      ErrorInfo errorInfo,
-      Object error,
-      StackTrace stackTrace,
-    )? error,
+    R Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace)? error,
   }) {
     final state = this;
 
@@ -90,9 +90,10 @@ sealed class MutationState<T> {
       MutationIdle<T>() => idle != null ? idle() : orElse(),
       MutationLoading<T>() => loading != null ? loading() : orElse(),
       MutationSuccess<T>() => success != null ? success(state.data) : orElse(),
-      MutationError<T>() => error != null
-          ? error(state.errorInfo, state.error, state.stackTrace)
-          : orElse(),
+      MutationError<T>() =>
+        error != null
+            ? error(state.errorInfo, state.error, state.stackTrace)
+            : orElse(),
     };
   }
 
@@ -119,11 +120,7 @@ sealed class MutationState<T> {
     R Function()? idle,
     R Function()? loading,
     R Function(T data)? success,
-    R Function(
-      ErrorInfo errorInfo,
-      Object error,
-      StackTrace stackTrace,
-    )? error,
+    R Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace)? error,
   }) {
     final state = this;
 
@@ -132,10 +129,10 @@ sealed class MutationState<T> {
       MutationLoading<T>() => loading?.call(),
       MutationSuccess<T>() => success?.call(state.data),
       MutationError<T>() => error?.call(
-          state.errorInfo,
-          state.error,
-          state.stackTrace,
-        ),
+        state.errorInfo,
+        state.error,
+        state.stackTrace,
+      ),
     };
   }
 
@@ -326,16 +323,9 @@ final class MutationSuccess<T> extends MutationState<T> {
 /// The mapped error information is available through [errorInfo].
 /// {@endtemplate}
 final class MutationError<T> extends MutationState<T> {
-  MutationError._(
-    this.error,
-    this.stackTrace, {
-    ErrorInfo? errorInfo,
-  })  : errorInfo = errorInfo ??
-            ProviderKit.resolveErrorInfo(
-              error,
-              stackTrace,
-            ),
-        super._();
+  MutationError._(this.error, this.stackTrace, {ErrorInfo? errorInfo})
+    : errorInfo = errorInfo ?? ProviderKit.resolveErrorInfo(error, stackTrace),
+      super._();
 
   /// {@macro provider_kit.error_info_field}
   final ErrorInfo errorInfo;
@@ -361,6 +351,7 @@ final class MutationError<T> extends MutationState<T> {
   int get hashCode => Object.hash(errorInfo, error, stackTrace);
 
   @override
-  String toString() => 'MutationError { errorInfo: $errorInfo, error: $error, '
+  String toString() =>
+      'MutationError { errorInfo: $errorInfo, error: $error, '
       'stackTrace: $stackTrace }';
 }

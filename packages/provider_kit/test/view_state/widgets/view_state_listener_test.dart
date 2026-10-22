@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-import '../../shared/mocks/provider_kit.dart';
+import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
 
 void main() {
@@ -618,7 +618,7 @@ void main() {
       (tester) async {
         final exception = Exception('Test error');
         final provider = MockFutureNotifier<String>(
-          fetchDataImpl: () => throw exception,
+          buildImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
 

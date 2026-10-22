@@ -25,17 +25,11 @@ typedef MultiStateProviders<T> = T Function();
 /// [context] provides the build context.
 /// [state] provides the current state.
 /// [child] provides an optional child widget.
-typedef StateWidgetBuilder<T> = Widget Function(
-  BuildContext context,
-  T state,
-  Widget? child,
-);
+typedef StateWidgetBuilder<T> =
+    Widget Function(BuildContext context, T state, Widget? child);
 
 /// A callback invoked when the state changes.
 ///
 /// [context] provides the build context.
 /// [state] provides the current state.
-typedef ListenerCallback<T> = void Function(
-  BuildContext context,
-  T state,
-);
+typedef ListenerCallback<T> = void Function(BuildContext context, T state);

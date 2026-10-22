@@ -1,0 +1,253 @@
+part of 'async_notifiers.dart';
+
+/// {@template provider_kit.future_notifier}
+/// A [ViewStateNotifier] that loads data asynchronously through a [Future].
+///
+/// Override [build] to load data for the current inputs. ProviderKit manages
+/// loading, data, empty, and error states, along with refreshes and rebuilds.
+///
+/// ### Basic Usage
+///
+/// ```dart
+/// class ProductsNotifier extends FutureNotifier<List<Product>> {
+///   ProductsNotifier(this._repository);
+///
+///   final ProductRepository _repository;
+///
+///   @override
+///   Future<List<Product>> build() {
+///     return _repository.fetchProducts();
+///   }
+/// }
+/// ```
+///
+/// ProviderKit publishes the value returned by [build] automatically:
+///
+/// - A non-empty result becomes [DataState].
+/// - An empty [Iterable] becomes [EmptyState], unless [disableEmptyState]
+///   is `true`.
+/// - A failure transitions to [ErrorState] when no usable data is available.
+///
+/// You can provide an [initialState] when data is already available.
+///
+/// ### Load cached data on startup
+///
+/// You can publish cached data while waiting for a fresh result. Assign the
+/// cached value to [state], then return the remote result:
+///
+/// ```dart
+/// @override
+/// Future<List<Product>> build() async {
+///   try {
+///     final cached = await _cache.readProducts();
+///
+///     if (cached != null) {
+///       state = DataState<List<Product>>(cached);
+///     }
+///   } catch (_) {
+///     // Cache is optional. Continue to the remote request.
+///   }
+///
+///   return _repository.fetchProducts();
+/// }
+/// ```
+///
+/// When the remote request succeeds, ProviderKit publishes its returned
+/// result as the final state. You don't need to assign it to [state] yourself.
+///
+/// If the remote request fails after cached data has been published, the
+/// existing [DataState] is preserved by default. If no usable data is
+/// available, the notifier transitions to [ErrorState].
+///
+/// If you want a remote failure to replace cached data with an error state,
+/// assign an [ErrorState] explicitly before rethrowing the error:
+///
+/// ```dart
+/// try {
+///   return await _repository.fetchProducts();
+/// } catch (error, stackTrace) {
+///   state = ErrorState<List<Product>>(error, stackTrace);
+///   Error.throwWithStackTrace(error, stackTrace);
+/// }
+/// ```
+///
+/// Explicit state assignments inside [build] take effect immediately and can
+/// override the default state policy. When the build succeeds, its returned
+/// value becomes the final state.
+///
+/// Handle cache errors inside [build] when the cache is optional and a cache
+/// failure shouldn't prevent the remote request from running.
+///
+/// ### Refresh data
+///
+/// Call [refresh] to run [build] again using the current inputs:
+///
+/// ```dart
+/// try {
+///   await refresh();
+/// } catch (error, stackTrace) {
+///   // The refresh failed, but existing usable data may remain available.
+/// }
+/// ```
+///
+/// When [DataState] is available, it remains visible while refreshing. If the
+/// refresh fails, existing data is preserved by default, but an explicitly
+/// awaited [refresh] still throws the original failure with its stack trace.
+///
+/// Without usable data, the notifier shows [LoadingState] while loading and
+/// transitions to [ErrorState] if the operation fails.
+///
+/// If valid build work is already running, [refresh] joins that operation.
+/// If the operation becomes outdated while [refresh] is waiting, it follows
+/// the replacement operation.
+///
+/// Since [build] can publish intermediate states, [refresh] follows the state
+/// transitions defined by your override. Explicit state assignments can
+/// override the default refresh behavior, including preserving existing data
+/// while refreshing.
+///
+/// ### Rebuild when inputs change
+///
+/// Call [rebuild] when an input used by [build] changes, such as a query or
+/// filter:
+///
+/// ```dart
+/// class ProductsNotifier extends FutureNotifier<List<Product>> {
+///   ProductsNotifier(this._repository);
+///
+///   final ProductRepository _repository;
+///   String _query = '';
+///
+///   @override
+///   Future<List<Product>> build() {
+///     return _repository.fetchProducts(query: _query);
+///   }
+///
+///   void updateQuery(String query) {
+///     if (_query == query) return;
+///
+///     _query = query;
+///     rebuild();
+///   }
+/// }
+/// ```
+///
+/// Calling [rebuild] reruns [build] with the latest inputs. The previous build
+/// is invalidated, and its stale state assignments and results are ignored.
+/// The underlying asynchronous work isn't necessarily cancelled.
+///
+/// A rebuild clears the previous data when it starts because the data may no
+/// longer match the updated inputs.
+///
+/// Multiple rebuild requests made before a scheduled rebuild starts are
+/// coalesced into a single operation using the latest inputs.
+///
+/// If a build is superseded while a caller is awaiting [rebuild], the returned
+/// future follows the replacement operation rather than waiting for the
+/// outdated operation to finish. Errors from outdated operations are ignored;
+/// an error from the current relevant operation is propagated with its
+/// original stack trace.
+///
+/// ### Protect other asynchronous operations
+///
+/// State assignments inside [build] are already protected against outdated
+/// builds. For independent asynchronous methods, use [checkStaleness] to
+/// detect when a refresh, rebuild, or disposal has made the operation outdated:
+///
+/// ```dart
+/// Future<void> loadNextPage() async {
+///   final isStale = checkStaleness();
+///
+///   final products = await _repository.fetchNextPage();
+///
+///   if (isStale()) return;
+///
+///   state = DataState(products);
+/// }
+/// ```
+///
+/// Check the staleness callback after asynchronous gaps before continuing work
+/// or updating state. This doesn't cancel an in-flight request; it lets you
+/// stop subsequent work when the operation becomes outdated.
+///
+/// {@endtemplate}
+abstract class FutureNotifier<T> extends AsyncViewStateNotifier<T> {
+  /// {@macro provider_kit.future_notifier}
+  FutureNotifier({super.initialState, super.disableEmptyState});
+
+  /// Loads data for the current inputs.
+  ///
+  /// Override this method to fetch data. ProviderKit publishes the returned
+  /// result automatically. Assign [state] directly only for intermediate
+  /// state updates.
+  @protected
+  Future<T> build();
+
+  @override
+  Future<void> _executeBuild(int token, AsyncBuildReason reason) async {
+    if (!_isCurrentBuild(token)) return;
+
+    try {
+      _prepareBuild(reason);
+
+      if (!_isCurrentBuild(token)) return;
+
+      // The build's generation follows its asynchronous execution, including
+      // state assignments made after await.
+      final result = await runZoned<Future<T>>(
+        build,
+        zoneValues: {_buildZoneKey: token},
+      );
+
+      _handleBuildResult(token, result);
+    } catch (error, stackTrace) {
+      _handleBuildError(token, error, stackTrace);
+    }
+  }
+
+  /// Applies the default loading-state policy for the operation.
+  void _prepareBuild(AsyncBuildReason reason) {
+    final hasData = state.isData;
+
+    // Initial builds and refreshes preserve usable data. Rebuilds do not,
+    // because the previous data may belong to different inputs.
+    final preserveData = reason != AsyncBuildReason.rebuild && hasData;
+
+    if (!state.isLoading && !preserveData) {
+      state = LoadingState<T>();
+    }
+  }
+
+  /// Publishes the returned result if the build is still current.
+  void _handleBuildResult(int token, T result) {
+    if (!_isCurrentBuild(token)) return;
+
+    if (_isEmptyState(result)) {
+      state = EmptyState<T>();
+    } else {
+      state = DataState<T>(result);
+    }
+  }
+
+  /// Applies the default error policy to a failed build.
+  ///
+  /// Existing data is preserved and the error is reported. Without usable
+  /// data, the notifier transitions to [ErrorState].
+  ///
+  /// The wrapper allows refresh to propagate the original failure, while
+  /// fire-and-forget builds avoid duplicate error reporting.
+  void _handleBuildError(int token, Object error, StackTrace stackTrace) {
+    if (!_isCurrentBuild(token)) return;
+
+    if (state.isData || state.isError) {
+      dispatchErrorToObserver(error, stackTrace);
+    } else {
+      _onError(error, stackTrace);
+    }
+
+    // Error handlers and observers can synchronously trigger another rebuild.
+    if (!_isCurrentBuild(token)) return;
+
+    Error.throwWithStackTrace(error, stackTrace);
+  }
+}

@@ -7,7 +7,7 @@ class ItemsProvider extends FutureNotifier<List<Item>> {
   final Repository _repo = Repository();
 
   @override
-  Future<List<Item>> fetchData() => _repo.getItems(10);
+  Future<List<Item>> build() => _repo.getItems(10);
 }
 
 typedef ItemsViewState = ViewState<List<Item>>;
@@ -26,19 +26,19 @@ class MovieProvider extends FutureNotifier<Movie> {
   final Repository _repo = Repository();
 
   @override
-  Future<Movie> fetchData() => _repo.getMovie();
+  Future<Movie> build() => _repo.getMovie();
 }
 
 class SimilarMoviesProvider extends FutureNotifier<List<Movie>> {
   final Repository _repo = Repository();
 
   @override
-  Future<List<Movie>> fetchData() => _repo.getSimilarMovies();
+  Future<List<Movie>> build() => _repo.getSimilarMovies();
 }
 
 class TrailersProvider extends FutureNotifier<List<Trailer>> {
   final Repository _repo = Repository();
 
   @override
-  Future<List<Trailer>> fetchData() => _repo.getTrailers();
+  Future<List<Trailer>> build() => _repo.getTrailers();
 }

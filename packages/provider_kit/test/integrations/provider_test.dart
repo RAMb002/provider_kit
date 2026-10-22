@@ -13,149 +13,138 @@ class TestCounterNotifier extends StateNotifier<int> {
 
 void main() {
   group('StateNotifier Provider compatibility', () {
-    testWidgets(
-      'works with Provider Consumer',
-      (tester) async {
-        final notifier = TestCounterNotifier();
+    testWidgets('works with Provider Consumer', (tester) async {
+      final notifier = TestCounterNotifier();
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: ChangeNotifierProvider<TestCounterNotifier>.value(
-              value: notifier,
-              child: Consumer<TestCounterNotifier>(
-                builder: (_, provider, __) {
-                  return Text('${provider.state}');
-                },
-              ),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<TestCounterNotifier>.value(
+            value: notifier,
+            child: Consumer<TestCounterNotifier>(
+              builder: (_, provider, __) {
+                return Text('${provider.state}');
+              },
             ),
           ),
-        );
+        ),
+      );
 
-        expect(find.text('0'), findsOneWidget);
+      expect(find.text('0'), findsOneWidget);
 
-        notifier.increment();
-        await tester.pump();
+      notifier.increment();
+      await tester.pump();
 
-        expect(find.text('1'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
 
-        notifier.increment();
-        await tester.pump();
+      notifier.increment();
+      await tester.pump();
 
-        expect(find.text('2'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
 
-        notifier.dispose();
-      },
-    );
+      notifier.dispose();
+    });
 
-    testWidgets(
-      'works with Provider Selector',
-      (tester) async {
-        final notifier = TestCounterNotifier();
-        var buildCount = 0;
+    testWidgets('works with Provider Selector', (tester) async {
+      final notifier = TestCounterNotifier();
+      var buildCount = 0;
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: ChangeNotifierProvider<TestCounterNotifier>.value(
-              value: notifier,
-              child: Selector<TestCounterNotifier, int>(
-                selector: (_, provider) => provider.state,
-                builder: (_, state, __) {
-                  buildCount++;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<TestCounterNotifier>.value(
+            value: notifier,
+            child: Selector<TestCounterNotifier, int>(
+              selector: (_, provider) => provider.state,
+              builder: (_, state, __) {
+                buildCount++;
 
-                  return Text('$state');
-                },
-              ),
+                return Text('$state');
+              },
             ),
           ),
-        );
+        ),
+      );
 
-        expect(find.text('0'), findsOneWidget);
-        expect(buildCount, 1);
+      expect(find.text('0'), findsOneWidget);
+      expect(buildCount, 1);
 
-        notifier.increment();
-        await tester.pump();
+      notifier.increment();
+      await tester.pump();
 
-        expect(find.text('1'), findsOneWidget);
-        expect(buildCount, 2);
+      expect(find.text('1'), findsOneWidget);
+      expect(buildCount, 2);
 
-        notifier.increment();
-        await tester.pump();
+      notifier.increment();
+      await tester.pump();
 
-        expect(find.text('2'), findsOneWidget);
-        expect(buildCount, 3);
+      expect(find.text('2'), findsOneWidget);
+      expect(buildCount, 3);
 
-        notifier.dispose();
-      },
-    );
+      notifier.dispose();
+    });
 
-    testWidgets(
-      'works with Provider.of',
-      (tester) async {
-        final notifier = TestCounterNotifier();
-        int? capturedState;
+    testWidgets('works with Provider.of', (tester) async {
+      final notifier = TestCounterNotifier();
+      int? capturedState;
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: ChangeNotifierProvider<TestCounterNotifier>.value(
-              value: notifier,
-              child: Builder(
-                builder: (context) {
-                  capturedState =
-                      Provider.of<TestCounterNotifier>(context).state;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<TestCounterNotifier>.value(
+            value: notifier,
+            child: Builder(
+              builder: (context) {
+                capturedState = Provider.of<TestCounterNotifier>(context).state;
 
-                  return Text('$capturedState');
-                },
-              ),
+                return Text('$capturedState');
+              },
             ),
           ),
-        );
+        ),
+      );
 
-        expect(capturedState, 0);
-        expect(find.text('0'), findsOneWidget);
+      expect(capturedState, 0);
+      expect(find.text('0'), findsOneWidget);
 
-        notifier.increment();
-        await tester.pump();
+      notifier.increment();
+      await tester.pump();
 
-        expect(capturedState, 1);
-        expect(find.text('1'), findsOneWidget);
+      expect(capturedState, 1);
+      expect(find.text('1'), findsOneWidget);
 
-        notifier.dispose();
-      },
-    );
+      notifier.dispose();
+    });
 
-    testWidgets(
-      'Selector rebuilds when selected StateNotifier state changes',
-      (tester) async {
-        final notifier = TestCounterNotifier();
-        var buildCount = 0;
+    testWidgets('Selector rebuilds when selected StateNotifier state changes', (
+      tester,
+    ) async {
+      final notifier = TestCounterNotifier();
+      var buildCount = 0;
 
-        await tester.pumpWidget(
-          MaterialApp(
-            home: ChangeNotifierProvider<TestCounterNotifier>.value(
-              value: notifier,
-              child: Selector<TestCounterNotifier, int>(
-                selector: (_, provider) => provider.state,
-                builder: (_, state, __) {
-                  buildCount++;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ChangeNotifierProvider<TestCounterNotifier>.value(
+            value: notifier,
+            child: Selector<TestCounterNotifier, int>(
+              selector: (_, provider) => provider.state,
+              builder: (_, state, __) {
+                buildCount++;
 
-                  return Text('Selected: $state');
-                },
-              ),
+                return Text('Selected: $state');
+              },
             ),
           ),
-        );
+        ),
+      );
 
-        expect(find.text('Selected: 0'), findsOneWidget);
-        expect(buildCount, 1);
+      expect(find.text('Selected: 0'), findsOneWidget);
+      expect(buildCount, 1);
 
-        notifier.increment();
-        await tester.pump();
+      notifier.increment();
+      await tester.pump();
 
-        expect(find.text('Selected: 1'), findsOneWidget);
-        expect(buildCount, 2);
+      expect(find.text('Selected: 1'), findsOneWidget);
+      expect(buildCount, 2);
 
-        notifier.dispose();
-      },
-    );
+      notifier.dispose();
+    });
   });
 }

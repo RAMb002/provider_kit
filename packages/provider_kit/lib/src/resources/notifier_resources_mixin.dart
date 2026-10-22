@@ -101,9 +101,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
     Set<KeepAliveState> keepAliveStates = const {},
   }) {
     return _resourceOwner.own(
-      MutationGroup<T>(
-        keepAliveStates: keepAliveStates,
-      ),
+      MutationGroup<T>(keepAliveStates: keepAliveStates),
       onDispose: (resource) => resource.dispose(),
     );
   }
@@ -165,11 +163,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
     Object? key,
     Duration? duration,
   }) {
-    _defaultDebounce.run(
-      operation,
-      key: key,
-      duration: duration,
-    );
+    _defaultDebounce.run(operation, key: key, duration: duration);
   }
 
   /// {@template provider_kit.resources_mixin.throttle_usage}
@@ -197,11 +191,7 @@ mixin NotifierResourcesMixin on ChangeNotifier {
     bool trailing = false,
   }) {
     return _resourceOwner.own(
-      Throttle(
-        duration: duration,
-        leading: leading,
-        trailing: trailing,
-      ),
+      Throttle(duration: duration, leading: leading, trailing: trailing),
       onDispose: (resource) => resource.dispose(),
     );
   }
@@ -222,14 +212,8 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   ///
   /// The shared throttle is created lazily on first use and is automatically
   /// disposed when the notifier is disposed.
-  void throttleRun(
-    void Function() operation, {
-    Object? key,
-  }) {
-    _defaultThrottle.run(
-      operation,
-      key: key,
-    );
+  void throttleRun(void Function() operation, {Object? key}) {
+    _defaultThrottle.run(operation, key: key);
   }
 
   @override

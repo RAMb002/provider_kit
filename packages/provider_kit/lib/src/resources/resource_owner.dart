@@ -15,10 +15,7 @@ final class ResourceOwner {
   /// [onDispose] is called when the owner is disposed. If the owner has
   /// already been disposed, [resource] is disposed immediately and a
   /// [StateError] is thrown unless [onDispose] itself throws.
-  T own<T>(
-    T resource, {
-    required void Function(T resource) onDispose,
-  }) {
+  T own<T>(T resource, {required void Function(T resource) onDispose}) {
     if (_disposed) {
       onDispose(resource);
 
@@ -28,9 +25,7 @@ final class ResourceOwner {
       );
     }
 
-    (_disposeCallbacks ??= <void Function()>[]).add(
-      () => onDispose(resource),
-    );
+    (_disposeCallbacks ??= <void Function()>[]).add(() => onDispose(resource));
 
     return resource;
   }
@@ -69,10 +64,7 @@ final class ResourceOwner {
     callbacks.clear();
 
     if (firstError != null) {
-      Error.throwWithStackTrace(
-        firstError,
-        firstStackTrace!,
-      );
+      Error.throwWithStackTrace(firstError, firstStackTrace!);
     }
   }
 }

@@ -208,9 +208,8 @@ class MutationGroup<T> {
   ///
   /// The provided set is copied and cannot be modified after the group is
   /// created.
-  MutationGroup({
-    Set<KeepAliveState> keepAliveStates = const {},
-  }) : _keepAliveStates = Set.unmodifiable(keepAliveStates);
+  MutationGroup({Set<KeepAliveState> keepAliveStates = const {}})
+    : _keepAliveStates = Set.unmodifiable(keepAliveStates);
 
   /// Returns the [Mutation] associated with [key].
   ///
@@ -262,8 +261,9 @@ class MutationGroup<T> {
     return switch (state) {
       MutationIdle<T>() => true,
       MutationLoading<T>() => false,
-      MutationSuccess<T>() =>
-        !_keepAliveStates.contains(KeepAliveState.success),
+      MutationSuccess<T>() => !_keepAliveStates.contains(
+        KeepAliveState.success,
+      ),
       MutationError<T>() => !_keepAliveStates.contains(KeepAliveState.error),
     };
   }
@@ -361,7 +361,4 @@ class _AutoDisposeController<T, K> {
   }
 }
 
-enum KeepAliveState {
-  success,
-  error,
-}
+enum KeepAliveState { success, error }
