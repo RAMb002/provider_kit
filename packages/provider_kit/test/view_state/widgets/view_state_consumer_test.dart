@@ -51,7 +51,7 @@ void main() {
       bool withDefaultWidgetProvider = true,
     }) {
       final consumer = ViewStateConsumer<String>(
-        provider: provider,
+        listenable: provider,
         initialBuilder: initialBuilder,
         loadingBuilder: loadingBuilder,
         emptyBuilder: emptyBuilder,
@@ -212,7 +212,7 @@ void main() {
     // -----------------------------------------------------------------------
     // Fallback to ViewStateWidgetsProvider (builder)
     // -----------------------------------------------------------------------
-    testWidgets('uses default initial widget from provider', (tester) async {
+    testWidgets('uses default initial widget from ViewStateWidgetsProvider', (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
 
       await tester.pumpWidget(
@@ -226,7 +226,7 @@ void main() {
       expect(find.byKey(_defaultInitialKey), findsOneWidget);
     });
 
-    testWidgets('uses default loading widget from provider', (tester) async {
+    testWidgets('uses default loading widget from ViewStateWidgetsProvider', (tester) async {
       final provider = TestViewStateNotifier<String>(const LoadingState());
 
       await tester.pumpWidget(
@@ -240,7 +240,7 @@ void main() {
       expect(find.byKey(_defaultLoadingKey), findsOneWidget);
     });
 
-    testWidgets('uses default empty widget from provider', (tester) async {
+    testWidgets('uses default empty widget from ViewStateWidgetsProvider', (tester) async {
       final provider = TestViewStateNotifier<String>(const EmptyState());
 
       await tester.pumpWidget(
@@ -254,7 +254,7 @@ void main() {
       expect(find.byKey(_defaultEmptyKey), findsOneWidget);
     });
 
-    testWidgets('uses default error widget from provider', (tester) async {
+    testWidgets('uses default error widget from ViewStateWidgetsProvider', (tester) async {
       final provider = TestViewStateNotifier<String>(
         ErrorState<String>(Exception('Error'), StackTrace.current),
       );
@@ -279,7 +279,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               dataBuilder: (_) => const SizedBox(),
             ),
           ),
@@ -307,7 +307,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               errorBuilder: (_, ___, __, onRetry, ____) {
                 capturedOnRetry = onRetry;
                 return const SizedBox();
@@ -322,7 +322,7 @@ void main() {
     );
 
     testWidgets(
-      'errorBuilder receives onRetry from ErrorState when explicitly set (overrides provider)',
+      'errorBuilder receives onRetry from ErrorState when explicitly set (overrides notifier retry callback)',
       (tester) async {
         final provider = MockFutureNotifier<String>(
           buildImpl: () => throw Exception('Test'),
@@ -342,7 +342,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               errorBuilder: (_, ___, __, onRetry, ____) {
                 capturedOnRetry = onRetry;
                 return const SizedBox();
@@ -357,7 +357,7 @@ void main() {
     );
 
     testWidgets(
-      'errorBuilder receives null onRetry when provider is not a FutureNotifier',
+      'errorBuilder receives null onRetry when listenable is not a FutureNotifier',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           ErrorState<String>(StateError('Error'), StackTrace.current),
@@ -368,7 +368,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               errorBuilder: (_, ___, __, onRetry, ____) {
                 capturedOnRetry = onRetry;
                 return const SizedBox();
@@ -485,7 +485,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               isSliver: true,
               initialBuilder: (isSliver) {
                 initialIsSliver = isSliver;
@@ -526,7 +526,7 @@ void main() {
       },
     );
 
-    testWidgets('default widgets from provider receive isSliver', (
+    testWidgets('default widgets from ViewStateWidgetsProvider receive isSliver', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(const LoadingState());
@@ -544,7 +544,7 @@ void main() {
           child: Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               isSliver: true,
               dataBuilder: (_) => const SizedBox(),
             ),
@@ -773,7 +773,7 @@ void main() {
             textDirection: TextDirection.ltr,
             child: _withDefaultWidgetProvider(
               ViewStateConsumer<String>(
-                provider: provider,
+                listenable: provider,
                 dataBuilder: (_) => const SizedBox(),
                 errorStateListener: (errorInfo, error, stackTrace, onRetry) {
                   capturedErrorInfo = errorInfo;
@@ -1091,7 +1091,7 @@ void main() {
               return Scaffold(
                 body: _withDefaultWidgetProvider(
                   ViewStateConsumer<String>(
-                    provider: provider,
+                    listenable: provider,
                     dataBuilder: (_) => const SizedBox(),
                     dataStateListener: (data) {
                       showDialog(
@@ -1122,7 +1122,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: _withDefaultWidgetProvider(
             ViewStateConsumer<String>(
-              provider: provider,
+              listenable: provider,
               dataBuilder: (_) => const SizedBox(),
               dataStateListener: (_) {},
             ),
@@ -1142,7 +1142,7 @@ void main() {
     // SECTION 3: PROVIDER RESOLUTION & RUNTIME CHANGES
     // =======================================================================
 
-    testWidgets('uses explicit provider when provided', (tester) async {
+    testWidgets('uses explicit listenable when provided', (tester) async {
       final provider = TestViewStateNotifier<String>(
         const DataState('explicit'),
       );
@@ -1152,7 +1152,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateConsumer<String>(
-            provider: provider,
+            listenable: provider,
             dataBuilder: (data) {
               capturedData = data;
               return const SizedBox();
@@ -1164,7 +1164,7 @@ void main() {
       expect(capturedData, 'explicit');
     });
 
-    testWidgets('reads provider from context using ViewStateConsumer.of', (
+    testWidgets('reads listenable from context using ViewStateConsumer.of', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(
@@ -1190,7 +1190,7 @@ void main() {
       expect(capturedData, 'context');
     });
 
-    testWidgets('switches to new provider when provider parameter changes', (
+    testWidgets('switches to new listenable when listenable parameter changes', (
       tester,
     ) async {
       final provider1 = TestViewStateNotifier<String>(const DataState('one'));
@@ -1203,7 +1203,7 @@ void main() {
         return Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateConsumer<String>(
-            provider: provider,
+            listenable: provider,
             dataBuilder: (data) {
               capturedData = data;
               return const SizedBox();
@@ -1256,7 +1256,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateConsumer<String>(
-            provider: provider,
+            listenable: provider,
             dataBuilder: (_) => const SizedBox(),
           ),
         ),
@@ -1281,7 +1281,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       ViewStateConsumer<String>(
-        provider: TestViewStateNotifier<String>(),
+        listenable: TestViewStateNotifier<String>(),
         dataBuilder: (_) => const SizedBox(),
         initialBuilder: (_) => const SizedBox(),
         loadingBuilder: (_, __, ___) => const SizedBox(),
@@ -1304,7 +1304,7 @@ void main() {
           .toList();
 
       // Inherited from StateConsumer
-      expect(description.any((e) => e.contains('provider')), isTrue);
+      expect(description.any((e) => e.contains('listenable')), isTrue);
       expect(description.any((e) => e.contains('rebuildWhen')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(

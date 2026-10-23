@@ -1,14 +1,15 @@
 part of 'view_state_consumer.dart';
 
-/// Base class for single-provider [ViewStateConsumer] implementations.
+/// Base class for single-view-state-notifier [ViewStateConsumer]
+/// implementations.
 ///
-/// Provides the provider configuration and delegates state management to
-/// [StateConsumer].
+/// Stores the listenable configuration and delegates state tracking,
+/// rebuilding, and listener scheduling to [StateEngine].
 abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     extends ViewStateConsumer<T> {
   const ViewStateConsumerBase({
     super.key,
-    this.provider,
+    this.listenable,
     this.rebuildWhen,
     this.listenWhen,
     required super.dataBuilder,
@@ -25,8 +26,8 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     super.isSliver,
   }) : super.base();
 
-  /// {@macro provider_kit.view_state_widget.provider}
-  final P? provider;
+  /// {@macro provider_kit.view_state_widget.listenable}
+  final P? listenable;
 
   /// {@macro provider_kit.view_state_builder.rebuild_when}
   final RebuildWhen<ViewState<T>>? rebuildWhen;
@@ -41,7 +42,7 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
   Widget _buildState(BuildContext context, ViewState<T> state, Widget? child) {
     return ViewStateWidgetUtils.buildStateWidget<P, T>(
       context,
-      provider,
+      listenable,
       state,
       initialBuilder,
       dataBuilder,
@@ -52,7 +53,7 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     );
   }
 
-  void _handleStateChange(BuildContext context, ViewState<T> state) {
+  void _handleStateChange(BuildContext _, ViewState<T> state) {
     ViewStateWidgetUtils.handleListener<T>(
       state: state,
       initialStateListener: initialStateListener,
@@ -68,7 +69,9 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     super.debugFillProperties(properties);
 
     properties
-      ..add(DiagnosticsProperty<P?>('provider', provider, defaultValue: null))
+      ..add(
+        DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null),
+      )
       ..add(
         ObjectFlagProperty<RebuildWhen<ViewState<T>>?>.has(
           'rebuildWhen',
@@ -84,13 +87,14 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
   }
 }
 
-/// Delegates single-provider listening and rebuilding to [StateConsumer].
+/// Delegates single-listenable state tracking, rebuilding, and listener
+/// scheduling to [StateEngine].
 class _ViewStateConsumerBaseState<P extends ViewStateNotifier<T>, T>
     extends State<ViewStateConsumerBase<P, T>> {
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, ViewState<T>>(
-      provider: widget.provider,
+      listenable: widget.listenable,
       rebuildWhen: widget.rebuildWhen,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,

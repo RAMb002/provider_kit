@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
-import 'package:provider_kit/provider_kit.dart';
+import 'package:provider_kit/src/mutation/mutation.dart';
 import 'package:provider_kit/src/resources/resource_owner.dart';
+import 'package:provider_kit/src/state/state_field.dart';
 import 'package:rate_kit/rate_kit.dart';
 
 /// Provides automatic lifecycle management for ProviderKit resources

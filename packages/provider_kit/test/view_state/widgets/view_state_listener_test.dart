@@ -16,7 +16,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
+            listenable: provider,
             child: const SizedBox(key: childKey),
           ),
         ),
@@ -29,7 +29,7 @@ void main() {
     ) async {
       final provider = TestViewStateNotifier<String>();
 
-      await tester.pumpWidget(ViewStateListener<String>(provider: provider));
+      await tester.pumpWidget(ViewStateListener<String>(listenable: provider));
       expect(
         tester.takeException(),
         isA<AssertionError>().having(
@@ -54,7 +54,7 @@ void main() {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: ViewStateListener<String>(
-          provider: provider,
+          listenable: provider,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
           emptyStateListener: emptyStateListener,
@@ -402,7 +402,7 @@ void main() {
               builder: (context) {
                 return Scaffold(
                   body: ViewStateListener<String>(
-                    provider: provider,
+                    listenable: provider,
                     dataStateListener: (data) {
                       showDialog(
                         context: context,
@@ -424,7 +424,7 @@ void main() {
       },
     );
 
-    testWidgets('calls dataStateListener when explicit provider is passed', (
+    testWidgets('calls dataStateListener when explicit listenable is passed', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
@@ -434,7 +434,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
+            listenable: provider,
             dataStateListener: (_) => dataCalled = true,
             child: const SizedBox(),
           ),
@@ -446,7 +446,7 @@ void main() {
       expect(dataCalled, true);
     });
 
-    testWidgets('reads provider from context using ViewStateListener.of', (
+    testWidgets('reads listenable from context using ViewStateListener.of', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
@@ -478,7 +478,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
+            listenable: provider,
             dataStateListener: (_) {},
             child: const SizedBox(),
           ),
@@ -495,7 +495,7 @@ void main() {
     });
 
     testWidgets(
-      'switches to new provider when provider parameter changes at runtime',
+      'switches to new listenable when listenable parameter changes at runtime',
       (tester) async {
         final provider1 = TestViewStateNotifier<String>(const InitialState());
         final provider2 = TestViewStateNotifier<String>(const InitialState());
@@ -506,7 +506,7 @@ void main() {
           return Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
-              provider: provider,
+              listenable: provider,
               dataStateListener: (data) {
                 if (provider == provider1) {
                   dataCount1++;
@@ -557,7 +557,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
-              provider: provider,
+              listenable: provider,
               listenWhen: (previous, current) {
                 previousList.add(previous);
                 currentList.add(current);
@@ -594,7 +594,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
+            listenable: provider,
             errorStateListener: (_, ___, __, onRetry) {
               capturedOnRetry = onRetry;
             },
@@ -633,7 +633,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
-              provider: provider,
+              listenable: provider,
               errorStateListener: (errorInfo, error, stackTrace, onRetry) {
                 capturedErrorInfo = errorInfo;
                 capturedOnRetry = onRetry;
@@ -668,7 +668,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
+            listenable: provider,
             dataStateListener: (_) {},
             child: const SizedBox(),
           ),
@@ -688,7 +688,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       ViewStateListener<String>(
-        provider: TestViewStateNotifier<String>(),
+        listenable: TestViewStateNotifier<String>(),
         dataStateListener: (_) {},
         loadingStateListener: (_, __) {},
         emptyStateListener: (_) {},
@@ -704,7 +704,7 @@ void main() {
           .map((node) => node.toString())
           .toList();
 
-      expect(description.any((e) => e.contains('provider')), isTrue);
+      expect(description.any((e) => e.contains('listenable')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
         description.any(

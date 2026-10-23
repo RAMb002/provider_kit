@@ -7,7 +7,7 @@ class _ViewStateBuilder<T>
     extends ViewStateBuilderBase<ViewStateNotifier<T>, T> {
   const _ViewStateBuilder({
     super.key,
-    required ViewStateNotifier<T> provider,
+    required ViewStateNotifier<T> listenable,
     super.rebuildWhen,
     required super.dataBuilder,
     super.initialBuilder,
@@ -15,5 +15,5 @@ class _ViewStateBuilder<T>
     super.loadingBuilder,
     super.emptyBuilder,
     super.isSliver,
-  }) : super(provider: provider);
+  }) : super(listenable: listenable);
 }

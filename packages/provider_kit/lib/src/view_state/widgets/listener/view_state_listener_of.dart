@@ -15,5 +15,5 @@ class _ViewStateListenerOf<P extends ViewStateNotifier<T>, T>
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super(provider: null);
+  }) : super(listenable: null);
 }

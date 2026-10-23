@@ -17,13 +17,13 @@ void main() {
         NestedStateListener(
           listeners: [
             StateListener<int>(
-              provider: provider1,
+              listenable: provider1,
               listener: (_, __) {
                 listener1Calls++;
               },
             ),
             StateListener<int>(
-              provider: provider2,
+              listenable: provider2,
               listener: (_, __) {
                 listener2Calls++;
               },
@@ -57,13 +57,13 @@ void main() {
         NestedStateListener(
           listeners: [
             StateListener<int>(
-              provider: counterProvider,
+              listenable: counterProvider,
               listener: (_, __) {
                 stateListenerCalls++;
               },
             ),
             StateListener.multi(
-              providers: () => secondProvider.watch,
+              listenables: () => secondProvider.watch,
               listener: (_, __) {
                 secondListenerCalls++;
               },
@@ -93,7 +93,7 @@ void main() {
       await tester.pumpWidget(
         NestedStateListener(
           listeners: [
-            StateListener<int>(provider: provider, listener: (_, __) {}),
+            StateListener<int>(listenable: provider, listener: (_, __) {}),
           ],
           child: const SizedBox(key: childKey),
         ),
@@ -115,13 +115,13 @@ void main() {
         NestedStateListener(
           listeners: [
             StateListener<int>(
-              provider: provider1,
+              listenable: provider1,
               listener: (_, __) {
                 listener1Calls++;
               },
             ),
             StateListener<int>(
-              provider: provider2,
+              listenable: provider2,
               listener: (_, __) {
                 listener2Calls++;
               },

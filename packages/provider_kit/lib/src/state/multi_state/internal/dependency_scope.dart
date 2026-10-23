@@ -2,7 +2,7 @@ part of '../multi_state.dart';
 
 /// Represents one active dependency collection scope.
 ///
-/// A scope owns the dependencies discovered during a single providers
+/// A scope owns the dependencies discovered during a single listenables
 /// evaluation.
 final class _DependencyScope {
   _DependencyScope({required this.dependencies});

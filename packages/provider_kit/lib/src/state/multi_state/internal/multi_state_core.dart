@@ -20,7 +20,7 @@ final class _MultiStateCore<T> {
   /// comparisons.
   late T state;
 
-  /// Manages subscriptions to the dependencies discovered from [providers].
+  /// Manages subscriptions to the dependencies discovered from [listenables].
   final _DependencySubscription _dependencySubscription;
 
   /// Manages deferred listener delivery.
@@ -31,14 +31,14 @@ final class _MultiStateCore<T> {
 
   /// Collects the current combined state and its dependencies.
   ///
-  /// The dependency tracker executes [providers] inside a temporary
+  /// The dependency tracker executes [listenables] inside a temporary
   /// collection scope. Every `.watch` encountered during that execution is
   /// recorded and returned together with the resulting state value.
   _DependencyCollection<T> collect({
-    required MultiStateProviders<T> providers,
+    required MultiStateListenables<T> listenables,
     required String widgetName,
   }) {
-    return _DependencyTracker.collect(providers, widgetName: widgetName);
+    return _DependencyTracker.collect(listenables, widgetName: widgetName);
   }
 
   /// Synchronizes active subscriptions with [nextDependencies].

@@ -41,7 +41,7 @@ class _MultiViewStateListenerExampleState
       title: 'Multi View State Listener',
       child: ViewStateListener.multi(
         callListenerOnInit: true,
-        providers: () => (
+        listenables: () => (
           movie: movieProvider.watch,
           similarMovies: similarMoviesProvider.watch,
           trailers: trailersProvider.watch,

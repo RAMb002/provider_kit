@@ -1,8 +1,8 @@
 part of '../multi_state.dart';
 
-/// The result of one providers evaluation.
+/// The result of one listenables evaluation.
 ///
-/// Contains the value produced by the providers callback and all dependencies
+/// Contains the value produced by the listenables callback and all dependencies
 /// accessed during that evaluation.
 final class _DependencyCollection<T> {
   const _DependencyCollection({
@@ -10,9 +10,9 @@ final class _DependencyCollection<T> {
     required this.dependencies,
   });
 
-  /// The value produced by the providers callback.
+  /// The value produced by the listenables callback.
   final T value;
 
-  /// The dependencies discovered during the providers evaluation.
+  /// The dependencies discovered during the listenables evaluation.
   final Set<StateListenable> dependencies;
 }

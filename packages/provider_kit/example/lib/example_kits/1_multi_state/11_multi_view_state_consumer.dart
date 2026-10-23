@@ -25,7 +25,7 @@ class MultiViewStateConsumerExample extends StatelessWidget {
           title: 'Multi View State Consumer',
           child: ViewStateConsumer.multi(
             callListenerOnInit: true,
-            providers: () => (
+            listenables: () => (
               movie: movieProvider.watch,
               similarMovies: similarMoviesProvider.watch,
               trailers: trailersProvider.watch,

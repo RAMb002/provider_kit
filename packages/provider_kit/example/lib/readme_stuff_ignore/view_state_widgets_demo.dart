@@ -79,7 +79,7 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
 
   Widget _buildBuilder() {
     return ViewStateBuilder<String>(
-      provider: _notifier,
+      listenable: _notifier,
       initialBuilder: (_) => _contentForState(
         const InitialState<String>(),
       ),
@@ -106,7 +106,7 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
 
   Widget _buildListener() {
     return ViewStateListener<String>(
-      provider: _notifier,
+      listenable: _notifier,
       initialStateListener: () {
         showStateChanged('Initial');
       },
@@ -135,7 +135,7 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
 
   Widget _buildConsumer() {
     return ViewStateConsumer<String>(
-      provider: _notifier,
+      listenable: _notifier,
       initialBuilder: (_) => _contentForState(
         const InitialState<String>(),
       ),

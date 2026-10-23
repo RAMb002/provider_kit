@@ -24,15 +24,15 @@ part 'view_state_builder_of.dart';
 /// If the user does not supply a builder for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// - Use [ViewStateBuilder] to build UI from a single provider.
-/// - Use [ViewStateBuilder.of] to resolve a provider from the widget tree.
-/// - Use [ViewStateBuilder.multi] to build UI from multiple providers and handle
-///   their combined view state.
+/// - Use [ViewStateBuilder] to build UI from a single view-state notifier.
+/// - Use [ViewStateBuilder.of] to retrieve a view-state notifier from the widget tree.
+/// - Use [ViewStateBuilder.multi] to build UI from multiple view-state notifiers
+///   and handle their combined view state.
 ///
 /// ### Example Usage:
 /// ```dart
 /// ViewStateBuilder(
-///   provider: provider,
+///   listenable: myViewStateNotifier,
 ///   rebuildWhen: (previous, current) {
 ///     // Return true/false to control rebuilding based on state changes
 ///   },
@@ -59,11 +59,11 @@ part 'view_state_builder_of.dart';
 ///   isSliver: false, // Optional, default is false
 /// )
 /// ```
-/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
-/// you can use [ViewStateBuilder.of] to resolve it from the widget tree:
+/// If the view-state notifier is available in the widget tree (e.g., exposed through
+/// `Provider`), you can use [ViewStateBuilder.of] to retrieve it:
 ///
 /// ```dart
-/// ViewStateBuilder.of<MyProvider, DataType>(
+/// ViewStateBuilder.of<MyViewStateNotifier, DataType>(
 ///   dataBuilder: (data) {
 ///     return ...;
 ///   },
@@ -72,17 +72,17 @@ part 'view_state_builder_of.dart';
 ///   },
 /// ```
 ///
-/// ### Building from Multiple Providers
+/// ### Building from Multiple View-State Notifiers
 ///
 /// Use [ViewStateBuilder.multi] when the UI depends on multiple
-/// [ViewStateNotifier] providers. Providers are read through `.watch` and
+/// view-state notifiers. Their values are read through `.watch` and
 /// automatically tracked by ProviderKit.
 ///
 /// ```dart
 /// ViewStateBuilder.multi(
-///   providers: () => (
-///     user: userProvider.watch,
-///     profile: profileProvider.watch,
+///   listenables: () => (
+///     user: userNotifier.watch,
+///     profile: profileNotifier.watch,
 ///   ),
 ///   dataBuilder: (state) {
 ///     return Column(
@@ -95,7 +95,7 @@ part 'view_state_builder_of.dart';
 /// )
 /// ```
 ///
-/// The `dataBuilder` receives the combined value returned by the `providers`
+/// The `dataBuilder` receives the combined value returned by the `listenables`
 /// callback. Each value is a [ViewState] in the data state, so its `.data`
 /// getter provides the contained data.
 ///
@@ -103,7 +103,7 @@ part 'view_state_builder_of.dart';
 /// error states.
 ///
 /// See [ViewStateBuilder.multi] for details on building from multiple
-/// providers and handling their combined state.
+/// view-state notifiers and handling their combined state.
 /// {@endtemplate}
 abstract class ViewStateBuilder<T> extends StatefulWidget {
   const ViewStateBuilder.base({
@@ -117,7 +117,7 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   });
 
   /// {@template provider_kit.view_state.initial_builder}
-  /// Builds the UI when the provider is in [InitialState].
+  /// Builds the UI when the view-state notifier is in [InitialState].
   ///
   /// The callback receives whether the widget is being built for use in a
   /// sliver.
@@ -125,24 +125,24 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   final InitialStateBuilder? initialBuilder;
 
   /// {@template provider_kit.view_state.data_builder}
-  /// Builds the UI when the provider is in [DataState].
+  /// Builds the UI when the view-state notifier is in [DataState].
   ///
   /// The callback receives the data contained in the [DataState].
   /// {@endtemplate}
   final DataStateBuilder<T> dataBuilder;
 
   /// {@template provider_kit.view_state.error_builder}
-  /// Builds the UI when the provider is in [ErrorState].
+  /// Builds the UI when the view-state notifier is in [ErrorState].
   ///
   /// The callback receives the error information, error, stack trace, a retry
   /// callback, and whether the widget is being built for use in a sliver.
   ///
-  /// The retry callback retries the provider.
+  /// The retry callback retries the view-state notifier.
   /// {@endtemplate}
   final ErrorStateBuilder? errorBuilder;
 
   /// {@template provider_kit.view_state.loading_builder}
-  /// Builds the UI when the provider is in [LoadingState].
+  /// Builds the UI when the view-state notifier is in [LoadingState].
   ///
   /// The callback receives the loading message, progress, and whether the
   /// widget is being built for use in a sliver.
@@ -150,7 +150,7 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   final LoadingStateBuilder? loadingBuilder;
 
   /// {@template provider_kit.view_state.empty_builder}
-  /// Builds the UI when the provider is in [EmptyState].
+  /// Builds the UI when the view-state notifier is in [EmptyState].
   ///
   /// The callback receives the empty-state message and whether the widget is
   /// being built for use in a sliver.
@@ -164,10 +164,10 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
 
   /// {@macro provider_kit.view_state_builder}
   ///
-  /// Listens to the provided [ViewStateNotifier].
+  /// Builds the UI from the provided [ViewStateNotifier].
   const factory ViewStateBuilder({
     Key? key,
-    required ViewStateNotifier<T> provider,
+    required ViewStateNotifier<T> listenable,
     required DataStateBuilder<T> dataBuilder,
     InitialStateBuilder? initialBuilder,
     ErrorStateBuilder? errorBuilder,
@@ -179,26 +179,26 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
 
   /// {@template provider_kit.multi_view_state_builder.description}
   /// A widget that builds its UI from the combined ViewState of multiple
-  /// providers.
+  /// view-state notifiers.
   /// {@endtemplate}
   ///
-  /// {@macro provider_kit.multi_view_state.provider_param}
-  ///
-  /// {@macro provider_kit.multi_view_state.provider_requirement}
+  /// {@macro provider_kit.multi_view_state.listenables_param}
   ///
   /// {@macro provider_kit.multi_view_state.aggregation}
   ///
   /// {@template provider_kit.multi_view_state_builder.details}
   /// ### Parameters
   ///
-  /// - **[providers]** — Builds the combined state from one or more providers.
+  /// - **[listenables]** — Builds the combined state from one or more view-state
+  ///   notifiers..
   /// - **[initialBuilder]** — Builds the UI when the combined state is initial.
   /// - **[loadingBuilder]** — Builds the UI when the combined state is loading.
   /// - **[emptyBuilder]** — Builds the UI when the combined state is empty.
   /// - **[errorBuilder]** — Builds the UI when the combined state contains an
-  ///   error and receives a retry callback for all currently errored providers.
+  ///   error and receives a retry callback for all currently errored view states
+  ///   that have a retry operation available.
   /// - **[dataBuilder]** — Builds the UI when the combined state is data and
-  ///   receives the exact value returned by [providers].
+  ///   receives the exact value returned by [listenables].
   /// - **[rebuildWhen]** — Determines whether the widget should rebuild when the
   ///   combined state changes.
   /// - **[isSliver]** — Determines whether the default state widgets are built
@@ -209,14 +209,14 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   ///
   /// ### Usage
   ///
-  /// A record can be used when providers have different state types:
+  /// A record can be used when combining view-state notifiers of different types:
   ///
   /// ```dart
   /// ViewStateBuilder.multi(
-  ///   providers: () => (
-  ///     user: userProvider.watch,
-  ///     profile: profileProvider.watch,
-  ///     settings: settingsProvider.watch,
+  ///   listenables: () => (
+  ///     user: userNotifier.watch,
+  ///     profile: profileNotifier.watch,
+  ///     settings: settingsNotifier.watch,
   ///   ),
   ///   dataBuilder: (state) {
   ///     return Column(
@@ -234,9 +234,9 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   ///
   /// ```dart
   /// ViewStateBuilder.multi(
-  ///   providers: () => [
-  ///     firstProvider.watch,
-  ///     secondProvider.watch,
+  ///   listenables: () => [
+  ///     firstNotifier.watch,
+  ///     secondNotifier.watch,
   ///   ],
   ///   dataBuilder: (state) {
   ///     return Column(
@@ -252,9 +252,9 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   ///
   /// ```dart
   /// ViewStateBuilder.multi(
-  ///   providers: () => CombinedState(
-  ///     user: userProvider.watch,
-  ///     profile: profileProvider.watch,
+  ///   listenables: () => CombinedState(
+  ///     user: userNotifier.watch,
+  ///     profile: profileNotifier.watch,
   ///   ),
   ///   dataBuilder: (state) {
   ///     return Text(state.user.data.toString());
@@ -264,7 +264,7 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   /// {@endtemplate}
   const factory ViewStateBuilder.multi({
     Key? key,
-    required MultiStateProviders<T> providers,
+    required MultiStateListenables<T> listenables,
     required DataStateBuilder<T> dataBuilder,
     InitialStateBuilder? initialBuilder,
     ErrorStateBuilder? errorBuilder,
@@ -274,12 +274,10 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
     bool isSliver,
   }) = _MultiViewStateBuilder<T>;
 
-  /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
-  ///
-  /// Use this when the provider is available in the widget tree:
+  /// {@macro provider_kit.view_state_widget.of}
   ///
   /// ```dart
-  /// ViewStateBuilder.of<MyProvider, DataType>(
+  /// ViewStateBuilder.of<MyViewStateNotifier, DataType>(
   ///   dataBuilder: (data) {
   ///     return ...;
   ///   },

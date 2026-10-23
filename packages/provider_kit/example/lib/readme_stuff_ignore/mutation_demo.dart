@@ -35,7 +35,7 @@ class _MutationDemoState extends State<MutationDemo> {
       ),
       body: Center(
         child: StateBuilder<MutationState<String>>(
-          provider: mutation,
+          listenable: mutation,
           builder: (context, state, child) {
             final isLoading = state.isLoading;
             final isError = state.isError;

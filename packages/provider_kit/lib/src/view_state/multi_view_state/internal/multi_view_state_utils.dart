@@ -3,41 +3,43 @@ part of '../../../state/multi_state/multi_state.dart';
 /// {@template provider_kit.multi_view_state.aggregation}
 /// ### State priority
 ///
-/// The widget evaluates the states of the watched providers using the
-/// following priority:
+/// The widget evaluates the states of the watched view-state notifiers using
+/// the following priority:
 ///
-/// 1. **Error** — when any provider is in [ErrorState].
-/// 2. **Initial** — when no error exists and any provider is in
+/// 1. **Error** — when any view-state notifier is in [ErrorState].
+/// 2. **Initial** — when no error exists and any view-state notifier is in
 ///    [InitialState].
-/// 3. **Loading** — when no error or initial state exists and any provider is
-///    in [LoadingState].
+/// 3. **Loading** — when no error or initial state exists and any view-state
+///    notifier is in [LoadingState].
 /// 4. **Empty** — when no error, initial, or loading state exists and any
-///    provider is in [EmptyState].
+///    view-state notifier is in [EmptyState].
 /// 5. **Data** — when none of the above conditions applies.
 ///
 /// ### Empty state
 ///
-/// A provider can use [EmptyState] when its data represents an empty
-/// [Iterable] result.
+/// A view-state notifier can expose [EmptyState] when its data represents an
+/// empty [Iterable] result.
 ///
-/// If any watched provider is in [EmptyState], the combined state is
-/// [EmptyState]. This guarantees that the data callback is only invoked when
-/// all watched providers are in [DataState].
+/// If any watched view-state notifier is in [EmptyState], the combined state
+/// is [EmptyState]. This guarantees that the data callback is only invoked when
+/// all watched view-state notifiers are in [DataState].
 ///
-/// ### Multiple providers in the same state
+/// ### Multiple view-state notifiers in the same state
 ///
-/// When multiple providers are in the same state, the first matching provider
-/// determines the details passed to the corresponding callback. Providers are
-/// considered in the order they are accessed through `.watch`.
+/// When multiple view-state notifiers are in the same view-state, the first
+/// matching notifier determines the details passed to the corresponding
+/// callback. Notifiers are considered in the order they are accessed through
+/// `.watch`.
 ///
 /// This applies to [ErrorState], [LoadingState], and [EmptyState].
 ///
-/// For example, when two providers are loading, the loading message from the
-/// first provider is used. Likewise, the first error or empty state determines
-/// the details passed to its callback.
+/// For example, when multiple view-state notifiers are loading, the loading
+/// message from the first notifier is used. Likewise, the first notifier in
+/// the error or empty state determines the details passed to its callback.
 ///
-/// When the retry callback is invoked, it retries every watched provider
-/// that is currently in [ErrorState] and has a retry operation available.
+/// When the retry callback is invoked, it retries every watched view-state
+/// notifier that is currently in [ErrorState] and has a retry operation
+/// available.
 ///
 /// ### Loading progress
 ///
@@ -46,43 +48,45 @@ part of '../../../state/multi_state/multi_state.dart';
 ///
 /// ### Combined Data state
 ///
-/// The data callback is invoked only when all watched providers are in
-/// [DataState]. The combined value returned by [providers] is passed unchanged
+/// The data callback is invoked only when all watched view-state notifiers are in
+/// [DataState]. The combined value returned by [listenables] is passed unchanged
 /// to the callback, preserving its original type. Each value is a [ViewState],
 /// and its `.data` getter provides the underlying data.
 ///
 /// ### Change detection
 ///
 /// Multi View State widgets do not react to every notification from a watched
-/// provider. A listener or builder is processed only when the combined ViewState
-/// exposed by the widget changes.
+/// view-state notifier. A listener or builder is processed only when the
+/// combined ViewState exposed by the widget changes.
 ///
 /// ProviderKit compares the previous and current combined state according to
 /// the aggregated state:
 ///
 /// - **Error** — a change is detected when the error information from the
-///   first provider in [providers] that is in [ErrorState] changes, or when
-///   the set of providers with an available retry operation changes.
+///   first view-state notifier accessed through [listenables] that is in
+///   [ErrorState] changes, or when the set of view-state notifiers with an
+///   available retry operation changes.
 /// - **Initial** — a change is detected when the combined state enters
 ///   [InitialState]. Repeated [InitialState] values do not trigger the listener
 ///   or builder.
 /// - **Loading** — a change is detected when the loading message from the
-///   first provider in [providers] that is in [LoadingState] changes, or when
+///   first view-state notifier accessed through [listenables] that is in [LoadingState] changes, or when
 ///   the aggregated loading progress changes.
-/// - **Empty** — a change is detected when the message from the first provider
-///   in [providers] that is in [EmptyState] changes.
+/// - **Empty** — a change is detected when the message from the first view-state
+///   notifier accessed through [listenables] that is in [EmptyState] changes.
 /// - **Data** — a change is detected when the combined value returned by
-///   [providers] changes.
+///   [listenables] changes.
 ///
-/// Providers are considered in the order in which they are accessed through
-/// `.watch`.
+/// View-state notifiers are considered in the order in which they are accessed
+/// through `.watch`.
 ///
-/// A notification from a provider does not trigger the listener or builder
-/// when it does not change the combined state exposed by Multi View State.
+/// A notification from a view-state notifier does not trigger the listener or
+/// builder when it does not change the combined state exposed by Multi View
+/// State.
 ///
-/// For example, when multiple providers are in [LoadingState], changing the
-/// message of a later loading provider does not trigger the listener or builder
-/// if the first loading provider's message and the aggregated loading progress
+/// For example, when multiple view-state notifiers are in [LoadingState], changing the
+/// message of a later loading notifier does not trigger the listener or builder
+/// if the first loading notifier's message and the aggregated loading progress
 /// remain unchanged.
 ///
 /// After ProviderKit detects a combined-state change, [listenWhen] and
@@ -92,13 +96,13 @@ part of '../../../state/multi_state/multi_state.dart';
 @internal
 final class MultiViewStateUtils {
   static MultiViewStateAggregate _aggregate(
-    List<ViewStateNotifier<dynamic>> providers,
+    List<ViewStateNotifier<dynamic>> listenables,
   ) {
     ErrorState<dynamic>? firstErrorState;
     LoadingState<dynamic>? firstLoadingState;
     EmptyState<dynamic>? firstEmptyState;
 
-    final List<ViewStateNotifier<dynamic>> retryableProviders =
+    final List<ViewStateNotifier<dynamic>> retryableListenables =
         <ViewStateNotifier<dynamic>>[];
 
     bool hasInitialState = false;
@@ -106,15 +110,15 @@ final class MultiViewStateUtils {
     double loadingProgressTotal = 0.0;
     int loadingProgressCount = 0;
 
-    for (final ViewStateNotifier<dynamic> provider in providers) {
-      final ViewState<dynamic> state = provider.state;
+    for (final ViewStateNotifier<dynamic> listenable in listenables) {
+      final ViewState<dynamic> state = listenable.state;
 
       if (state is ErrorState<dynamic>) {
         firstErrorState ??= state;
 
         if (state.onRetry != null ||
-            provider is AsyncViewStateNotifier<dynamic>) {
-          retryableProviders.add(provider);
+            listenable is AsyncViewStateNotifier<dynamic>) {
+          retryableListenables.add(listenable);
         }
         continue;
       }
@@ -148,7 +152,7 @@ final class MultiViewStateUtils {
         errorInfo: firstErrorState.errorInfo,
         error: firstErrorState.error,
         stackTrace: firstErrorState.stackTrace,
-        retryableProviders: List.unmodifiable(retryableProviders),
+        retryableListenables: List.unmodifiable(retryableListenables),
       );
     }
 
@@ -175,14 +179,14 @@ final class MultiViewStateUtils {
   }
 
   static VoidCallback? _createRetryCallback(
-    List<ViewStateNotifier<dynamic>> providers,
+    List<ViewStateNotifier<dynamic>> listenables,
   ) {
-    final bool hasRetry = providers.any((provider) {
-      final ViewState<dynamic> state = provider.state;
+    final bool hasRetry = listenables.any((listenable) {
+      final ViewState<dynamic> state = listenable.state;
 
       return state is ErrorState<dynamic> &&
           (state.onRetry != null ||
-              provider is AsyncViewStateNotifier<dynamic>);
+              listenable is AsyncViewStateNotifier<dynamic>);
     });
 
     if (!hasRetry) {
@@ -190,8 +194,8 @@ final class MultiViewStateUtils {
     }
 
     return () {
-      for (final ViewStateNotifier<dynamic> provider in providers) {
-        final ViewState<dynamic> state = provider.state;
+      for (final ViewStateNotifier<dynamic> listenable in listenables) {
+        final ViewState<dynamic> state = listenable.state;
 
         if (state is! ErrorState<dynamic>) {
           continue;
@@ -199,8 +203,8 @@ final class MultiViewStateUtils {
 
         if (state.onRetry != null) {
           state.onRetry!.call();
-        } else if (provider is AsyncViewStateNotifier<dynamic>) {
-          provider.refresh();
+        } else if (listenable is AsyncViewStateNotifier<dynamic>) {
+          listenable.refresh();
         }
       }
     };
@@ -218,7 +222,7 @@ final class MultiViewStateUtils {
     switch (aggregate.status) {
       case MultiViewStateStatus.error:
         final VoidCallback? onRetry = _createRetryCallback(
-          aggregate.retryableProviders ?? const [],
+          aggregate.retryableListenables ?? const [],
         );
 
         errorStateListener?.call(
@@ -296,7 +300,7 @@ final class MultiViewStateUtils {
     bool isSliver,
   ) {
     final VoidCallback? onRetry = _createRetryCallback(
-      aggregate.retryableProviders ?? const [],
+      aggregate.retryableListenables ?? const [],
     );
 
     return errorBuilder?.call(

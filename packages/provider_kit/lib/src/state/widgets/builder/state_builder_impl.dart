@@ -2,16 +2,16 @@ part of 'state_builder.dart';
 
 /// Private implementation of [StateBuilder].
 ///
-/// Configures a builder for a directly provided [StateListenable].
+/// Configures a builder for a [StateListenable] passed directly to the widget.
 class _StateBuilder<T>
     extends _CallbackStateBuilderBase<StateListenable<T>, T> {
   const _StateBuilder({
     super.key,
-    required StateListenable<T> provider,
+    required StateListenable<T> listenable,
     required super.builder,
     super.rebuildWhen,
     super.child,
-  }) : super(provider: provider);
+  }) : super(listenable: listenable);
 }
 
 /// Shared implementation for callback-based [StateBuilder] variants.
@@ -20,7 +20,7 @@ abstract class _CallbackStateBuilderBase<P extends StateListenable<T>, T>
   const _CallbackStateBuilderBase({
     super.key,
     required this.builder,
-    super.provider,
+    super.listenable,
     super.rebuildWhen,
     super.child,
   });

@@ -23,7 +23,7 @@ class MultiViewStateBuilderExample extends StatelessWidget {
         return ScaffoldWithButton(
           title: 'Multi View State Builder',
           child: ViewStateBuilder.multi(
-            providers: () => (
+            listenables: () => (
               movie: movieProvider.watch,
               similarMovies: similarMoviesProvider.watch,
               trailers: trailersProvider.watch,

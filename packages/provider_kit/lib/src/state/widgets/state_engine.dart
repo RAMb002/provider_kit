@@ -8,10 +8,10 @@ import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
 
-/// Internal engine shared by single-provider state builders, listeners,
+/// Internal engine shared by single-listenable state builders, listeners,
 /// and consumers.
 ///
-/// Manages provider resolution, state subscriptions, state comparisons,
+/// Manages listenable resolution, state subscriptions, state comparisons,
 /// callback scheduling, and disposal.
 ///
 /// The [builder] and [listener] determine how the engine behaves:
@@ -19,14 +19,14 @@ import 'package:provider_kit/src/utils/equality_check.dart';
 /// - A listener only invokes callbacks when [listenWhen] allows it.
 /// - Both callbacks can be supplied to support consumer widgets.
 ///
-/// When [provider] is null, the provider is resolved from the current
+/// When [listenable] is null, the listenable is resolved from the current
 /// [BuildContext].
 @internal
 final class StateEngine<P extends StateListenable<T>, T>
     extends StatefulWidget {
   const StateEngine({
     super.key,
-    this.provider,
+    this.listenable,
     this.listener,
     this.listenWhen,
     this.rebuildWhen,
@@ -36,10 +36,10 @@ final class StateEngine<P extends StateListenable<T>, T>
     required this.widgetName,
   });
 
-  /// The provider whose state is observed.
+  /// The listenable whose state is observed.
   ///
-  /// When null, the provider is resolved from the current [BuildContext].
-  final P? provider;
+  /// When null, the listenable is resolved from the current [BuildContext].
+  final P? listenable;
 
   /// Called when the state changes and [listenWhen] allows the notification.
   final ListenerCallback<T>? listener;
@@ -77,21 +77,21 @@ final class StateEngine<P extends StateListenable<T>, T>
 /// Manages the subscription and state lifecycle for [StateEngine].
 class _StateEngineState<P extends StateListenable<T>, T>
     extends State<StateEngine<P, T>> {
-  late P _provider;
+  late P _listenable;
   late T _previousState;
   late T _state;
 
   final ListenerQueue _listenerQueue = ListenerQueue();
   final RebuildScheduler _rebuildScheduler = RebuildScheduler();
 
-  /// Gets the current state directly from the provider.
-  T get _currentState => _provider.state;
+  /// Gets the current state directly from the listenable.
+  T get _currentState => _listenable.state;
 
   @override
   void initState() {
     super.initState();
 
-    _provider = widget.provider ?? _readProvider;
+    _listenable = widget.listenable ?? _readListenable;
 
     _state = _currentState;
     _previousState = _state;
@@ -118,10 +118,10 @@ class _StateEngineState<P extends StateListenable<T>, T>
   void didUpdateWidget(StateEngine<P, T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    _syncProvider();
+    _syncListenable();
 
     // If a builder is added to an existing listener-only engine, establish
-    // the current provider state as its initial build state.
+    // the current listenable state as its initial build state.
     if (oldWidget.builder == null && widget.builder != null) {
       _state = _currentState;
     }
@@ -131,26 +131,26 @@ class _StateEngineState<P extends StateListenable<T>, T>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Context-resolved providers may change independently of widget updates.
-    if (widget.provider == null) {
-      _syncProvider();
+    // Context-resolved listenables may change independently of widget updates.
+    if (widget.listenable == null) {
+      _syncListenable();
     }
   }
 
-  /// Resolves the effective provider and updates the subscription if needed.
+  /// Resolves the effective listenable and updates the subscription if needed.
   ///
-  /// Replacing the provider establishes a new state baseline without
+  /// Replacing the listenable establishes a new state baseline without
   /// invoking listener or rebuild callbacks.
-  void _syncProvider() {
-    final P nextProvider = widget.provider ?? _readProvider;
+  void _syncListenable() {
+    final P nextListenable = widget.listenable ?? _readListenable;
 
-    if (identical(_provider, nextProvider)) {
+    if (identical(_listenable, nextListenable)) {
       return;
     }
 
-    _detachListener(_provider);
+    _detachListener(_listenable);
 
-    _provider = nextProvider;
+    _listenable = nextListenable;
 
     _state = _currentState;
     _previousState = _state;
@@ -158,9 +158,9 @@ class _StateEngineState<P extends StateListenable<T>, T>
     _attachListener();
   }
 
-  /// Handles notifications from the current provider.
+  /// Handles notifications from the current listenable.
   ///
-  /// Listening and rebuilding are evaluated independently. A single provider
+  /// Listening and rebuilding are evaluated independently. A single listenable
   /// notification can trigger either behavior, both, or neither.
   void _handleChange() {
     if (!mounted) {
@@ -209,32 +209,32 @@ class _StateEngineState<P extends StateListenable<T>, T>
     }
   }
 
-  /// Attaches the state-change callback to the current provider.
+  /// Attaches the state-change callback to the current listenable.
   void _attachListener() {
-    _provider.addListener(_handleChange);
+    _listenable.addListener(_handleChange);
   }
 
-  /// Removes the state-change callback from the specified provider.
-  void _detachListener(P provider) {
-    provider.removeListener(_handleChange);
+  /// Removes the state-change callback from the specified listenable.
+  void _detachListener(P listenable) {
+    listenable.removeListener(_handleChange);
   }
 
-  /// Reads the provider from the current context.
-  P get _readProvider => context.read<P>();
+  /// Reads the listenable from the current context.
+  P get _readListenable => context.read<P>();
 
   @override
   void dispose() {
     _listenerQueue.clear();
-    _detachListener(_provider);
+    _detachListener(_listenable);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.provider == null) {
-      // Track provider replacement without subscribing to every state
+    if (widget.listenable == null) {
+      // Track listenable replacement without subscribing to every state
       // notification through the Provider dependency.
-      context.select<P, bool>((provider) => identical(_provider, provider));
+      context.select<P, bool>((listenable) => identical(_listenable, listenable));
     }
 
     final StateWidgetBuilder<T>? builder = widget.builder;

@@ -5,18 +5,18 @@ abstract class StateListenerBase<P extends StateListenable<T>, T>
     extends StateListener<T> {
   const StateListenerBase({
     super.key,
-    this.provider,
+    this.listenable,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super.base();
 
-  /// {@template provider_kit.state_listener.provider}
-  /// The provider whose state should be listened to.
+  /// {@template provider_kit.state_listener.listenable}
+  /// The listenable whose state should be listened to.
   ///
-  /// When null, the provider is resolved from the current [BuildContext].
+  /// When null, the listenable is resolved from the current [BuildContext].
   /// {@endtemplate}
-  final P? provider;
+  final P? listenable;
 
   void onStateChange(BuildContext context, T state);
 
@@ -27,7 +27,7 @@ abstract class StateListenerBase<P extends StateListenable<T>, T>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      DiagnosticsProperty<P?>('provider', provider, defaultValue: null),
+      DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null),
     );
   }
 }
@@ -37,7 +37,7 @@ class _StateListenerState<P extends StateListenable<T>, T>
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
     return StateEngine<P, T>(
-      provider: widget.provider,
+      listenable: widget.listenable,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
       listener: widget.onStateChange,

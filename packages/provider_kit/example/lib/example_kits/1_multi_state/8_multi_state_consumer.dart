@@ -38,7 +38,7 @@ class _MultiStateConsumerExampleState extends State<MultiStateConsumerExample> {
   Widget build(BuildContext context) {
     return _buildScaffold(
       StateConsumer.multi(
-        providers: () => (
+        listenables: () => (
           profile: profileProvider.watch,
           cart: cartProvider.watch,
           notifications: notificationProvider.watch,

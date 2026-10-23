@@ -8,5 +8,5 @@ class _StateListenerOf<P extends StateListenable<T>, T>
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super(provider: null);
+  }) : super(listenable: null);
 }

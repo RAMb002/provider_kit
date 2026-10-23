@@ -39,7 +39,7 @@ class _StateWidgetsDemoState extends State<StateWidgetsDemo>
       child: Center(
         child: switch (widget.mode) {
           StateWidgetsDemoMode.builder => StateBuilder<int>(
-              provider: _notifier,
+              listenable: _notifier,
               builder: (_, state, __) {
                 return DemoCard(
                   child: _SingleCounterContent(
@@ -51,7 +51,7 @@ class _StateWidgetsDemoState extends State<StateWidgetsDemo>
             ),
           StateWidgetsDemoMode.listener => _buildListener(),
           StateWidgetsDemoMode.consumer => StateConsumer<int>(
-              provider: _notifier,
+              listenable: _notifier,
               listener: (_, state) {
                 showStateChanged('State');
               },
@@ -73,7 +73,7 @@ class _StateWidgetsDemoState extends State<StateWidgetsDemo>
 
   Widget _buildListener() {
     return StateListener<int>(
-      provider: _notifier,
+      listenable: _notifier,
       listener: (_, __) {
         showStateChanged('State');
       },

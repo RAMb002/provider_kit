@@ -41,7 +41,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         body: StateListener<int>(
-          provider: _currentProvider,
+          listenable: _currentProvider,
           listener: (context, state) {
             widget.onListenerCalled?.call(context, state);
           },
@@ -83,7 +83,7 @@ void main() {
       const expectedMessage = 'StateListener<int> requires a child.';
       await tester.pumpWidget(
         StateListener<int>(
-          provider: CounterProvider(),
+          listenable: CounterProvider(),
           listener: (context, state) {},
         ),
       );
@@ -102,7 +102,7 @@ void main() {
       const targetKey = Key('listener_container');
       await tester.pumpWidget(
         StateListener<int>(
-          provider: CounterProvider(),
+          listenable: CounterProvider(),
           listener: (_, __) {},
           child: const SizedBox(key: targetKey),
         ),
@@ -118,7 +118,7 @@ void main() {
 
       await tester.pumpWidget(
         StateListener<int>(
-          provider: provider,
+          listenable: provider,
           callListenerOnInit: true,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
@@ -136,7 +136,7 @@ void main() {
       const expectedStates = [1];
       await tester.pumpWidget(
         StateListener<int>(
-          provider: provider,
+          listenable: provider,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -153,7 +153,7 @@ void main() {
       const expectedStates = [1, 2];
       await tester.pumpWidget(
         StateListener<int>(
-          provider: provider,
+          listenable: provider,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -175,7 +175,7 @@ void main() {
 
         await tester.pumpWidget(
           StateListener<int>(
-            provider: field,
+            listenable: field,
             callListenerOnInit: true,
             listener: (_, state) {
               states.add(state);
@@ -200,7 +200,7 @@ void main() {
 
         await tester.pumpWidget(
           StateListener<int>(
-            provider: field,
+            listenable: field,
             callListenerOnInit: true,
             listener: (_, state) {
               states.add(state);
@@ -221,8 +221,8 @@ void main() {
     );
 
     testWidgets(
-      'updates when the provider is changed at runtime to a different provider '
-      'and unsubscribes from old provider',
+      'updates when the listenable is changed at runtime to a different listenable '
+      'and unsubscribes from old listenable',
       (tester) async {
         var listenerCallCount = 0;
         int? latestState;
@@ -254,7 +254,7 @@ void main() {
         expect(listenerCallCount, 2);
         expect(latestState, 2);
 
-        // Hot-swapping providers inside runtime state hierarchy
+        // Replace the listenable at runtime.
         await tester.tap(resetFinder);
         await tester.pump();
 
@@ -267,8 +267,8 @@ void main() {
     );
 
     testWidgets(
-      'does not update when the provider is changed at runtime to same provider '
-      'and stays subscribed to current provider',
+      'does not update when the listenable is changed at runtime to same listenable '
+      'and stays subscribed to current listenable',
       (tester) async {
         var listenerCallCount = 0;
         int? latestState;
@@ -313,7 +313,7 @@ void main() {
 
       await tester.pumpWidget(
         StateListener<int>(
-          provider: provider,
+          listenable: provider,
           listenWhen: (previous, state) {
             listenWhenCallCount++;
             latestPreviousState = previous;
@@ -334,7 +334,8 @@ void main() {
     });
 
     testWidgets(
-      'calls listenWhen with previous listener state and current provider state and triggers listener on condition satisfaction',
+      'calls listenWhen with previous and current listenable states and triggers '
+      'the listener when the condition is satisfied',
       (tester) async {
         int? latestPreviousState;
         int listenWhenCallCount = 0;
@@ -345,7 +346,7 @@ void main() {
 
         await tester.pumpWidget(
           StateListener<int>(
-            provider: provider,
+            listenable: provider,
             listenWhen: (previous, state) {
               listenWhenCallCount++;
               if ((previous + state) % 3 == 0) {
@@ -384,7 +385,7 @@ void main() {
       final provider = CounterProvider();
       await tester.pumpWidget(
         StateListener<int>(
-          provider: provider,
+          listenable: provider,
           listenWhen: (previous, current) {
             if (current % 3 == 0) {
               listenWhenPreviousState.add(previous);
@@ -419,7 +420,7 @@ void main() {
         const expectedStates = [1, 2];
         await tester.pumpWidget(
           StateListener<int>(
-            provider: provider,
+            listenable: provider,
             listenWhen: (previous, state) {
               listenWhenCallCount++;
               latestPreviousState = previous;
@@ -452,7 +453,7 @@ void main() {
 
         await tester.pumpWidget(
           StateListener<int>(
-            provider: field,
+            listenable: field,
             callListenerOnInit: true,
             listenWhen: (previous, current) {
               previousStates.add(previous);
@@ -489,7 +490,7 @@ void main() {
 
       await tester.pumpWidget(
         StateListener<int>(
-          provider: field,
+          listenable: field,
           callListenerOnInit: true,
           listener: (_, state) {
             if (state == 0) {
@@ -515,7 +516,7 @@ void main() {
 
       await tester.pumpWidget(
         StateListener<int>(
-          provider: field,
+          listenable: field,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -535,7 +536,7 @@ void main() {
 
       await tester.pumpWidget(
         StateListener<int>(
-          provider: field,
+          listenable: field,
           callListenerOnInit: true,
           listener: (_, state) {
             if (state == 1) {
@@ -559,7 +560,7 @@ void main() {
 
       await tester.pumpWidget(
         StateListener<int>(
-          provider: field,
+          listenable: field,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
         ),
@@ -580,7 +581,7 @@ void main() {
         const expectedStates = <int>[];
         await tester.pumpWidget(
           StateListener<int>(
-            provider: provider,
+            listenable: provider,
             listenWhen: (_, __) => false,
             listener: (_, state) => states.add(state),
             child: const SizedBox(),
@@ -601,7 +602,7 @@ void main() {
         const expectedStates = [1];
         await tester.pumpWidget(
           StateListener<int>(
-            provider: provider,
+            listenable: provider,
             listenWhen: (_, __) => true,
             listener: (_, state) => states.add(state),
             child: const SizedBox(),
@@ -621,7 +622,7 @@ void main() {
       const expectedStates = <int>[];
       await tester.pumpWidget(
         StateListener<int>(
-          provider: provider,
+          listenable: provider,
           listenWhen: (_, __) => false,
           listener: (_, state) => states.add(state),
           child: const SizedBox(),
@@ -647,7 +648,7 @@ void main() {
         const expectedStates = [1, 2, 3, 4];
         await tester.pumpWidget(
           StateListener<int>(
-            provider: provider,
+            listenable: provider,
             listenWhen: (_, __) => true,
             listener: (_, state) => states.add(state),
             child: const SizedBox(),
@@ -666,7 +667,7 @@ void main() {
       },
     );
 
-    testWidgets('infers the provider from the context using StateListener.of', (
+    testWidgets('infers the listenable from the context using StateListener.of', (
       tester,
     ) async {
       final provider = CounterProvider();
@@ -697,7 +698,7 @@ void main() {
       expect(latestPreviousState, 0);
     });
 
-    testWidgets('updates subscription when the context provider is changed', (
+    testWidgets('updates subscription when the context listenable is changed', (
       tester,
     ) async {
       final firstProvider = CounterProvider();
@@ -748,7 +749,7 @@ void main() {
       expect(states, expectedStates);
     });
     testWidgets(
-      'does not update listener when the context provider remains the same',
+      'does not update listener when the context listenable remains the same',
       (tester) async {
         final provider = CounterProvider();
 
@@ -802,7 +803,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateListener<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 listenWhen: (previous, current) => true,
                 listener: (context, state) {
                   showModalBottomSheet<void>(
@@ -833,7 +834,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateListener<int>(
-                provider: provider,
+                listenable: provider,
                 listener: (context, state) {
                   listenerCallCount++;
 
@@ -866,7 +867,7 @@ void main() {
 
       StateListener(
         callListenerOnInit: true,
-        provider: CounterProvider(),
+        listenable: CounterProvider(),
         listener: (context, state) {},
         listenWhen: (previous, current) => previous != current,
         child: const SizedBox(),
@@ -878,7 +879,7 @@ void main() {
           .toList();
 
       expect(
-        description.any((e) => e.startsWith('provider: CounterProvider')),
+        description.any((e) => e.startsWith('listenable: CounterProvider')),
         isTrue,
       );
 

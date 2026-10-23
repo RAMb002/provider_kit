@@ -45,7 +45,7 @@ abstract class ViewStateWidgetUtils {
 
   static Widget buildStateWidget<P, T>(
     BuildContext context,
-    P? provider,
+    P? listenable,
     ViewState<T> state,
     InitialStateBuilder? initialBuilder,
     DataStateBuilder<T> dataBuilder,
@@ -81,7 +81,7 @@ abstract class ViewStateWidgetUtils {
 
       case ErrorState<T>():
         return _buildErrorState<P, T>(
-          provider,
+          listenable,
           state,
           context,
           errorBuilder,
@@ -94,14 +94,14 @@ abstract class ViewStateWidgetUtils {
   }
 
   static Widget _buildErrorState<P, T>(
-    P? provider,
+    P? listenable,
     ErrorState<T> errorState,
     BuildContext context,
     ErrorStateBuilder? errorBuilder,
     bool isSliver,
   ) {
     final effectiveOnRetry =
-        errorState.onRetry ?? _getOnRetryFromProvider<P, T>(context, provider);
+        errorState.onRetry ?? _getOnRetryFromListenable<P, T>(context, listenable);
     return errorBuilder != null
         ? errorBuilder(
             errorState.errorInfo,
@@ -146,13 +146,13 @@ abstract class ViewStateWidgetUtils {
     );
   }
 
-  static VoidCallback? _getOnRetryFromProvider<P, T>(
+  static VoidCallback? _getOnRetryFromListenable<P, T>(
     BuildContext context,
-    P? providerParam,
+    P? listenableParam,
   ) {
-    final provider = providerParam ?? context.read<P>();
-    if (provider is AsyncViewStateNotifier<T>) {
-      return () => provider.refresh().ignore();
+    final listenable = listenableParam ?? context.read<P>();
+    if (listenable is AsyncViewStateNotifier<T>) {
+      return () => listenable.refresh().ignore();
     }
     return null;
   }

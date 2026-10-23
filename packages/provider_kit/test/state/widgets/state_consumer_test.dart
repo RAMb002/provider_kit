@@ -10,7 +10,7 @@ import '../../shared/mocks/widgets.dart';
 void main() {
   group('StateConsumer', () {
     testWidgets(
-      'accesses the provider directly, passes initial state to builder, and nothing to listener',
+      'accesses the listenable directly, passes initial state to builder, and nothing to listener',
       (tester) async {
         final counterProvider = CounterProvider();
         final listenerStates = <int>[];
@@ -19,7 +19,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 builder: (context, state, child) {
                   return Text('State: $state');
                 },
@@ -37,7 +37,7 @@ void main() {
     );
 
     testWidgets(
-      'accesses the provider directly and passes multiple states to builder and listener',
+      'accesses the listenable directly and passes multiple states to builder and listener',
       (tester) async {
         final counterProvider = CounterProvider();
         final listenerStates = <int>[];
@@ -46,7 +46,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 builder: (context, state, child) {
                   return Text('State: $state');
                 },
@@ -70,7 +70,7 @@ void main() {
     );
 
     testWidgets(
-      'accesses the provider via context and passes initial state to builder',
+      'accesses the listenable via context and passes initial state to builder',
       (tester) async {
         final counterProvider = CounterProvider();
         final listenerStates = <int>[];
@@ -99,7 +99,7 @@ void main() {
     );
 
     testWidgets(
-      'passes multiple states to builder and listener when provider is passed directly',
+      'passes multiple states to builder and listener when listenable is passed directly',
       (tester) async {
         final counterProvider = CounterProvider();
         final listenerStates = <int>[];
@@ -107,7 +107,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 builder: (context, state, child) {
                   return Text('State: $state');
                 },
@@ -138,7 +138,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 rebuildWhen: (previous, current) =>
                     (previous + current) % 3 == 0,
                 builder: (context, state, child) {
@@ -175,7 +175,7 @@ void main() {
     );
 
     testWidgets(
-      'does not trigger rebuilds when rebuildWhen evaluates to false (inferred provider)',
+      'does not trigger rebuilds when rebuildWhen evaluates to false (inferred listenable)',
       (tester) async {
         final counterProvider = CounterProvider();
         final listenerStates = <int>[];
@@ -220,7 +220,7 @@ void main() {
       },
     );
 
-    testWidgets('updates when provider reference has changed', (tester) async {
+    testWidgets('updates when listenable reference has changed', (tester) async {
       const buttonKey = Key('__button__');
       var counterProvider = CounterProvider();
       final listenerStates = <int>[];
@@ -231,7 +231,7 @@ void main() {
             body: StatefulBuilder(
               builder: (context, setState) {
                 return StateConsumer<int>(
-                  provider: counterProvider,
+                  listenable: counterProvider,
                   builder: (context, state, child) {
                     builderStates.add(state);
                     return TextButton(
@@ -280,7 +280,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 builder: (context, state, child) {
                   builderStates.add(state);
                   return Text('State: $state');
@@ -325,7 +325,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: StateConsumer<int>(
-              provider: field,
+              listenable: field,
               callListenerOnInit: true,
               builder: (_, state, child) {
                 return Column(children: [Text('$state'), child!]);
@@ -360,7 +360,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: StateConsumer<int>(
-              provider: field,
+              listenable: field,
               callListenerOnInit: true,
               rebuildWhen: (_, __) => false,
               builder: (_, __, child) => child!,
@@ -395,7 +395,7 @@ void main() {
         final counterProvider = CounterProvider();
         await tester.pumpWidget(
           StateConsumer<int>(
-            provider: counterProvider,
+            listenable: counterProvider,
             listenWhen: (previous, current) {
               if (current % 3 == 0) {
                 listenWhenPreviousState.add(previous);
@@ -451,7 +451,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateConsumer<int>(
-            provider: field,
+            listenable: field,
             callListenerOnInit: true,
             rebuildWhen: (_, __) => false,
             listenWhen: (previous, current) {
@@ -491,7 +491,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 callListenerOnInit: true,
                 builder: (context, state, child) => const SizedBox(),
                 listener: (_, state) {
@@ -519,7 +519,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: StateConsumer<int>(
-              provider: counterProvider,
+              listenable: counterProvider,
               child: StatefulBuilder(
                 builder: (context, setChildState) {
                   childBuildCount++;
@@ -561,7 +561,7 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: StateConsumer<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 rebuildWhen: (previous, current) => true,
                 listenWhen: (previous, current) => true,
                 listener: (context, state) {
@@ -590,7 +590,7 @@ void main() {
       },
     );
 
-    testWidgets('updates when the context provider is changed', (tester) async {
+    testWidgets('updates when the context listenable is changed', (tester) async {
       final firstProvider = CounterProvider();
       final secondProvider = CounterProvider(100);
 
@@ -648,7 +648,7 @@ void main() {
     });
 
     testWidgets(
-      'keeps using the same context provider when the widget rebuilds',
+      'keeps using the same context listenable when the widget rebuilds',
       (tester) async {
         final provider = CounterProvider();
         late StateSetter rebuild;
@@ -698,7 +698,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateConsumer<int>(
-        provider: CounterProvider(),
+        listenable: CounterProvider(),
         callListenerOnInit: true,
         listenWhen: (previous, current) => previous != current,
         listener: (context, state) {},
@@ -713,7 +713,7 @@ void main() {
           .toList();
 
       expect(
-        description.any((e) => e.startsWith('provider: CounterProvider')),
+        description.any((e) => e.startsWith('listenable: CounterProvider')),
         isTrue,
       );
 

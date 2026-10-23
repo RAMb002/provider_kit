@@ -10,5 +10,5 @@ class _StateBuilderOf<P extends StateListenable<T>, T>
     required super.builder,
     super.rebuildWhen,
     super.child,
-  }) : super(provider: null);
+  }) : super(listenable: null);
 }

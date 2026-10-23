@@ -2,11 +2,11 @@ part of 'view_state_listener.dart';
 
 /// Private implementation of [ViewStateListener.multi].
 ///
-/// Provides the concrete multi-provider listener configuration.
+/// Provides the concrete multi-view-state listener configuration.
 class _MultiViewStateListener<T> extends MultiViewStateListenerBase<T> {
   const _MultiViewStateListener({
     super.key,
-    required super.providers,
+    required super.listenables,
     super.initialStateListener,
     super.loadingStateListener,
     super.emptyStateListener,
@@ -18,14 +18,13 @@ class _MultiViewStateListener<T> extends MultiViewStateListenerBase<T> {
   });
 }
 
-/// Base class for multi-provider [ViewStateListener] implementations.
+/// Base class for multi-view-state [ViewStateListener] implementations.
 ///
-/// Provides the configuration and behavior shared by multi-provider
-/// ViewState listeners.
+/// Provides the configuration and behavior shared by these listeners.
 abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   const MultiViewStateListenerBase({
     super.key,
-    required this.providers,
+    required this.listenables,
     super.initialStateListener,
     super.loadingStateListener,
     super.emptyStateListener,
@@ -36,21 +35,19 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
     super.child,
   }) : super.base();
 
-  /// {@template provider_kit.multi_view_state.provider_param}
-  /// Builds a combined state from one or more watched [ViewStateNotifier]
-  /// providers.
-  /// Providers can be watched using `.watch`. Watched providers are
-  /// automatically tracked, so the widget updates when any of their states
-  /// change.
+  /// {@template provider_kit.multi_view_state.listenables_param}
+  /// Builds a combined state by reading values from one or more
+  /// [ViewStateNotifier] instances through `.watch`. ProviderKit automatically
+  /// tracks the watched notifiers and updates the widget when their states change.
   ///
-  /// Each provider accessed through `.watch` must be a [ViewStateNotifier] or
+  /// Each notifier accessed through `.watch` must be a [ViewStateNotifier] or
   /// one of its subclasses, such as [FutureNotifier].
   ///
   /// ```dart
-  /// providers: () => (
-  ///   user: userProvider.watch,
-  ///   profile: profileProvider.watch,
-  ///   settings: settingsProvider.watch,
+  /// listenables: () => (
+  ///   user: userNotifier.watch,
+  ///   profile: profileNotifier.watch,
+  ///   settings: settingsNotifier.watch,
   /// )
   /// ```
   ///
@@ -60,14 +57,14 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   ///
   /// The returned value becomes the combined state passed to [dataStateListener] and
   /// [listenWhen].
-  final MultiStateProviders<T> providers;
+  final MultiStateListenables<T> listenables;
 
   /// {@template provider_kit.multi_view_state_listener.listen_when}
   /// Determines whether the listener should be called when the combined view
   /// state changes.
   ///
   /// The callback receives the previous and current combined states returned
-  /// by [providers].
+  /// by [listenables].
   ///
   /// When omitted, ProviderKit uses the state's `!=` comparison to determine
   /// whether the state has changed.
@@ -75,7 +72,7 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   final ListenWhen<T>? listenWhen;
 
   void _handleStateChange(
-    BuildContext context,
+    BuildContext _,
     T state,
     MultiViewStateAggregate aggregate,
   ) {
@@ -102,7 +99,10 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
     super.debugFillProperties(properties);
     properties
       ..add(
-        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+        ObjectFlagProperty<MultiStateListenables<T>>.has(
+          'listenables',
+          listenables,
+        ),
       )
       ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen));
   }
@@ -113,7 +113,7 @@ class _MultiViewStateListenerBaseState<T>
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
     return MultiViewStateEngine<T>(
-      providers: widget.providers,
+      listenables: widget.listenables,
       widgetName: widget.debugWidgetName,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,

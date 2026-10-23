@@ -657,7 +657,7 @@ void main() {
 }
 
 Widget _buildConsumer<T>({
-  required MultiStateProviders<T> providers,
+  required MultiStateListenables<T> providers,
   required VoidCallback onBuild,
   required VoidCallback onListen,
   InitialStateBuilder? onInitialBuilder,
@@ -675,7 +675,7 @@ Widget _buildConsumer<T>({
   return Directionality(
     textDirection: TextDirection.ltr,
     child: ViewStateConsumer<T>.multi(
-      providers: providers,
+      listenables: providers,
       callListenerOnInit: callListenerOnInit,
       initialBuilder: (isSliver) {
         onBuild();

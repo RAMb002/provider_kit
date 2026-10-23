@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/base/state_listenable.dart';
-
 /// {@template provider_kit.state_field}
 /// A lightweight observable state field.
 ///
@@ -8,8 +7,8 @@ import 'package:provider_kit/src/base/state_listenable.dart';
 /// the value changes.
 ///
 /// It implements [StateListenable], so it can be used directly with
-/// ProviderKit state widgets such as [StateBuilder], [StateListener], and
-/// [StateConsumer].
+/// ProviderKit state widgets such as `StateBuilder`, `StateListener`, and
+/// `StateConsumer`.
 ///
 /// A [StateField] can be created independently:
 ///
@@ -17,11 +16,11 @@ import 'package:provider_kit/src/base/state_listenable.dart';
 /// final name = StateField('John');
 /// ```
 ///
-/// Listen to changes using [StateListener]:
+/// Listen to changes using `StateListener`:
 ///
 /// ```dart
-/// StateListener<String>(
-///   provider: name,
+/// StateListener(
+///   listenable: name,
 ///   listener: (context, state) {
 ///     debugPrint('Name: $state');
 ///   },
@@ -29,8 +28,8 @@ import 'package:provider_kit/src/base/state_listenable.dart';
 /// );
 /// ```
 ///
-/// Other ProviderKit state widgets, such as [StateBuilder] and
-/// [StateConsumer], can also be used with a [StateField].
+/// Other ProviderKit state widgets, such as `StateBuilder` and
+/// `StateConsumer`, can also be used with a [StateField].
 ///
 /// When a [StateField] is created directly, you are responsible for disposing
 /// it when it is no longer needed:
@@ -44,8 +43,8 @@ import 'package:provider_kit/src/base/state_listenable.dart';
 /// ```
 ///
 /// For fields owned by a [ChangeNotifier], it is highly recommended to use
-/// [NotifierResourcesMixin]. The mixin tracks fields created through
-/// [field] and disposes them when the notifier is disposed.
+/// `NotifierResourcesMixin`. The mixin tracks fields created through
+/// `field` and disposes them when the notifier is disposed.
 ///
 /// ```dart
 /// class LoginController extends ChangeNotifier

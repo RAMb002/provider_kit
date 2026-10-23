@@ -775,7 +775,7 @@ void main() {
           return Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateListener.multi(
-              providers: () => (useProvider1 ? provider1 : provider2).watch,
+              listenables: () => (useProvider1 ? provider1 : provider2).watch,
               dataStateListener: (_) => listenerCount++,
               child: const SizedBox(),
             ),
@@ -906,7 +906,7 @@ void main() {
 }
 
 Widget _buildConsumer<T>({
-  required MultiStateProviders<T> providers,
+  required MultiStateListenables<T> providers,
   required VoidCallback onBuild,
   required VoidCallback onListen,
   ErrorStateBuilder? onErrorBuilder,
@@ -919,7 +919,7 @@ Widget _buildConsumer<T>({
     textDirection: TextDirection.ltr,
     child: ViewStateConsumer<T>.multi(
       callListenerOnInit: callListenerOnInit,
-      providers: providers,
+      listenables: providers,
       initialBuilder: (_) {
         onBuild();
         return const SizedBox();

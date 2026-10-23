@@ -17,7 +17,7 @@ class StateBuilderExample extends StatelessWidget {
             title: "State Builder",
             onTap: () => provider.increment(),
             child: StateBuilder<int>(
-              provider: provider,
+              listenable: provider,
               builder: (context, state, child) {
                 return Text(state.toString());
               },

@@ -2,19 +2,19 @@ part of 'state_consumer.dart';
 
 /// Private implementation of [StateConsumer].
 ///
-/// Configures a consumer for a directly provided [StateListenable].
+/// Configures a consumer for a [StateListenable] passed directly to the widget.
 class _StateConsumer<T>
     extends _CallbackStateConsumerBase<StateListenable<T>, T> {
   const _StateConsumer({
     super.key,
-    required StateListenable<T> provider,
+    required StateListenable<T> listenable,
     required super.builder,
     required super.listener,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super(provider: provider);
+  }) : super(listenable: listenable);
 }
 
 /// Shared implementation for callback-based [StateConsumer] variants.
@@ -22,7 +22,7 @@ abstract class _CallbackStateConsumerBase<P extends StateListenable<T>, T>
     extends StateConsumerBase<P, T> {
   const _CallbackStateConsumerBase({
     super.key,
-    super.provider,
+    super.listenable,
     required this.builder,
     required this.listener,
     super.rebuildWhen,

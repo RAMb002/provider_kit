@@ -40,7 +40,7 @@ void main() {
     }
 
     Widget buildConsumer<T>({
-      required MultiStateProviders<T> providers,
+      required MultiStateListenables<T> providers,
       InitialStateBuilder? initialBuilder,
       LoadingStateBuilder? loadingBuilder,
       EmptyStateBuilder? emptyBuilder,
@@ -59,7 +59,7 @@ void main() {
     }) {
       Widget widget = wrap(
         ViewStateConsumer<T>.multi(
-          providers: providers,
+          listenables: providers,
           initialBuilder: initialBuilder,
           loadingBuilder: loadingBuilder,
           emptyBuilder: emptyBuilder,
@@ -144,7 +144,7 @@ void main() {
     // -------------------------------------------------------------------------
 
     testWidgets(
-      'invokes the corresponding builder and listener when provider enters each state',
+      'invokes the corresponding builder and listener when listenable enters each state',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           const DataState<String>('data'),
@@ -620,7 +620,7 @@ void main() {
             errorStateBuilder: (_, __, ___, ____, _____) => const SizedBox(),
             child: wrap(
               ViewStateConsumer.multi(
-                providers: () => provider.watch,
+                listenables: () => provider.watch,
                 dataBuilder: (_) => const SizedBox(),
                 isSliver: true,
               ),
@@ -636,7 +636,7 @@ void main() {
     // Dependency Tracking
     // -------------------------------------------------------------------------
 
-    testWidgets('subscribes to every provider accessed through watch', (
+    testWidgets('subscribes to every listenable accessed through watch', (
       tester,
     ) async {
       final provider1 = TestViewStateNotifier<String>(
@@ -682,7 +682,7 @@ void main() {
     });
 
     testWidgets(
-      'subscribes only once when the same provider is watched multiple times',
+      'subscribes only once when the same listenable is watched multiple times',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           const DataState<String>('data'),
@@ -717,12 +717,12 @@ void main() {
     );
 
     testWidgets(
-      'throws AssertionError when providers does not watch any state source',
+      'throws AssertionError when listenables does not watch any state source',
       (tester) async {
         await tester.pumpWidget(
           wrap(
             ViewStateConsumer.multi(
-              providers: () => const DataState<String>('data'),
+              listenables: () => const DataState<String>('data'),
               dataBuilder: (_) => const SizedBox(),
             ),
           ),
@@ -750,7 +750,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             ViewStateConsumer.multi(
-              providers: () => field.watch,
+              listenables: () => field.watch,
               dataBuilder: (_) => const SizedBox(),
             ),
           ),
@@ -771,7 +771,7 @@ void main() {
     // Runtime Dependency Replacement
     // -------------------------------------------------------------------------
 
-    testWidgets('switches subscriptions when the watched provider changes', (
+    testWidgets('switches subscriptions when the watched listenable changes', (
       tester,
     ) async {
       final provider1 = TestViewStateNotifier<String>(
@@ -782,7 +782,8 @@ void main() {
         const DataState<String>('two'),
       );
 
-      MultiStateProviders<ViewState<String>> providers = () => provider1.watch;
+      MultiStateListenables<ViewState<String>> providers = () =>
+          provider1.watch;
 
       int builderCalls = 0;
       int listenerCalls = 0;
@@ -796,7 +797,7 @@ void main() {
               return Column(
                 children: <Widget>[
                   ViewStateConsumer.multi(
-                    providers: providers,
+                    listenables: providers,
                     dataBuilder: (state) {
                       builderCalls++;
                       capturedValue = state.data;
@@ -860,7 +861,7 @@ void main() {
     });
 
     testWidgets(
-      'does not duplicate provider notifications after parent rebuild with the same dependency',
+      'does not duplicate listenable notifications after parent rebuild with the same dependency',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           const DataState<String>('data'),
@@ -876,7 +877,7 @@ void main() {
                 return Column(
                   children: <Widget>[
                     ViewStateConsumer.multi(
-                      providers: () => provider.watch,
+                      listenables: () => provider.watch,
                       dataBuilder: (_) {
                         builderCalls++;
                         return const SizedBox();
@@ -962,7 +963,7 @@ void main() {
         final provider = TestViewStateNotifier<int>(const DataState<int>(1));
 
         ViewStateConsumer.multi(
-          providers: () => (value: provider.watch),
+          listenables: () => (value: provider.watch),
           initialBuilder: (_) => const SizedBox(),
           loadingBuilder: (_, __, ___) => const SizedBox(),
           emptyBuilder: (_, __) => const SizedBox(),
@@ -984,7 +985,7 @@ void main() {
             .map((node) => node.toString())
             .toList();
 
-        expect(description.any((value) => value.contains('providers')), isTrue);
+        expect(description.any((value) => value.contains('listenables')), isTrue);
 
         expect(
           description.any((value) => value.contains('rebuildWhen')),

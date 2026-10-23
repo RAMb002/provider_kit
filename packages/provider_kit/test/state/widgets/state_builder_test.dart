@@ -43,7 +43,7 @@ class _MyThemeAppState extends State<MyThemeApp> {
   @override
   Widget build(BuildContext context) {
     return StateBuilder<ThemeData>(
-      provider: _themeProvider,
+      listenable: _themeProvider,
       builder: (context, theme, child) {
         widget.onBuild();
         return MaterialApp(
@@ -92,7 +92,7 @@ class _MyCounterAppState extends State<MyCounterApp> {
         body: Column(
           children: <Widget>[
             StateBuilder<int>(
-              provider: _provider,
+              listenable: _provider,
               rebuildWhen: (previousState, state) {
                 return (previousState + state) % 3 == 0;
               },
@@ -101,7 +101,7 @@ class _MyCounterAppState extends State<MyCounterApp> {
               },
             ),
             StateBuilder<int>(
-              provider: _provider,
+              listenable: _provider,
               builder: (context, count, child) {
                 return Text('$count', key: myCounterAppTextKey);
               },
@@ -166,7 +166,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: StateBuilder<int>(
-              provider: counterProvider,
+              listenable: counterProvider,
               child: StatefulBuilder(
                 builder: (context, setChildState) {
                   childBuildCount++;
@@ -198,7 +198,7 @@ void main() {
       },
     );
 
-    testWidgets('infers the provider from the context using StateBuilder.of', (
+    testWidgets('infers the listenable from the context using StateBuilder.of', (
       tester,
     ) async {
       final themeProvider = ThemeProvider();
@@ -235,7 +235,7 @@ void main() {
     });
 
     testWidgets(
-      'updates provider and performs new lookup when widget is updated',
+      'updates listenable and performs new lookup when widget is updated',
       (tester) async {
         final themeProvider = ThemeProvider();
         var numBuilds = 0;
@@ -274,7 +274,7 @@ void main() {
     );
 
     testWidgets(
-      'updates when the provider is changed at runtime to a different provider and unsubscribes from old provider',
+      'updates when the listenable is changed at runtime to a different listenable and unsubscribes from old listenable',
       (tester) async {
         final themeProvider = ThemeProvider();
         var numBuilds = 0;
@@ -308,7 +308,7 @@ void main() {
     );
 
     testWidgets(
-      'does not update when the provider is changed at runtime to same provider and stays subscribed to current provider',
+      'does not update when the listenable is changed at runtime to same listenable and stays subscribed to current listenable',
       (tester) async {
         final themeProvider = DarkThemeProvider();
         var numBuilds = 0;
@@ -341,7 +341,7 @@ void main() {
       },
     );
 
-    testWidgets('updates subscription when the context provider changes', (
+    testWidgets('updates subscription when the context listenable changes', (
       tester,
     ) async {
       final firstProvider = CounterProvider();
@@ -397,7 +397,7 @@ void main() {
     });
 
     testWidgets(
-      'keeps using the same context provider when the widget rebuilds',
+      'keeps using the same context listenable when the widget rebuilds',
       (tester) async {
         final provider = CounterProvider();
         late StateSetter rebuild;
@@ -454,7 +454,7 @@ void main() {
       expect(numBuilds, 1);
     });
 
-    testWidgets('defers rebuild when the provider changes during build', (
+    testWidgets('defers rebuild when the listenable changes during build', (
       tester,
     ) async {
       final field = StateField(0);
@@ -464,7 +464,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder<int>(
-            provider: field,
+            listenable: field,
             builder: (_, state, child) {
               states.add(state);
 
@@ -497,7 +497,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder<int>(
-            provider: field,
+            listenable: field,
             builder: (_, state, child) {
               states.add(state);
 
@@ -533,7 +533,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder<int>(
-            provider: field,
+            listenable: field,
             builder: (_, state, child) {
               states.add(state);
 
@@ -623,7 +623,7 @@ void main() {
       final counterProvider = CounterProvider();
       await tester.pumpWidget(
         StateBuilder<int>(
-          provider: counterProvider,
+          listenable: counterProvider,
           rebuildWhen: (previous, state) {
             if (state.isEven) {
               rebuildWhenPreviousState.add(previous);
@@ -661,7 +661,7 @@ void main() {
             textDirection: TextDirection.ltr,
             child: StatefulBuilder(
               builder: (context, setState) => StateBuilder<int>(
-                provider: counterProvider,
+                listenable: counterProvider,
                 rebuildWhen: (previous, state) => state.isEven,
                 builder: (_, state, __) {
                   states.add(state);
@@ -693,7 +693,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateBuilder<int>(
-        provider: CounterProvider(),
+        listenable: CounterProvider(),
         builder: (context, state, child) => const SizedBox(),
         rebuildWhen: (previous, current) => previous != current,
         child: const Text('Static Child'),
@@ -705,7 +705,7 @@ void main() {
           .toList();
 
       expect(
-        description.any((e) => e.startsWith('provider: CounterProvider')),
+        description.any((e) => e.startsWith('listenable: CounterProvider')),
         isTrue,
       );
 
@@ -727,7 +727,7 @@ void main() {
           .map((node) => node.toString())
           .toList();
 
-      expect(description.any((e) => e.startsWith('provider: null')), isTrue);
+      expect(description.any((e) => e.startsWith('listenable: null')), isTrue);
 
       expect(description, contains('has builder'));
     });

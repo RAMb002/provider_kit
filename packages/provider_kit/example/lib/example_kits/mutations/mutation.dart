@@ -47,7 +47,7 @@ class _TodoListScreenState extends State<_TodoListScreen> {
               ),
               const SizedBox(width: 8),
               StateBuilder<MutationState<int>>(
-                provider: notifier.addMutation,
+                listenable: notifier.addMutation,
                 builder: (context, state, child) {
                   return state.when(
                     idle: () => ElevatedButton(

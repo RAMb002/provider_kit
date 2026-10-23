@@ -1,6 +1,6 @@
 part of '../multi_state.dart';
 
-/// Tracks dependencies discovered during a providers evaluation.
+/// Tracks dependencies discovered during a listenables evaluation.
 ///
 /// Dependency collection is scoped and synchronous. Each call to [collect]
 /// creates its own scope, and the scope is always removed when the evaluation

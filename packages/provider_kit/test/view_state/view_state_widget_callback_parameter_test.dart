@@ -31,7 +31,7 @@ void main() {
           emptyStateBuilder: (_, __) => const SizedBox(),
           errorStateBuilder: (_, __, ___, ____, _____) => const SizedBox(),
           child: ViewStateConsumer<T>(
-            provider: provider,
+            listenable: provider,
             initialBuilder: initialBuilder,
             loadingBuilder: loadingBuilder,
             emptyBuilder: emptyBuilder,

@@ -118,7 +118,7 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
   ) {
     return Center(
       child: ViewStateBuilder<String>(
-        provider: provider,
+        listenable: provider,
         loadingBuilder: (_, __, ___) => const DemoLoadingContent(),
         dataBuilder: (data) => DemoDataContent(
           data: data,
@@ -133,7 +133,7 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
       child: DemoCard(
         cardWidth: 270,
         child: ViewStateBuilder.multi(
-          providers: () => [
+          listenables: () => [
             _providerOne.watch,
             _providerTwo.watch,
           ],

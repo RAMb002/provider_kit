@@ -14,9 +14,9 @@ part 'state_builder_of.dart';
 /// {@template provider_kit.state_builder}
 /// A widget that rebuilds its UI when its state changes.
 ///
-/// - Use [StateBuilder] to read state from a single provider.
-/// - Use [StateBuilder.of] to read a provider from the widget tree.
-/// - Use [StateBuilder.multi] to read and combine state from multiple providers.
+/// - Use [StateBuilder] to rebuild from a single listenable.
+/// - Use [StateBuilder.of] to retrieve a listenable from the widget tree.
+/// - Use [StateBuilder.multi] to combine state from multiple listenables.
 ///
 /// The builder is called when the state changes and [rebuildWhen] allows the
 /// rebuild. The optional [child] is preserved across rebuilds and can be used
@@ -25,7 +25,7 @@ part 'state_builder_of.dart';
 /// ### Example Usage:
 /// ```dart
 /// StateBuilder(
-///   provider: provider,
+///   listenable: myStateListenable,
 ///   rebuildWhen: (previous, current) {
 ///     // Return true/false to control rebuilding based on state changes
 ///   },
@@ -34,20 +34,20 @@ part 'state_builder_of.dart';
 ///     return Container();
 ///   },
 ///   child: SomeStaticWidget(), // Preserved across rebuilds
-/// )
+/// );
 /// ```
 ///
-/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
-/// you can use [StateBuilder.of] to resolve it from the widget tree:
+/// If the listenable is available in the widget tree (e.g., exposed through
+/// `Provider`), you can use [StateBuilder.of] to retrieve it:
 ///
 /// ```dart
-/// StateBuilder.of<MyProvider, MyState>(
+/// StateBuilder.of<MyStateListenable, MyState>(
 ///   builder: (context, state, child) {
 ///     // Build your widget tree based on the state
 ///     return Container();
 ///   },
 ///   child: SomeStaticWidget(), // Preserved across rebuilds
-/// )
+/// );
 /// ```
 /// This ensures optimal performance by rebuilding only when necessary and
 /// preserving static UI elements passed as `child`.
@@ -63,7 +63,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// The callback receives the previous and current states.
   ///
   /// For [StateBuilder.multi], the states are the combined values returned
-  /// by the `providers` callback.
+  /// by the `listenables` callback.
   ///
   /// When omitted, ProviderKit uses the state's `!=` comparison to determine
   /// whether the state has changed.
@@ -80,7 +80,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// {@macro provider_kit.state_builder.multi}
   const factory StateBuilder({
     Key? key,
-    required StateListenable<T> provider,
+    required StateListenable<T> listenable,
     required StateWidgetBuilder<T> builder,
     RebuildWhen<T>? rebuildWhen,
     Widget? child,
@@ -90,12 +90,12 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// ### Listening to Multiple Providers
   ///
   /// Use [StateBuilder.multi] when a builder depends on the state of multiple
-  /// providers. The [providers] callback builds a single combined state by
-  /// reading provider values through `.watch`. ProviderKit automatically tracks
-  /// every watched provider and re-evaluates the combined state whenever any of
-  /// those providers change.
+  /// listenables. The [listenables] callback builds a single combined state by
+  /// reading listenables state through `.watch`. ProviderKit automatically tracks
+  /// every watched listenable and re-evaluates the combined state whenever any of
+  /// those listenables change.
   ///
-  /// The combined state returned by [providers] is passed to [builder] and
+  /// The combined state returned by [listenables] is passed to [builder] and
   /// [rebuildWhen]. It can be any Dart type, including a record, list, or custom
   /// object.
   ///
@@ -103,8 +103,8 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///
   /// ```dart
   /// StateBuilder.multi(
-  ///   providers: () => (
-  ///     user: userProvider.watch,
+  ///   listenables: () => (
+  ///     user: userNotifier.watch,
   ///     loading: loadingField.watch,
   ///   ),
   ///   builder: (context, state, child) {
@@ -121,11 +121,11 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// );
   /// ```
   ///
-  /// A list can be used when working with multiple providers of the same type:
+  /// A list can be used when working with multiple listenables of the same type:
   ///
   /// ```dart
   /// StateBuilder.multi(
-  ///   providers: () => mutations
+  ///   listenables: () => mutations
   ///       .map((mutation) => mutation.watch)
   ///       .toList(),
   ///   builder: (context, state, child) {
@@ -143,8 +143,8 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///
   /// ```dart
   /// StateBuilder.multi(
-  ///   providers: () => CombinedState(
-  ///     user: userProvider.watch,
+  ///   listenables: () => CombinedState(
+  ///     user: userNotifier.watch,
   ///     loading: loadingField.watch,
   ///   ),
   ///   builder: (context, state, child) {
@@ -155,22 +155,20 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// {@endtemplate}
   const factory StateBuilder.multi({
     Key? key,
-    required MultiStateProviders<T> providers,
+    required MultiStateListenables<T> listenables,
     required StateWidgetBuilder<T> builder,
     RebuildWhen<T>? rebuildWhen,
     Widget? child,
   }) = _MultiStateBuilder<T>;
 
-  /// Resolves the provider from the current [BuildContext].
-  ///
-  /// The provider is looked up using [Provider].
+  /// {@macro provider_kit.state_widget.of}
   ///
   /// ```dart
-  /// StateBuilder.of<MyProvider, MyState>(
+  /// StateBuilder.of<MyStateListenable, MyState>(
   ///   builder: (context, state, child) {
   ///     return MyWidget(state);
   ///   },
-  /// )
+  /// );
   /// ```
   static Widget of<P extends StateListenable<T>, T>({
     Key? key,

@@ -7,7 +7,7 @@ class _ViewStateConsumer<T>
     extends ViewStateConsumerBase<ViewStateNotifier<T>, T> {
   const _ViewStateConsumer({
     super.key,
-    required ViewStateNotifier<T> provider,
+    required ViewStateNotifier<T> listenable,
     super.rebuildWhen,
     super.listenWhen,
     required super.dataBuilder,
@@ -22,5 +22,5 @@ class _ViewStateConsumer<T>
     super.dataStateListener,
     super.callListenerOnInit,
     super.isSliver,
-  }) : super(provider: provider);
+  }) : super(listenable: listenable);
 }

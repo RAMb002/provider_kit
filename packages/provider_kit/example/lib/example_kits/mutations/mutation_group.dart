@@ -68,7 +68,7 @@ class _TodoItemState extends State<TodoItem> {
   @override
   Widget build(BuildContext context) {
     return StateBuilder<MutationState<void>>(
-      provider: widget.deleteMutation,
+      listenable: widget.deleteMutation,
       builder: (context, state, child) {
         return ListTile(
           leading: state.when(

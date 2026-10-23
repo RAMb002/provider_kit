@@ -2,11 +2,11 @@ part of 'state_consumer.dart';
 
 /// Private implementation of [StateConsumer.multi].
 ///
-/// Provides the concrete multi-provider consumer configuration.
+/// Provides the concrete multi-listenable consumer configuration.
 class _MultiStateConsumer<T> extends MultiStateConsumerBase<T> {
   const _MultiStateConsumer({
     super.key,
-    required super.providers,
+    required super.listenables,
     required this.builder,
     required this.listener,
     super.rebuildWhen,
@@ -42,7 +42,7 @@ class _MultiStateConsumer<T> extends MultiStateConsumerBase<T> {
 
 /// Base class for multi-state consumers.
 ///
-/// Provides the shared public configuration for multi-provider
+/// Provides the shared public configuration for multi-listenable
 /// [StateConsumer] implementations.
 ///
 /// The actual dependency tracking, state collection, subscriptions,
@@ -51,18 +51,18 @@ class _MultiStateConsumer<T> extends MultiStateConsumerBase<T> {
 abstract class MultiStateConsumerBase<T> extends StateConsumer<T> {
   const MultiStateConsumerBase({
     super.key,
-    required this.providers,
+    required this.listenables,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super.base();
 
-  /// {@macro provider_kit.multi_state.providers_param}
+  /// {@macro provider_kit.multi_state.listenables_param}
   ///
   /// The returned value becomes the combined state passed to [builder],
   /// [listener], [rebuildWhen], and [listenWhen].
-  final MultiStateProviders<T> providers;
+  final MultiStateListenables<T> listenables;
 
   /// Builds the widget tree from the current combined state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -81,7 +81,7 @@ abstract class MultiStateConsumerBase<T> extends StateConsumer<T> {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      ObjectFlagProperty<MultiStateListenables<T>>.has('listenables', listenables),
     );
   }
 }
@@ -90,7 +90,7 @@ class _MultiStateConsumerBaseState<T> extends State<MultiStateConsumerBase<T>> {
   @override
   Widget build(BuildContext context) {
     return MultiStateEngine<T>(
-      providers: widget.providers,
+      listenables: widget.listenables,
       builder: widget.build,
       listener: widget.onStateChange,
       rebuildWhen: widget.rebuildWhen,

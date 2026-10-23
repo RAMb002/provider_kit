@@ -61,7 +61,7 @@ part 'mutation_state.dart';
 ///
 /// ```dart
 /// StateBuilder<MutationState<void>>(
-///   provider: provider.deleteTodo,
+///   listenable: provider.deleteTodo,
 ///   builder: (context, state, child) {
 ///     return state.when(
 ///       idle: () => const Text('Delete'),

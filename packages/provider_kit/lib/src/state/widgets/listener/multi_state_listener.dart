@@ -2,12 +2,12 @@ part of 'state_listener.dart';
 
 /// Implementation of [StateListener.multi].
 ///
-/// Listens to a combined state produced by multiple providers and invokes
+/// Listens to a combined state produced by multiple listenables and invokes
 /// the listener when the combined state changes.
 class _MultiStateListener<T> extends MultiStateListenerBase<T> {
   const _MultiStateListener({
     super.key,
-    required super.providers,
+    required super.listenables,
     required this.listener,
     super.listenWhen,
     super.callListenerOnInit,
@@ -19,7 +19,7 @@ class _MultiStateListener<T> extends MultiStateListenerBase<T> {
   /// change.
   ///
   /// The callback receives the current [BuildContext] and the latest
-  /// combined state returned by [providers].
+  /// combined state returned by [listenables].
   /// {@endtemplate}
   final ListenerCallback<T> listener;
 
@@ -39,7 +39,7 @@ class _MultiStateListener<T> extends MultiStateListenerBase<T> {
 
 /// Base class for multi-state listeners.
 ///
-/// Provides the shared public configuration for multi-provider
+/// Provides the shared public configuration for multi-listenable
 /// [StateListener] implementations.
 ///
 /// The actual dependency tracking, state collection, subscriptions,
@@ -48,21 +48,20 @@ class _MultiStateListener<T> extends MultiStateListenerBase<T> {
 abstract class MultiStateListenerBase<T> extends StateListener<T> {
   const MultiStateListenerBase({
     super.key,
-    required this.providers,
+    required this.listenables,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super.base();
 
-  /// {@template provider_kit.multi_state.providers_param}
-  /// Builds a combined state from one or more watched providers.
-  /// Providers can be watched using `.watch`. Watched providers are
-  /// automatically tracked, so the widget updates when any of their states
-  /// change.
+  /// {@template provider_kit.multi_state.listenables_param}
+  /// Builds a combined state by reading values from one or more listenables
+  /// through `.watch`. ProviderKit tracks the watched listenables and
+  /// recomputes the combined state whenever any of them change.
   ///
   /// ```dart
-  /// providers: () => (
-  ///   user: userProvider.watch,
+  /// listenables: () => (
+  ///   user: userNotifier.watch,
   ///   loading: loadingField.watch,
   ///   save: saveMutation.watch,
   /// )
@@ -74,7 +73,7 @@ abstract class MultiStateListenerBase<T> extends StateListener<T> {
   ///
   /// The returned value becomes the combined state passed to [listener] and
   /// [listenWhen].
-  final MultiStateProviders<T> providers;
+  final MultiStateListenables<T> listenables;
 
   /// Handles a listener notification for the current combined state.
   ///
@@ -93,7 +92,10 @@ abstract class MultiStateListenerBase<T> extends StateListener<T> {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      ObjectFlagProperty<MultiStateListenables<T>>.has(
+        'listenables',
+        listenables,
+      ),
     );
   }
 }
@@ -109,7 +111,7 @@ class _MultiStateListenerBaseState<T>
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
     return MultiStateEngine<T>(
-      providers: widget.providers,
+      listenables: widget.listenables,
       listener: widget.onStateChange,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,

@@ -16,8 +16,8 @@ const multiConsumerNoopKey = Key('multi_consumer_noop_btn');
 class MultiConsumerTestApp extends StatefulWidget {
   const MultiConsumerTestApp({
     super.key,
-    required this.initialProviders,
-    required this.newProviders,
+    required this.initialListenables,
+    required this.newListenables,
     required this.builder,
     required this.listener,
     this.listenWhen,
@@ -25,8 +25,8 @@ class MultiConsumerTestApp extends StatefulWidget {
     this.callListenerOnInit = false,
   });
 
-  final List<CounterProvider> initialProviders;
-  final List<CounterProvider> newProviders;
+  final List<CounterProvider> initialListenables;
+  final List<CounterProvider> newListenables;
   final StateWidgetBuilder<List<int>> builder;
   final ListenerCallback<List<int>> listener;
   final ListenWhen<List<int>>? listenWhen;
@@ -38,12 +38,12 @@ class MultiConsumerTestApp extends StatefulWidget {
 }
 
 class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
-  late List<CounterProvider> _activeProviders;
+  late List<CounterProvider> _activeListenables;
 
   @override
   void initState() {
     super.initState();
-    _activeProviders = widget.initialProviders;
+    _activeListenables = widget.initialListenables;
   }
 
   @override
@@ -53,8 +53,8 @@ class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
         body: Column(
           children: [
             StateConsumer.multi(
-              providers: () => [
-                for (final provider in _activeProviders) provider.watch,
+              listenables: () => [
+                for (final provider in _activeListenables) provider.watch,
               ],
               builder: widget.builder,
               listener: widget.listener,
@@ -67,7 +67,7 @@ class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
               key: multiConsumerResetKey,
               onPressed: () {
                 setState(() {
-                  _activeProviders = widget.newProviders;
+                  _activeListenables = widget.newListenables;
                 });
               },
               child: const Text('Swap Providers'),
@@ -102,7 +102,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateConsumer.multi(
-            providers: () => [provider1.watch, provider2.watch],
+            listenables: () => [provider1.watch, provider2.watch],
             builder: (_, state, child) {
               return Row(children: [child!, Text('${state[0]}-${state[1]}')]);
             },
@@ -123,7 +123,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => (count: provider.watch, loading: false),
+          listenables: () => (count: provider.watch, loading: false),
           builder: (_, state, __) {
             receivedState = state;
             return const SizedBox();
@@ -149,7 +149,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateConsumer.multi(
-            providers: () => provider.watch,
+            listenables: () => provider.watch,
             builder: (_, state, child) {
               builderBuildCount++;
 
@@ -191,7 +191,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) {
             buildCount++;
             return const SizedBox();
@@ -214,7 +214,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) {
             buildCount++;
             return const SizedBox();
@@ -240,7 +240,7 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: StateConsumer.multi(
-              providers: () => field.watch,
+              listenables: () => field.watch,
               callListenerOnInit: true,
               builder: (_, state, child) =>
                   Column(children: [Text('$state'), child!]),
@@ -270,7 +270,7 @@ void main() {
 
         await tester.pumpWidget(
           StateConsumer.multi(
-            providers: () => field.watch,
+            listenables: () => field.watch,
             callListenerOnInit: true,
             builder: (_, state, __) {
               return StateChangeDuringInit(
@@ -302,7 +302,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => field.watch,
+          listenables: () => field.watch,
           callListenerOnInit: true,
           builder: (_, __, ___) {
             return StateChangeDuringInit(
@@ -351,7 +351,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () {
+          listenables: () {
             collectionCount++;
             return provider.watch;
           },
@@ -391,7 +391,7 @@ void main() {
 
         await tester.pumpWidget(
           StateConsumer.multi(
-            providers: () => [provider1.watch, provider2.watch],
+            listenables: () => [provider1.watch, provider2.watch],
             builder: (_, state, __) {
               buildLog.add(state);
               return const SizedBox();
@@ -431,7 +431,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, state, __) {
             buildLog.add(state);
             return const SizedBox();
@@ -464,7 +464,7 @@ void main() {
 
         await tester.pumpWidget(
           StateConsumer.multi(
-            providers: () => provider.watch,
+            listenables: () => provider.watch,
             builder: (_, state, __) {
               buildLog.add(state);
               return const SizedBox();
@@ -508,7 +508,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
           listenWhen: (previous, current) {
@@ -539,7 +539,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
           rebuildWhen: (previous, current) {
@@ -570,7 +570,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
           listenWhen: (_, __) {
@@ -603,8 +603,8 @@ void main() {
 
       await tester.pumpWidget(
         MultiConsumerTestApp(
-          initialProviders: [provider1],
-          newProviders: [provider2],
+          initialListenables: [provider1],
+          newListenables: [provider2],
           builder: (_, state, __) {
             buildLog.add(state);
             return const SizedBox();
@@ -681,8 +681,8 @@ void main() {
 
       await tester.pumpWidget(
         MultiConsumerTestApp(
-          initialProviders: [provider1],
-          newProviders: [provider2],
+          initialListenables: [provider1],
+          newListenables: [provider2],
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
           listenWhen: (previous, current) {
@@ -723,8 +723,8 @@ void main() {
 
         await tester.pumpWidget(
           MultiConsumerTestApp(
-            initialProviders: [provider1],
-            newProviders: [provider2],
+            initialListenables: [provider1],
+            newListenables: [provider2],
             builder: (_, state, __) {
               buildLog.add(state);
               return const SizedBox();
@@ -779,7 +779,7 @@ void main() {
               return Column(
                 children: [
                   StateConsumer.multi(
-                    providers: () {
+                    listenables: () {
                       collectionCount++;
                       return provider.watch;
                     },
@@ -831,7 +831,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => 0,
+          listenables: () => 0,
           builder: (_, state, __) => Text('$state'),
           listener: (_, __) {},
         ),
@@ -851,7 +851,7 @@ void main() {
 
       await tester.pumpWidget(
         StateConsumer.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
           listener: (_, __) {},
         ),
@@ -874,7 +874,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
       final provider = CounterProvider();
       StateConsumer.multi(
-        providers: () => provider.watch,
+        listenables: () => provider.watch,
         builder: (_, __, ___) => const SizedBox(),
         listener: (_, __) {},
         listenWhen: (previous, current) => previous != current,
@@ -888,7 +888,7 @@ void main() {
           .map((node) => node.toString())
           .toList();
 
-      expect(description.any((value) => value.contains('providers')), isTrue);
+      expect(description.any((value) => value.contains('listenables')), isTrue);
 
       expect(description.any((value) => value.contains('builder')), isTrue);
 

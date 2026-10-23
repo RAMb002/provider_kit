@@ -10,15 +10,15 @@ part of '../multi_state.dart';
 /// WatchBuilder(
 ///   builder: (context, child) {
 ///     final count = countField.watch;
-///     final user = userProvider.watch;
+///     final user = userNotifier.watch;
 ///
 ///     return Text('$count ${user.name}');
 ///   },
 /// )
 /// ```
 ///
-/// For cases where you want to combine multiple state sources into a single
-/// value or state, use [MultiStateBuilder] and declare the providers explicitly.
+/// To combine multiple state sources into a single value or state, use
+/// [StateBuilder.multi] and declare the listenables explicitly.
 ///
 /// Dependencies are updated automatically when the values used by the
 /// builder change, so conditional state can also be handled naturally.

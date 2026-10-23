@@ -17,7 +17,7 @@ class StateListenerExample extends StatelessWidget {
             title: "State listener",
             onTap: () => context.read<ExampleProvider>().increment(),
             child: StateListener(
-              provider: context.read<ExampleProvider>(),
+              listenable: context.read<ExampleProvider>(),
               listenWhen: (previous, current) => previous != current,
               listener: (context, state) {
                 context.showToast(state.toString());

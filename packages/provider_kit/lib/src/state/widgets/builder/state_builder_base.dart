@@ -2,19 +2,19 @@ part of 'state_builder.dart';
 
 /// Base class for [StateBuilder] implementations.
 ///
-/// Provides the shared provider, rebuild predicate, and child configuration
+/// Provides the shared listenable, rebuild predicate, and child configuration
 /// used by state-based builder widgets.
 abstract class StateBuilderBase<P extends StateListenable<T>, T>
     extends StateBuilder<T> {
   const StateBuilderBase({
     super.key,
-    this.provider,
+    this.listenable,
     super.rebuildWhen,
     super.child,
   }) : super.base();
 
-  /// {@macro provider_kit.state_listener.provider}
-  final P? provider;
+  /// {@macro provider_kit.state_listener.listenable}
+  final P? listenable;
 
   /// The function that builds the widget tree based on the current state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -25,7 +25,7 @@ abstract class StateBuilderBase<P extends StateListenable<T>, T>
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<P?>('provider', provider));
+    properties.add(DiagnosticsProperty<P?>('listenable', listenable));
   }
 }
 
@@ -35,7 +35,7 @@ class _StateBuilderBaseState<P extends StateListenable<T>, T>
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, T>(
-      provider: widget.provider,
+      listenable: widget.listenable,
       rebuildWhen: widget.rebuildWhen,
       builder: widget.build,
       widgetName: widget.debugWidgetName,

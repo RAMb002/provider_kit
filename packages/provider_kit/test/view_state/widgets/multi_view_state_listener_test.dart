@@ -17,13 +17,13 @@ void main() {
       return Directionality(textDirection: TextDirection.ltr, child: child);
     }
 
-    MultiStateProviders<ViewState<String>> singleProvider(
+    MultiStateListenables<ViewState<String>> singleProvider(
       ViewStateNotifier<String> provider,
     ) {
       return () => provider.watch;
     }
 
-    MultiStateProviders<TwoStates> twoProviders(
+    MultiStateListenables<TwoStates> twoProviders(
       ViewStateNotifier<String> provider1,
       ViewStateNotifier<String> provider2,
     ) {
@@ -31,7 +31,7 @@ void main() {
     }
 
     Widget buildListener({
-      required MultiStateProviders<ViewState<String>> providers,
+      required MultiStateListenables<ViewState<String>> providers,
       InitialStateListener? initialStateListener,
       LoadingStateListener? loadingStateListener,
       EmptyStateListener? emptyStateListener,
@@ -43,7 +43,7 @@ void main() {
     }) {
       return wrap(
         ViewStateListener.multi(
-          providers: providers,
+          listenables: providers,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
           emptyStateListener: emptyStateListener,
@@ -57,7 +57,7 @@ void main() {
     }
 
     Widget buildTwoProviderListener({
-      required MultiStateProviders<TwoStates> providers,
+      required MultiStateListenables<TwoStates> providers,
       InitialStateListener? initialStateListener,
       LoadingStateListener? loadingStateListener,
       EmptyStateListener? emptyStateListener,
@@ -69,7 +69,7 @@ void main() {
     }) {
       return wrap(
         ViewStateListener.multi(
-          providers: providers,
+          listenables: providers,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
           emptyStateListener: emptyStateListener,
@@ -109,7 +109,7 @@ void main() {
       );
 
       await tester.pumpWidget(
-        ViewStateListener.multi(providers: singleProvider(provider)),
+        ViewStateListener.multi(listenables: singleProvider(provider)),
       );
 
       expect(
@@ -127,7 +127,7 @@ void main() {
     // -------------------------------------------------------------------------
 
     testWidgets(
-      'invokes the corresponding listener when the provider enters each state',
+      'invokes the corresponding listener when the listenable enters each state',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           const DataState<String>('initial'),
@@ -427,7 +427,7 @@ void main() {
     // Dependency tracking
     // -------------------------------------------------------------------------
 
-    testWidgets('subscribes to every provider accessed through watch', (
+    testWidgets('subscribes to every listenable accessed through watch', (
       tester,
     ) async {
       final provider1 = TestViewStateNotifier<String>(
@@ -463,7 +463,7 @@ void main() {
     });
 
     testWidgets(
-      'subscribes only once when the same provider is watched multiple times',
+      'subscribes only once when the same listenable is watched multiple times',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           const DataState<String>('data'),
@@ -474,7 +474,8 @@ void main() {
         await tester.pumpWidget(
           wrap(
             ViewStateListener.multi(
-              providers: () => (first: provider.watch, second: provider.watch),
+              listenables: () =>
+                  (first: provider.watch, second: provider.watch),
               dataStateListener: (_) {
                 dataCalls++;
               },
@@ -499,7 +500,7 @@ void main() {
         await tester.pumpWidget(
           wrap(
             ViewStateListener.multi(
-              providers: () => field.watch,
+              listenables: () => field.watch,
               child: const SizedBox(),
             ),
           ),
@@ -520,7 +521,7 @@ void main() {
     // Runtime dependency changes
     // -------------------------------------------------------------------------
 
-    testWidgets('switches subscriptions when the watched provider changes', (
+    testWidgets('switches subscriptions when the watched listenable changes', (
       tester,
     ) async {
       final provider1 = TestViewStateNotifier<String>(
@@ -531,7 +532,7 @@ void main() {
         const DataState<String>('two'),
       );
 
-      MultiStateProviders<ViewState<String>> providers = singleProvider(
+      MultiStateListenables<ViewState<String>> providers = singleProvider(
         provider1,
       );
 
@@ -544,7 +545,7 @@ void main() {
               return Column(
                 children: <Widget>[
                   ViewStateListener.multi(
-                    providers: providers,
+                    listenables: providers,
                     dataStateListener: (_) {
                       dataCalls++;
                     },
@@ -588,7 +589,7 @@ void main() {
     });
 
     testWidgets(
-      'does not duplicate provider notifications after rebuilding with the same dependency',
+      'does not duplicate listenable notifications after rebuilding with the same dependency',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
           const DataState<String>('data'),
@@ -627,7 +628,7 @@ void main() {
     // Cleanup
     // -------------------------------------------------------------------------
 
-    testWidgets('detaches provider listeners when the widget is removed', (
+    testWidgets('detaches listenable listeners when the widget is removed', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(
@@ -664,7 +665,7 @@ void main() {
         );
 
         ViewStateListener.multi(
-          providers: singleProvider(provider),
+          listenables: singleProvider(provider),
           initialStateListener: () {},
           loadingStateListener: (_, __) {},
           emptyStateListener: (_) {},
@@ -680,7 +681,7 @@ void main() {
             .map((node) => node.toString())
             .toList();
 
-        expect(description.any((value) => value.contains('providers')), isTrue);
+        expect(description.any((value) => value.contains('listenables')), isTrue);
 
         expect(
           description.any((value) => value.contains('listenWhen')),

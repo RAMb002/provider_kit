@@ -16,7 +16,7 @@ part of '../../../state/multi_state/multi_state.dart';
 final class MultiViewStateEngine<T> extends StatefulWidget {
   const MultiViewStateEngine({
     super.key,
-    required this.providers,
+    required this.listenables,
     required this.widgetName,
     this.listener,
     this.builder,
@@ -27,7 +27,7 @@ final class MultiViewStateEngine<T> extends StatefulWidget {
   });
 
   /// Produces the combined state and declares dependencies through `.watch`.
-  final MultiStateProviders<T> providers;
+  final MultiStateListenables<T> listenables;
 
   /// Receives the current combined state and aggregated View State when a
   /// meaningful change passes [listenWhen].
@@ -65,11 +65,11 @@ final class MultiViewStateEngine<T> extends StatefulWidget {
 class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
   late final _MultiStateCore<T> _core;
 
-  /// Providers currently used by the aggregated View State.
+  /// Listenables currently used by the aggregated View State.
   ///
-  /// Their order is preserved because the first matching provider determines
+  /// Their order is preserved because the first matching listenable determines
   /// Error, Loading, and Empty details.
-  late List<ViewStateNotifier<dynamic>> _providers;
+  late List<ViewStateNotifier<dynamic>> _listenables;
 
   /// Latest aggregated View State snapshot.
   late MultiViewStateAggregate _currentAggregate;
@@ -94,8 +94,8 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
     final _DependencyCollection<T> collection = _collect();
 
     _core.state = collection.value;
-    _providers = _resolveProviders(collection.dependencies);
-    _currentAggregate = MultiViewStateUtils._aggregate(_providers);
+    _listenables = _resolveListenables(collection.dependencies);
+    _currentAggregate = MultiViewStateUtils._aggregate(_listenables);
 
     _core.syncDependencies(collection.dependencies);
   }
@@ -115,9 +115,9 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
     );
   }
 
-  /// Handles a notification from one of the currently subscribed providers.
+  /// Handles a notification from one of the currently subscribed listenables.
   ///
-  /// Provider notifications are first converted into a new combined state
+  /// Listenable notifications are first converted into a new combined state
   /// and aggregate. Only meaningful changes continue to listener and rebuild
   /// processing.
   void _handleChange() {
@@ -136,11 +136,11 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
     );
 
     if (dependenciesChanged) {
-      _providers = _resolveProviders(collection.dependencies);
+      _listenables = _resolveListenables(collection.dependencies);
     }
 
     final MultiViewStateAggregate currentAggregate =
-        MultiViewStateUtils._aggregate(_providers);
+        MultiViewStateUtils._aggregate(_listenables);
 
     _core.state = currentState;
     _currentAggregate = currentAggregate;
@@ -212,17 +212,17 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
   /// Collects the current combined state and its dependencies.
   _DependencyCollection<T> _collect() {
     return _core.collect(
-      providers: widget.providers,
+      listenables: widget.listenables,
       widgetName: widget.widgetName,
     );
   }
 
-  /// Converts the collected dependencies into the View State providers used
+  /// Converts the collected dependencies into the View State listenables used
   /// for aggregation.
   ///
   /// The Multi View State API requires all watched sources to be
   /// [ViewStateNotifier] instances.
-  List<ViewStateNotifier<dynamic>> _resolveProviders(
+  List<ViewStateNotifier<dynamic>> _resolveListenables(
     Iterable<StateListenable> dependencies,
   ) {
     return dependencies
@@ -230,7 +230,7 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
           if (dependency is! ViewStateNotifier<dynamic>) {
             throw StateError(
               '${widget.widgetName} can only watch ViewStateNotifier '
-              'instances inside its `providers` callback. '
+              'instances inside its `listenables` callback. '
               'Received ${dependency.runtimeType}.',
             );
           }

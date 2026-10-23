@@ -12,7 +12,7 @@ part of '../multi_state.dart';
 /// applying the widget-specific callback and state-change behavior around that
 /// shared functionality.
 ///
-/// The important invariant is that [providers] is collected exactly once
+/// The important invariant is that [listenables] is collected exactly once
 /// for each dependency notification handled by this widget. The returned
 /// value becomes the combined state, while every `.watch` accessed during
 /// the collection becomes a dependency.
@@ -20,7 +20,7 @@ part of '../multi_state.dart';
 final class MultiStateEngine<T> extends StatefulWidget {
   const MultiStateEngine({
     super.key,
-    required this.providers,
+    required this.listenables,
     this.listener,
     this.listenWhen,
     this.rebuildWhen,
@@ -35,7 +35,7 @@ final class MultiStateEngine<T> extends StatefulWidget {
   ///
   /// The callback is evaluated inside ProviderKit's dependency collector.
   /// Every watched [StateListenable] is recorded automatically.
-  final MultiStateProviders<T> providers;
+  final MultiStateListenables<T> listenables;
 
   /// Called when the combined state changes and [listenWhen] allows it.
   final ListenerCallback<T>? listener;
@@ -93,9 +93,9 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
     // Collect the initial state and dependencies together. Keeping these
     // operations in one collection ensures the state value and subscriptions
-    // always correspond to the same providers() evaluation.
+    // always correspond to the same listenables() evaluation.
     final _DependencyCollection<T> collection = _core.collect(
-      providers: widget.providers,
+      listenables: widget.listenables,
       widgetName: widget.widgetName,
     );
 
@@ -148,7 +148,7 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
     final T previous = _core.state;
 
-    // `providers` is evaluated exactly once for this state change.
+    // `listenables` is evaluated exactly once for this state change.
     final _DependencyCollection<T> collection = _collect();
     final T current = collection.value;
 
@@ -183,12 +183,12 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
   /// Collects the current combined state and its dependencies.
   ///
-  /// The dependency tracker executes [widget.providers] inside a temporary
+  /// The dependency tracker executes [widget.listenables] inside a temporary
   /// collection scope. Every `.watch` encountered during that execution is
   /// recorded and returned together with the resulting state value.
   _DependencyCollection<T> _collect() {
     return _core.collect(
-      providers: widget.providers,
+      listenables: widget.listenables,
       widgetName: widget.widgetName,
     );
   }

@@ -2,24 +2,24 @@ part of 'state_consumer.dart';
 
 /// Base class for [StateConsumer] implementations.
 ///
-/// Provides shared configuration and behavior for single-provider
+/// Provides shared configuration and behavior for single-listenable
 /// consumers.
 ///
-/// The actual provider resolution, subscriptions, equality checks, rebuild
+/// The actual listenable resolution, subscriptions, equality checks, rebuild
 /// scheduling, and listener scheduling are handled by this base's state.
 abstract class StateConsumerBase<P extends StateListenable<T>, T>
     extends StateConsumer<T> {
   const StateConsumerBase({
     super.key,
-    this.provider,
+    this.listenable,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super.base();
 
-  /// {@macro provider_kit.state_listener.provider}
-  final P? provider;
+  /// {@macro provider_kit.state_listener.listenable}
+  final P? listenable;
 
   /// Builds the widget tree using the current state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -34,7 +34,7 @@ abstract class StateConsumerBase<P extends StateListenable<T>, T>
   @override
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<P?>('provider', provider));
+    properties.add(DiagnosticsProperty<P?>('listenable', listenable));
   }
 }
 
@@ -43,7 +43,7 @@ class _StateConsumerBaseState<P extends StateListenable<T>, T>
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, T>(
-      provider: widget.provider,
+      listenable: widget.listenable,
       rebuildWhen: widget.rebuildWhen,
       builder: widget.build,
       listener: widget.onStateChange,

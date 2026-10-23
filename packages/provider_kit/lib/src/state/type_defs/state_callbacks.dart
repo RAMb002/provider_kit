@@ -18,7 +18,7 @@ typedef RebuildWhen<T> = bool Function(T previous, T next);
 ///
 /// State sources are accessed through `.watch` inside the callback so
 /// ProviderKit can track the dependencies automatically.
-typedef MultiStateProviders<T> = T Function();
+typedef MultiStateListenables<T> = T Function();
 
 /// A callback that builds a widget based on the current state.
 ///

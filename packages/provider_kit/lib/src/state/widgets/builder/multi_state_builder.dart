@@ -3,7 +3,7 @@ part of 'state_builder.dart';
 class _MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
   const _MultiStateBuilder({
     super.key,
-    required super.providers,
+    required super.listenables,
     required this.builder,
     super.rebuildWhen,
     super.child,
@@ -12,7 +12,7 @@ class _MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
   /// {@template provider_kit.multi_state.builder_param}
   /// Builds the widget tree using the current combined state.
   ///
-  /// The [state] is the value returned by [providers].
+  /// The [state] is the value returned by [listenables].
   ///
   /// The [child] is an optional widget passed to [builder].
   /// It can be used for a subtree that does not depend on the combined state.
@@ -35,7 +35,7 @@ class _MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
 
 /// Base class for multi-state builders.
 ///
-/// Provides the shared public configuration for multi-provider
+/// Provides the shared public configuration for multi-listenable
 /// [StateBuilder] implementations.
 ///
 /// The actual dependency tracking, state collection, subscriptions,
@@ -44,16 +44,16 @@ class _MultiStateBuilder<T> extends MultiStateBuilderBase<T> {
 abstract class MultiStateBuilderBase<T> extends StateBuilder<T> {
   const MultiStateBuilderBase({
     super.key,
-    required this.providers,
+    required this.listenables,
     super.rebuildWhen,
     super.child,
   }) : super.base();
 
-  /// {@macro provider_kit.multi_state.providers_param}
+  /// {@macro provider_kit.multi_state.listenables_param}
   ///
   /// The returned value becomes the combined state passed to [builder] and
   /// [rebuildWhen].
-  final MultiStateProviders<T> providers;
+  final MultiStateListenables<T> listenables;
 
   /// Builds the widget tree from the current combined state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -71,7 +71,10 @@ abstract class MultiStateBuilderBase<T> extends StateBuilder<T> {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+      ObjectFlagProperty<MultiStateListenables<T>>.has(
+        'listenables',
+        listenables,
+      ),
     );
   }
 }
@@ -80,7 +83,7 @@ class _MultiStateBuilderBaseState<T> extends State<MultiStateBuilderBase<T>> {
   @override
   Widget build(BuildContext context) {
     return MultiStateEngine<T>(
-      providers: widget.providers,
+      listenables: widget.listenables,
       builder: widget.build,
       rebuildWhen: widget.rebuildWhen,
       widgetName: widget.debugWidgetName,

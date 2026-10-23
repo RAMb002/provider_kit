@@ -47,7 +47,7 @@ class _MultiBuilderTestAppState extends State<MultiBuilderTestApp> {
         body: Column(
           children: [
             StateBuilder.multi(
-              providers: () => [
+              listenables: () => [
                 for (final provider in _activeProviders) provider.watch,
               ],
               rebuildWhen: widget.rebuildWhen,
@@ -104,7 +104,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder.multi(
-            providers: () => [provider1.watch, provider2.watch],
+            listenables: () => [provider1.watch, provider2.watch],
             builder: (_, state, child) {
               return Row(
                 children: [
@@ -134,7 +134,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder.multi(
-            providers: () => (count: provider.watch, loading: false),
+            listenables: () => (count: provider.watch, loading: false),
             builder: (_, state, __) {
               receivedState = state;
 
@@ -162,7 +162,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder.multi(
-            providers: () => provider.watch,
+            listenables: () => provider.watch,
             builder: (_, state, child) {
               builderBuildCount++;
 
@@ -201,7 +201,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => [provider1.watch, provider2.watch],
+          listenables: () => [provider1.watch, provider2.watch],
           builder: (_, state, __) {
             receivedState = state;
             return const SizedBox();
@@ -219,7 +219,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) {
             buildCount++;
             return const SizedBox();
@@ -241,7 +241,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, state, __) {
             states.add(state);
             return const SizedBox();
@@ -267,7 +267,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => [provider1.watch, provider2.watch],
+          listenables: () => [provider1.watch, provider2.watch],
           builder: (_, state, __) {
             states.add(state);
             return const SizedBox();
@@ -298,7 +298,7 @@ void main() {
     });
 
     testWidgets(
-      'batches multiple synchronous provider updates into a single build',
+      'batches multiple synchronous listenable updates into a single build',
       (tester) async {
         final provider1 = CounterProvider();
         final provider2 = CounterProvider(10);
@@ -307,7 +307,7 @@ void main() {
 
         await tester.pumpWidget(
           StateBuilder.multi(
-            providers: () => [provider1.watch, provider2.watch],
+            listenables: () => [provider1.watch, provider2.watch],
             builder: (_, state, __) {
               states.add(state);
               return const SizedBox();
@@ -341,7 +341,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => [provider1.watch, provider2.watch],
+          listenables: () => [provider1.watch, provider2.watch],
           builder: (_, state, __) {
             states.add(state);
             return const SizedBox();
@@ -383,7 +383,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           rebuildWhen: (previous, current) {
             rebuildWhenCallCount++;
             previousStates.add(previous);
@@ -422,7 +422,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder.multi(
-            providers: () => field.watch,
+            listenables: () => field.watch,
             builder: (_, state, child) {
               states.add(state);
 
@@ -456,7 +456,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: StateBuilder.multi(
-            providers: () => field.watch,
+            listenables: () => field.watch,
             builder: (_, state, child) {
               states.add(state);
 
@@ -490,7 +490,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           rebuildWhen: (previous, current) {
             rebuildWhenCallCount++;
 
@@ -539,7 +539,7 @@ void main() {
 
         await tester.pumpWidget(
           StateBuilder.multi(
-            providers: () => provider.watch,
+            listenables: () => provider.watch,
             rebuildWhen: (previous, current) {
               previousStates.add(previous);
               currentStates.add(current);
@@ -570,7 +570,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           rebuildWhen: (_, __) {
             rebuildWhenCallCount++;
             return true;
@@ -593,7 +593,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () {
+          listenables: () {
             collectionCount++;
             return provider.watch;
           },
@@ -614,7 +614,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () {
+          listenables: () {
             collectionCount++;
 
             return provider.watch;
@@ -651,7 +651,7 @@ void main() {
               return Column(
                 children: [
                   StateBuilder.multi(
-                    providers: () => provider.watch,
+                    listenables: () => provider.watch,
                     builder: (_, state, __) {
                       buildCount++;
 
@@ -891,7 +891,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           StateBuilder.multi(
-            providers: () => 0,
+            listenables: () => 0,
             builder: (_, state, __) {
               return Text('$state');
             },
@@ -913,7 +913,7 @@ void main() {
 
       await tester.pumpWidget(
         StateBuilder.multi(
-          providers: () => provider.watch,
+          listenables: () => provider.watch,
           builder: (_, __, ___) => const SizedBox(),
         ),
       );
@@ -935,7 +935,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateBuilder.multi(
-        providers: () => CounterProvider().watch,
+        listenables: () => CounterProvider().watch,
         rebuildWhen: (previous, current) => previous != current,
         child: const SizedBox(),
         builder: (_, __, ___) => const SizedBox(),
@@ -947,9 +947,9 @@ void main() {
           .toList();
 
       expect(
-        description.any((value) => value.contains('providers')),
+        description.any((value) => value.contains('listenables')),
         isTrue,
-        reason: 'Should expose providers configuration. Found: $description',
+        reason: 'Should expose listenables configuration. Found: $description',
       );
 
       expect(description.any((value) => value.contains('rebuildWhen')), isTrue);

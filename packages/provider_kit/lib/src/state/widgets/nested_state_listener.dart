@@ -4,22 +4,25 @@ import 'package:nested/nested.dart';
 /// A widget that nests multiple state listeners within a single widget.
 ///
 /// The `NestedStateListener` allows combining multiple types of listeners,
-/// such as `StateListener`, `MultiStateListener`, `ViewStateListener`, and `MultiViewStateListener`,
-/// enabling efficient state management in a structured manner.
+/// such as `StateListener`, `StateListener.multi`, `ViewStateListener`, and `ViewStateListener.multi`,
+/// allowing multiple listeners to be nested within a single widget.
 ///
 /// ### Example Usage:
 /// ```dart
 /// NestedStateListener(
 ///   listeners: [
-///     StateListener<int>(
-///       provider: CounterProvider(1)
+///     StateListener(
+///       listenable: counterNotifier
 ///       listener: (context, state) {
 ///         // Handle state changes
 ///       },
 ///     ),
-///     MultiStateListener(
-///       providers: [ExampleProvider(3), ExampleProvider(4)],
-///       listener: (context, states) {
+///     StateListener.multi(
+///       listenables: () => (
+///         first: firstNotifier.watch,
+///         second: secondNotifier.watch,
+///       ),
+///       listener: (context, state) {
 ///         // Handle state changes
 ///       },
 ///     ),
@@ -28,9 +31,12 @@ import 'package:nested/nested.dart';
 ///         // Handle view state changes
 ///       },
 ///     ),
-///     MultiViewStateListener<List<Item>>(
-///       providers: [FeedProvider(), FeedProvider()],
-///       dataStateListener: (states) {
+///     ViewStateListener.multi(
+///       listenables: () => (
+///         first: firstNotifier.watch,
+///         second: secondNotifier.watch,
+///       ),
+///       dataStateListener: (state) {
 ///         // Handle state changes
 ///       },
 ///     ),
@@ -42,9 +48,9 @@ import 'package:nested/nested.dart';
 /// ### Parameters:
 /// - **`listeners`** (*Required*) **:** A list of [SingleChildWidget] listeners, which can include:
 ///   - [StateListener]
-///   - [MultiStateListener]
+///   - [StateListener.multi]
 ///   - [ViewStateListener]
-///   - [MultiViewStateListener]
+///   - [ViewStateListener.multi]
 /// - **`child`** (*Required*) **:** The widget wrapped by the listeners, typically the UI component that reacts to state changes.
 /// {@endtemplate}
 class NestedStateListener extends Nested {

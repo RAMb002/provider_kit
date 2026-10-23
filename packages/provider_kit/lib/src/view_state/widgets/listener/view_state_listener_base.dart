@@ -3,12 +3,12 @@ part of 'view_state_listener.dart';
 /// Base class for [ViewStateListener] implementations.
 ///
 /// Provides shared configuration and behavior for listening to
-/// [ViewStateNotifier] providers and responding to their state changes.
+/// [ViewStateNotifier] instances and responding to their state changes.
 abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     extends ViewStateListener<T> {
   const ViewStateListenerBase({
     super.key,
-    this.provider,
+    this.listenable,
     this.listenWhen,
     super.initialStateListener,
     super.loadingStateListener,
@@ -19,12 +19,12 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
     super.child,
   }) : super.base();
 
-  /// {@template provider_kit.view_state_widget.provider}
-  /// The provider whose ViewState should be listened to.
+  /// {@template provider_kit.view_state_widget.listenable}
+  /// The view-state notifier whose state should be listened to.
   ///
-  /// When null, the provider is resolved from the current [BuildContext].
+  /// When null, the notifier is resolved from the current [BuildContext].
   /// {@endtemplate}
-  final P? provider;
+  final P? listenable;
 
   /// {@template provider_kit.view_state_listener.listen_when}
   /// Determines whether the listener should be called when the view state changes.
@@ -55,7 +55,7 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<P?>('provider', provider, defaultValue: null))
+      ..add(DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null))
       ..add(
         ObjectFlagProperty<ListenWhen<ViewState<T>>?>.has(
           'listenWhen',
@@ -65,13 +65,13 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   }
 }
 
-/// Delegates single-provider listening to [StateListener].
+/// Connects [ViewStateListenerBase] to the shared [StateEngine] implementation.
 class _ViewStateListenerBaseState<P extends ViewStateNotifier<T>, T>
     extends SingleChildState<ViewStateListenerBase<P, T>> {
   @override
   Widget buildWithChild(BuildContext context, Widget? child) {
     return StateEngine<P, ViewState<T>>(
-      provider: widget.provider,
+      listenable: widget.listenable,
       listenWhen: widget.listenWhen,
       callListenerOnInit: widget.callListenerOnInit,
       listener: widget.onStateChange,

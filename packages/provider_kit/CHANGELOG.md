@@ -10,6 +10,7 @@
 
 - Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
 - Added `data` and `dataOrNull` getters to `ViewState` and `ViewStateNotifier`.
+- Rename widget parameters from provider/providers to listenable/listenables across state and view-state widgets.
 
 **Async Notifiers**
 - Overhauled `FutureNotifier` refresh, rebuild, error handling, and stale-operation protection.

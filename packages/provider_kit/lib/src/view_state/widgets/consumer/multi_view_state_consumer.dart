@@ -4,7 +4,7 @@ part of 'view_state_consumer.dart';
 class _MultiViewStateConsumer<T> extends MultiViewStateConsumerBase<T> {
   const _MultiViewStateConsumer({
     super.key,
-    required super.providers,
+    required super.listenables,
     required super.dataBuilder,
     super.initialBuilder,
     super.loadingBuilder,
@@ -22,14 +22,14 @@ class _MultiViewStateConsumer<T> extends MultiViewStateConsumerBase<T> {
   });
 }
 
-/// Base class for multi-provider [ViewStateConsumer] implementations.
+/// Base class for multi-listenable [ViewStateConsumer] implementations.
 ///
-/// Provides the configuration and behavior shared by multi-provider
+/// Provides the configuration and behavior shared by multi-listenable
 /// ViewState consumers.
 abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
   const MultiViewStateConsumerBase({
     super.key,
-    required this.providers,
+    required this.listenables,
     required super.dataBuilder,
     super.initialBuilder,
     super.loadingBuilder,
@@ -46,8 +46,8 @@ abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
     super.isSliver = false,
   }) : super.base();
 
-  /// {@macro provider_kit.multi_view_state.provider_param}
-  final MultiStateProviders<T> providers;
+  /// {@macro provider_kit.multi_view_state.listenables_param}
+  final MultiStateListenables<T> listenables;
 
   /// {@macro provider_kit.multi_view_state_builder.rebuild_when}
   final RebuildWhen<T>? rebuildWhen;
@@ -82,7 +82,7 @@ abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
   }
 
   void _handleStateChange(
-    BuildContext context,
+    BuildContext _,
     T state,
     MultiViewStateAggregate aggregate,
   ) {
@@ -103,7 +103,10 @@ abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
 
     properties
       ..add(
-        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+        ObjectFlagProperty<MultiStateListenables<T>>.has(
+          'listenables',
+          listenables,
+        ),
       )
       ..add(ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen))
       ..add(ObjectFlagProperty<ListenWhen<T>?>.has('listenWhen', listenWhen));
@@ -115,7 +118,7 @@ class _MultiViewStateConsumerBaseState<T>
   @override
   Widget build(BuildContext context) {
     return MultiViewStateEngine<T>(
-      providers: widget.providers,
+      listenables: widget.listenables,
       widgetName: widget.debugWidgetName,
       rebuildWhen: widget.rebuildWhen,
       listenWhen: widget.listenWhen,

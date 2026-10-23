@@ -6,7 +6,7 @@ enum MultiViewStateStatus { error, initial, loading, empty, data }
 /// Internal snapshot of the values that are observable from the aggregated
 /// Multi View State.
 ///
-/// This is intentionally different from the individual provider states.
+/// This is intentionally different from the individual listenable states.
 /// It contains only the information that affects the combined state exposed
 /// by Multi View State widgets.
 @internal
@@ -17,7 +17,7 @@ final class MultiViewStateAggregate {
     this.errorInfo,
     this.error,
     this.stackTrace,
-    this.retryableProviders,
+    this.retryableListenables,
     this.loadingMessage,
     this.loadingProgress,
     this.emptyMessage,
@@ -27,13 +27,13 @@ final class MultiViewStateAggregate {
     required ErrorInfo errorInfo,
     required Object error,
     required StackTrace stackTrace,
-    required List<ViewStateNotifier<dynamic>> retryableProviders,
+    required List<ViewStateNotifier<dynamic>> retryableListenables,
   }) : this._(
          status: MultiViewStateStatus.error,
          errorInfo: errorInfo,
          error: error,
          stackTrace: stackTrace,
-         retryableProviders: retryableProviders,
+         retryableListenables: retryableListenables,
        );
 
   const MultiViewStateAggregate.initial()
@@ -61,11 +61,11 @@ final class MultiViewStateAggregate {
   final Object? error;
   final StackTrace? stackTrace;
 
-  /// Providers that contribute to the combined retry operation.
+  /// Listenables that contribute to the combined retry operation.
   ///
-  /// Provider identity matters here because two different providers may have
+  /// Listenable identity matters here because two different listenables may have
   /// identical state values but represent different retry operations.
-  final List<ViewStateNotifier<dynamic>>? retryableProviders;
+  final List<ViewStateNotifier<dynamic>>? retryableListenables;
 
   // Loading aggregate.
   final String? loadingMessage;
@@ -97,13 +97,14 @@ final class MultiViewStateAggregate {
         errorInfo == other.errorInfo &&
             error == other.error &&
             stackTrace == other.stackTrace &&
-            _sameRetryableProviders(other),
+            _sameRetryableListenables(other),
     };
   }
 
-  bool _sameRetryableProviders(MultiViewStateAggregate other) {
-    final List<ViewStateNotifier<dynamic>>? previous = retryableProviders;
-    final List<ViewStateNotifier<dynamic>>? current = other.retryableProviders;
+  bool _sameRetryableListenables(MultiViewStateAggregate other) {
+    final List<ViewStateNotifier<dynamic>>? previous = retryableListenables;
+    final List<ViewStateNotifier<dynamic>>? current =
+        other.retryableListenables;
 
     if (identical(previous, current)) {
       return true;

@@ -17,39 +17,39 @@ part 'state_listener_of.dart';
 /// used for performing side effects in response to state changes, such as navigation,
 /// showing a SnackBar, or displaying a Dialog.
 ///
-/// - Use [StateListener] to listen to state from a single provider.
-/// - Use [StateListener.of] to read a provider from the widget tree.
-/// - Use [StateListener.multi] to listen to and combine state from multiple providers.
+/// - Use [StateListener] to listen to state from a single listenable.
+/// - Use [StateListener.of] to resolve a listenable from the widget tree.
+/// - Use [StateListener.multi] to listen to and combine state from multiple listenables.
 ///
-/// The [listener] callback is called when the state changes and [listenWhen]
-/// allows the change. The optional [callListenerOnInit] can be used to invoke
+/// When the state changes, [listenWhen] determines whether [listener] is called.
+/// The optional [callListenerOnInit] can be used to invoke
 /// the listener once after initialization.
 ///
 /// ### Example Usage:
 /// ```dart
-/// StateListener<MyState>(
-///   provider: provider,
+/// StateListener(
+///   listenable: myStateListenable,
 ///   callListenerOnInit: false, // Default is false
 ///   listenWhen: (previous, current) {
 ///     // Return true/false to control listener invocation based on state changes
 ///   },
 ///   listener: (context, state) {
-///     // Perform side effects based on the provider's state
+///     // Perform side effects in response to state changes.
 ///   },
 ///   child: SomeWidget(), // Unaffected by state changes
-/// )
+/// );
 /// ```
 ///
-/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
-/// you can use [StateListener.of] to resolve it from the widget tree:
+/// If the listenable is available in the widget tree (e.g., exposed through
+/// `Provider`), you can use [StateListener.of] to retrieve it:
 ///
 /// ```dart
-/// StateListener.of<MyProvider, MyState>(
+/// StateListener.of<MyStateListenable, MyState>(
 ///   listener: (context, state) {
-///     // Perform side effects based on the provider's state.
+///     // Perform side effects in response to state changes.
 ///   },
 ///   child: SomeWidget(),
-/// )
+/// );
 /// ```
 ///{@endtemplate}
 ///
@@ -67,7 +67,7 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// The callback receives the previous and current states.
   ///
   /// For [StateListener.multi], the states are the combined values returned
-  /// by the `providers` callback.
+  /// by the `listenables` callback.
   ///
   /// When omitted, ProviderKit uses the state's `!=` comparison to determine
   /// whether the state has changed.
@@ -87,7 +87,7 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// {@macro provider_kit.state_listener.multi}
   const factory StateListener({
     Key? key,
-    required StateListenable<T> provider,
+    required StateListenable<T> listenable,
     required ListenerCallback<T> listener,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit,
@@ -95,15 +95,15 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   }) = _StateListener<T>;
 
   /// {@template provider_kit.state_listener.multi}
-  /// ### Listening to Multiple Providers
+  /// ### Listening to Multiple Listenables
   ///
   /// Use [StateListener.multi] when a listener depends on the state of multiple
-  /// providers. The [providers] callback builds a single combined state by
-  /// reading provider values through `.watch`. ProviderKit automatically tracks
-  /// every watched provider and re-evaluates the combined state whenever any of
-  /// those providers change.
+  /// listenables. The [listenables] callback builds a single combined state by
+  /// reading listenables state through `.watch`. ProviderKit automatically tracks
+  /// every watched listenable and re-evaluates the combined state whenever any of
+  /// those listenables change.
   ///
-  /// The combined state returned by [providers] is passed to [listener] and
+  /// The combined state returned by [listenables] is passed to [listener] and
   /// [listenWhen]. It can be any Dart type, including a record, list, or custom
   /// object.
   ///
@@ -111,8 +111,8 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   ///
   /// ```dart
   /// StateListener.multi(
-  ///   providers: () => (
-  ///     user: userProvider.watch,
+  ///   listenables: () => (
+  ///     user: userNotifier.watch,
   ///     loading: loadingField.watch,
   ///     save: saveMutation.watch,
   ///   ),
@@ -125,11 +125,11 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// );
   /// ```
   ///
-  /// A list can be used when working with multiple providers of the same type:
+  /// A list is useful when working with multiple listenables of the same type:
   ///
   /// ```dart
   /// StateListener.multi(
-  ///   providers: () => mutations
+  ///   listenables: () => mutations
   ///       .map((mutation) => mutation.watch)
   ///       .toList(),
   ///   listener: (context, state) {
@@ -145,8 +145,8 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   ///
   /// ```dart
   /// StateListener.multi(
-  ///   providers: () => CombinedState(
-  ///     user: userProvider.watch,
+  ///   listenables: () => CombinedState(
+  ///     user: userNotifier.watch,
   ///     loading: loadingField.watch,
   ///   ),
   ///   listener: (context, state) {
@@ -158,24 +158,27 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// {@endtemplate}
   const factory StateListener.multi({
     Key? key,
-    required MultiStateProviders<T> providers,
+    required MultiStateListenables<T> listenables,
     required ListenerCallback<T> listener,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit,
     Widget? child,
   }) = _MultiStateListener<T>;
 
-  /// Resolves the provider from the current [BuildContext] (e.g., via [Provider]).
+  /// {@template provider_kit.state_widget.of}
+  /// Resolves a [StateListenable] from the current [BuildContext] by its type.
   ///
-  /// Use this when the provider is available in the widget tree:
+  /// Use this when a listenable has already been exposed in the widget tree,
+  /// for example through `Provider` from the `provider` package.
   ///
+  /// {@endtemplate}
   /// ```dart
-  /// StateListener.of<MyProvider, MyState>(
+  /// StateListener.of<MyStateListenable, MyState>(
   ///   listener: (context, state) {
   ///     // React to state changes.
   ///   },
   ///   child: SomeWidget(),
-  /// )
+  /// );
   /// ```
   static Widget of<P extends StateListenable<T>, T>({
     Key? key,

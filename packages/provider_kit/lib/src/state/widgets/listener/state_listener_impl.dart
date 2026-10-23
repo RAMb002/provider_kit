@@ -5,11 +5,11 @@ class _StateListener<T>
   const _StateListener({
     super.key,
     required super.listener,
-    required StateListenable<T> provider,
+    required StateListenable<T> listenable,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super(provider: provider);
+  }) : super(listenable: listenable);
 }
 
 /// Shared implementation for callback-based [StateListener] variants.
@@ -17,7 +17,7 @@ abstract class _CallbackStateListenerBase<P extends StateListenable<T>, T>
     extends StateListenerBase<P, T> {
   const _CallbackStateListenerBase({
     super.key,
-    required super.provider,
+    required super.listenable,
     required this.listener,
     super.listenWhen,
     super.callListenerOnInit,

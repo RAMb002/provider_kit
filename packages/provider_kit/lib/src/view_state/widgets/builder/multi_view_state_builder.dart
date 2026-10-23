@@ -4,7 +4,7 @@ part of 'view_state_builder.dart';
 class _MultiViewStateBuilder<T> extends MultiViewStateBuilderBase<T> {
   const _MultiViewStateBuilder({
     super.key,
-    required super.providers,
+    required super.listenables,
     required super.dataBuilder,
     super.initialBuilder,
     super.errorBuilder,
@@ -15,14 +15,14 @@ class _MultiViewStateBuilder<T> extends MultiViewStateBuilderBase<T> {
   });
 }
 
-/// Base class for multi-provider [ViewStateBuilder] implementations.
+/// Base class for multi-listenable [ViewStateBuilder] implementations.
 ///
-/// Provides the configuration and behavior shared by multi-provider
+/// Provides the configuration and behavior shared by multi-listenable
 /// ViewState builders.
 abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
   const MultiViewStateBuilderBase({
     super.key,
-    required this.providers,
+    required this.listenables,
     required super.dataBuilder,
     super.initialBuilder,
     super.errorBuilder,
@@ -32,15 +32,15 @@ abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
     super.isSliver = false,
   }) : super.base();
 
-  /// {@macro provider_kit.multi_view_state.provider_param}
-  final MultiStateProviders<T> providers;
+  /// {@macro provider_kit.multi_view_state.listenables_param}
+  final MultiStateListenables<T> listenables;
 
   /// {@template provider_kit.multi_view_state_builder.rebuild_when}
   /// Determines whether the widget should rebuild when the combined view state
   /// changes.
   ///
   /// The callback receives the previous and current combined states returned
-  /// by [providers].
+  /// by [listenables].
   ///
   /// When omitted, the widget rebuilds whenever ProviderKit detects a change
   /// in the combined state.
@@ -79,7 +79,10 @@ abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
 
     properties
       ..add(
-        ObjectFlagProperty<MultiStateProviders<T>>.has('providers', providers),
+        ObjectFlagProperty<MultiStateListenables<T>>.has(
+          'listenables',
+          listenables,
+        ),
       )
       ..add(
         ObjectFlagProperty<RebuildWhen<T>?>.has('rebuildWhen', rebuildWhen),
@@ -92,7 +95,7 @@ class _MultiViewStateBuilderBaseState<T>
   @override
   Widget build(BuildContext context) {
     return MultiViewStateEngine<T>(
-      providers: widget.providers,
+      listenables: widget.listenables,
       widgetName: widget.debugWidgetName,
       rebuildWhen: widget.rebuildWhen,
       builder: widget._buildState,

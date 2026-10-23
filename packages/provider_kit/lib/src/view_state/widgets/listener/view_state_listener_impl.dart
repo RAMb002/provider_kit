@@ -7,7 +7,7 @@ class _ViewStateListener<T>
     extends ViewStateListenerBase<ViewStateNotifier<T>, T> {
   const _ViewStateListener({
     super.key,
-    required ViewStateNotifier<T> provider,
+    required ViewStateNotifier<T> listenable,
     super.initialStateListener,
     super.loadingStateListener,
     super.emptyStateListener,
@@ -16,5 +16,5 @@ class _ViewStateListener<T>
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
-  }) : super(provider: provider);
+  }) : super(listenable: listenable);
 }

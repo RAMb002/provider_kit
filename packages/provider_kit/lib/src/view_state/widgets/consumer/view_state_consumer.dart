@@ -22,22 +22,19 @@ part 'view_state_consumer_of.dart';
 /// to different view states such as `InitialState`, `LoadingState`,
 /// `DataState<T>`, `EmptyState`, and `ErrorState`.
 ///
-/// If the provider is available through the current [BuildContext] (e.g.,
-/// via [Provider]), use [ViewStateConsumer.of] to resolve it from the
-/// widget tree.
-///
 /// If the user does not supply a builder for an optional state, the corresponding widget from the
 /// `ViewStateWidgetsProvider` inherited widget will be used.
 ///
-/// - Use [ViewStateConsumer] to build UI and listen to a single provider.
-/// - Use [ViewStateConsumer.of] to resolve a provider from the widget tree.
-/// - Use [ViewStateConsumer.multi] to build UI and listen to multiple providers.
+/// - Use [ViewStateConsumer] to build UI and listen to a single view-state notifier.
+/// - Use [ViewStateConsumer.of] to retrieve a view-state notifier from the widget tree.
+/// - Use [ViewStateConsumer.multi] to build UI and listen to multiple view-state
+///   notifiers.
 ///
 ///
 /// ### Example Usage:
 /// ```dart
-/// ViewStateConsumer<DataType>(
-///   provider: provider,
+/// ViewStateConsumer(
+///   listenable: myViewStateNotifier,
 ///   dataBuilder: (data) {
 ///     return ...;
 ///   },
@@ -50,11 +47,11 @@ part 'view_state_consumer_of.dart';
 /// )
 /// ```
 ///
-/// If the provider is available through the current [BuildContext] (e.g., via [Provider]),
-/// you can use [ViewStateConsumer.of] to resolve it from the widget tree:
+/// If the view-state notifier is available in the widget tree (e.g., exposed through
+/// `Provider`), you can use [ViewStateConsumer.of] to retrieve it:
 ///
 /// ```dart
-/// ViewStateConsumer.of<MyProvider, DataType>(
+/// ViewStateConsumer.of<MyViewStateNotifier, DataType>(
 ///   dataBuilder: (data) {
 ///     return ...;
 ///   },
@@ -64,17 +61,17 @@ part 'view_state_consumer_of.dart';
 /// )
 /// ```
 ///
-/// ### Using Multiple Providers
+/// ### Using Multiple View-State Notifiers
 ///
 /// Use [ViewStateConsumer.multi] when the UI depends on multiple
-/// [ViewStateNotifier] providers. Providers are read through `.watch` and
+/// view-state notifiers. Their values are read through `.watch` and
 /// automatically tracked by ProviderKit.
 ///
 /// ```dart
 /// ViewStateConsumer.multi(
-///   providers: () => (
-///     user: userProvider.watch,
-///     profile: profileProvider.watch,
+///   listenables: () => (
+///     user: userNotifier.watch,
+///     profile: profileNotifier.watch,
 ///   ),
 ///   dataBuilder: (state) {
 ///     return Column(
@@ -91,12 +88,13 @@ part 'view_state_consumer_of.dart';
 /// ```
 ///
 /// The data builder and data listener are invoked only when all watched
-/// providers are in [DataState]. The combined value returned by [providers]
-/// is passed unchanged to both callbacks, preserving its original type. Each
-/// value is a [ViewState], and its `.data` getter provides the underlying data.
+/// view-state notifiers are in [DataState]. The combined value returned by
+/// [listenables] is passed unchanged to both callbacks, preserving its original
+/// type. Each value is a [ViewState], and its `.data` getter provides the
+/// underlying data.
 ///
 /// See [ViewStateConsumer.multi] for details on building UI and handling
-/// callbacks for multiple providers.
+/// callbacks for multiple view-state notifiers.
 /// {@endtemplate}
 abstract class ViewStateConsumer<T> extends StatefulWidget {
   const ViewStateConsumer.base({
@@ -153,10 +151,10 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
 
   /// {@macro provider_kit.view_state_consumer}
   ///
-  /// Listens to a directly provided [ViewStateNotifier].
+  /// Listens to the supplied [ViewStateNotifier] and builds the corresponding UI.
   const factory ViewStateConsumer({
     Key? key,
-    required ViewStateNotifier<T> provider,
+    required ViewStateNotifier<T> listenable,
     required DataStateBuilder<T> dataBuilder,
     InitialStateBuilder? initialBuilder,
     LoadingStateBuilder? loadingBuilder,
@@ -174,13 +172,11 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   }) = _ViewStateConsumer<T>;
 
   /// {@template provider_kit.multi_view_state_consumer.description}
-  /// A widget that both builds its UI and listens to multiple providers using
-  /// their combined ViewState.
+  /// A widget that builds its UI and listens to multiple view-state notifiers
+  /// using their combined ViewState.
   /// {@endtemplate}
   ///
-  /// {@macro provider_kit.multi_view_state.provider_param}
-  ///
-  /// {@macro provider_kit.multi_view_state.provider_requirement}
+  /// {@macro provider_kit.multi_view_state.listenables_param}
   ///
   /// {@macro provider_kit.multi_view_state.aggregation}
   ///
@@ -188,25 +184,26 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///
   /// ### Parameters
   ///
-  /// - **[providers]** — Builds the combined state from one or more providers.
+  /// - **[listenables]** — Builds the combined state from one or more view-state
+  ///   notifiers.
   /// - **[initialBuilder]** — Builds the UI when the combined state is initial.
   /// - **[loadingBuilder]** — Builds the UI when the combined state is loading.
   /// - **[emptyBuilder]** — Builds the UI when the combined state is empty.
   /// - **[errorBuilder]** — Builds the UI when the combined state contains an
-  ///   error and receives a retry callback for all currently errored providers
-  ///   that have a retry operation available.
+  ///   error and receives a retry callback for all currently errored view-state
+  ///   notifiers that have a retry operation available.
   /// - **[dataBuilder]** — Builds the UI when the combined state is data and
-  ///   receives the exact value returned by [providers].
+  ///   receives the exact value returned by [listenables].
   /// - **[initialStateListener]** — Handles the combined initial state.
   /// - **[loadingStateListener]** — Handles the combined loading state and
   ///   receives the first loading message and the average of the available
   ///   loading progress values.
   /// - **[emptyStateListener]** — Handles the combined empty state.
   /// - **[errorStateListener]** — Handles the first error state and receives a
-  ///   retry callback for all currently errored providers that have a retry
-  ///   operation available.
+  ///   retry callback for all currently errored view-state notifiers that have a
+  ///   retry operation available.
   /// - **[dataStateListener]** — Handles the combined data state and receives
-  ///   the exact value returned by [providers].
+  ///   the exact value returned by [listenables].
   /// - **[rebuildWhen]** — Determines whether the widget should rebuild when the
   ///   combined state changes.
   /// - **[listenWhen]** — Determines whether the listener should be called when
@@ -221,14 +218,14 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///
   /// ### Usage
   ///
-  /// A record can be used when providers have different state types:
+  /// A record can be used when combining view-state notifiers of different types:
   ///
   /// ```dart
   /// ViewStateConsumer.multi(
-  ///   providers: () => (
-  ///     user: userProvider.watch,
-  ///     profile: profileProvider.watch,
-  ///     settings: settingsProvider.watch,
+  ///   listenables: () => (
+  ///     user: userNotifier.watch,
+  ///     profile: profileNotifier.watch,
+  ///     settings: settingsNotifier.watch,
   ///   ),
   ///   dataBuilder: (state) {
   ///     return Column(
@@ -249,9 +246,9 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///
   /// ```dart
   /// ViewStateConsumer.multi(
-  ///   providers: () => [
-  ///     firstProvider.watch,
-  ///     secondProvider.watch,
+  ///   listenables: () => [
+  ///     firstNotifier.watch,
+  ///     secondNotifier.watch,
   ///   ],
   ///   dataBuilder: (state) {
   ///     return Column(
@@ -270,9 +267,9 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///
   /// ```dart
   /// ViewStateConsumer.multi(
-  ///   providers: () => CombinedState(
-  ///     user: userProvider.watch,
-  ///     profile: profileProvider.watch,
+  ///   listenables: () => CombinedState(
+  ///     user: userNotifier.watch,
+  ///     profile: profileNotifier.watch,
   ///   ),
   ///   dataBuilder: (state) {
   ///     return Text(state.user.data.toString());
@@ -285,7 +282,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   /// {@endtemplate}
   const factory ViewStateConsumer.multi({
     Key? key,
-    required MultiStateProviders<T> providers,
+    required MultiStateListenables<T> listenables,
     required DataStateBuilder<T> dataBuilder,
     InitialStateBuilder? initialBuilder,
     LoadingStateBuilder? loadingBuilder,
@@ -302,13 +299,10 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
     bool isSliver,
   }) = _MultiViewStateConsumer<T>;
 
-  /// Resolves the provider from the current [BuildContext].
-  ///
-  /// Use this when the provider is available in the widget tree, for example
-  /// through [Provider].
+  /// {@macro provider_kit.view_state_widget.of}
   ///
   /// ```dart
-  /// ViewStateConsumer.of<MyProvider, User>(
+  /// ViewStateConsumer.of<MyViewStateNotifier, User>(
   ///   dataBuilder: (user) => Text(user.name),
   ///   dataStateListener: (user) {
   ///     // Handle the data state.
