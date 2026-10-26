@@ -4,9 +4,12 @@
 /// [ErrorInfo] provides structured information about an error that can be used
 /// by application logic or presentation code.
 ///
-/// It contains mapped error information such as a human-readable [message] and
-/// an optional machine-readable [code], while the original error and its stack
-/// trace remain available separately.
+/// [message] may contain literal text or a localization key. When an error
+/// is displayed through ProviderKit's view-state widgets, the message is
+/// resolved using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
+///
+/// [code] optionally provides a machine-readable identifier for the error.
 ///
 ///
 /// ### Example
@@ -22,7 +25,11 @@ final class ErrorInfo {
   /// {@macro provider_kit.error_info}
   const ErrorInfo({required this.message, this.code});
 
-  /// A human-readable description of the error.
+  /// The message associated with the error.
+  ///
+  /// It may contain literal text or a localization key. ProviderKit's
+  /// view-state widgets resolve it for display using the configured
+  /// `ViewStateWidgetsProvider.messageResolver`
   final String message;
 
   /// An optional machine-readable error code.

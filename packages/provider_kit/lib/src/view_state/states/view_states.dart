@@ -12,6 +12,12 @@ import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart'
 ///
 /// Use the concrete state classes such as [InitialState], [LoadingState],
 /// [DataState], [EmptyState], and [ErrorState] to represent the current state.
+///
+/// Messages carried by [LoadingState] and [EmptyState], along with
+/// [ErrorInfo.message] in [ErrorState], are stored as provided. This class
+/// does not localize them. ProviderKit's view-state widgets resolve these
+/// messages for display using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
 /// {@endtemplate}
 sealed class ViewState<T> {
   /// {@macro provider_kit.view_state}
@@ -326,7 +332,11 @@ class InitialState<T> extends ViewState<T> {
 
 /// Represents the loading state of a view.
 ///
-/// [message] optionally describes the current loading operation.
+/// [message] optionally describes the current loading operation. It may be
+/// literal text or a localization key. ProviderKit's view-state widgets
+/// resolve the message for display using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
+///
 /// [progress] optionally indicates the loading progress.
 class LoadingState<T> extends ViewState<T> {
   final String? message;
@@ -351,7 +361,10 @@ class LoadingState<T> extends ViewState<T> {
 
 /// Represents the empty state of a view.
 ///
-/// [message] optionally describes why no data is available.
+/// [message] optionally describes why no data is available. It may be
+/// literal text or a localization key. ProviderKit's view-state widgets
+/// resolve the message for display using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
 class EmptyState<T> extends ViewState<T> {
   final String? message;
   const EmptyState([this.message]);
@@ -417,6 +430,10 @@ class ErrorState<T> extends ViewState<T> {
   final VoidCallback? onRetry;
 
   /// The message provided by [errorInfo].
+  ///
+  /// The message may be literal text or a localization key. ProviderKit's
+  /// view-state widgets resolve it for display using the configured
+  /// `ViewStateWidgetsProvider.messageResolver`.
   String get message => errorInfo.message;
 
   ErrorState(this.error, this.stackTrace, {ErrorInfo? errorInfo, this.onRetry})

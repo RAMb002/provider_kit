@@ -53,9 +53,10 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     );
   }
 
-  void _handleStateChange(BuildContext _, ViewState<T> state) {
+  void _handleStateChange(BuildContext context, ViewState<T> state) {
     ViewStateWidgetUtils.handleListener<T>(
       state: state,
+      context: context,
       initialStateListener: initialStateListener,
       loadingStateListener: loadingStateListener,
       dataStateListener: dataStateListener,

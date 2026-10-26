@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
+import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/view_state/notifiers/async/async_notifiers.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
@@ -27,9 +28,10 @@ abstract class ViewStateWidgetUtils {
     double? progress,
     bool isSliver,
   ) {
+    final resolvedMessage = context.resolveViewStateMessage(message);
     return loadingBuilder != null
-        ? loadingBuilder(message, progress, isSliver)
-        : context.loadingStateWidget(message, progress, isSliver);
+        ? loadingBuilder(resolvedMessage, progress, isSliver)
+        : context.loadingStateWidget(resolvedMessage, progress, isSliver);
   }
 
   static Widget buildEmptyWidget(
@@ -38,9 +40,10 @@ abstract class ViewStateWidgetUtils {
     String? message,
     bool isSliver,
   ) {
+    final resolvedMessage = context.resolveViewStateMessage(message);
     return emptyBuilder != null
-        ? emptyBuilder(message, isSliver)
-        : context.emptyStateWidget(message, isSliver);
+        ? emptyBuilder(resolvedMessage, isSliver)
+        : context.emptyStateWidget(resolvedMessage, isSliver);
   }
 
   static Widget buildStateWidget<P, T>(
@@ -101,17 +104,21 @@ abstract class ViewStateWidgetUtils {
     bool isSliver,
   ) {
     final effectiveOnRetry =
-        errorState.onRetry ?? _getOnRetryFromListenable<P, T>(context, listenable);
+        errorState.onRetry ??
+        _getOnRetryFromListenable<P, T>(context, listenable);
+
+    final resolvedErrorInfo = _resolveErrorInfo(context, errorState.errorInfo);
+
     return errorBuilder != null
         ? errorBuilder(
-            errorState.errorInfo,
+            resolvedErrorInfo,
             errorState.error,
             errorState.stackTrace,
             effectiveOnRetry,
             isSliver,
           )
         : context.errorStateWidget(
-            errorState.errorInfo,
+            resolvedErrorInfo,
             errorState.error,
             errorState.stackTrace,
             effectiveOnRetry,
@@ -119,7 +126,22 @@ abstract class ViewStateWidgetUtils {
           );
   }
 
+  static ErrorInfo _resolveErrorInfo(
+    BuildContext context,
+    ErrorInfo errorInfo,
+  ) {
+    final resolvedMessage =
+        context.resolveViewStateMessage(errorInfo.message) ?? errorInfo.message;
+
+    if (resolvedMessage == errorInfo.message) {
+      return errorInfo;
+    }
+
+    return ErrorInfo(message: resolvedMessage, code: errorInfo.code);
+  }
+
   static void handleListener<T>({
+    required BuildContext context,
     required ViewState<T> state,
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,
@@ -132,16 +154,24 @@ abstract class ViewStateWidgetUtils {
         initialStateListener?.call();
       },
       loadingState: (message, progress) {
-        loadingStateListener?.call(message, progress);
+        loadingStateListener?.call(
+          context.resolveViewStateMessage(message),
+          progress,
+        );
       },
       dataState: (data) {
         dataStateListener?.call(data);
       },
       emptyState: (message) {
-        emptyStateListener?.call(message);
+        emptyStateListener?.call(context.resolveViewStateMessage(message));
       },
       errorState: (errorInfo, error, stackTrace, onRetry) {
-        errorStateListener?.call(errorInfo, error, stackTrace, onRetry);
+        errorStateListener?.call(
+          _resolveErrorInfo(context, errorInfo),
+          error,
+          stackTrace,
+          onRetry,
+        );
       },
     );
   }
