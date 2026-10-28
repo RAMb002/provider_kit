@@ -12,6 +12,7 @@ class _MultiViewStateBuilder<T> extends MultiViewStateBuilderBase<T> {
     super.emptyBuilder,
     super.rebuildWhen,
     super.isSliver,
+    super.child,
   });
 }
 
@@ -30,6 +31,7 @@ abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
     super.emptyBuilder,
     this.rebuildWhen,
     super.isSliver = false,
+    super.child,
   }) : super.base();
 
   /// {@macro provider_kit.multi_view_state.listenables_param}
@@ -70,6 +72,7 @@ abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
       loadingBuilder,
       emptyBuilder,
       dataBuilder,
+      child
     );
   }
 
@@ -99,6 +102,7 @@ class _MultiViewStateBuilderBaseState<T>
       widgetName: widget.debugWidgetName,
       rebuildWhen: widget.rebuildWhen,
       builder: widget._buildState,
+      child: widget.child,
     );
   }
 }

@@ -211,6 +211,7 @@ final class MultiViewStateUtils {
   }
 
   static void handleListener<T>(
+    BuildContext context,
     T state,
     MultiViewStateAggregate aggregate,
     ErrorStateListener? errorStateListener,
@@ -225,27 +226,36 @@ final class MultiViewStateUtils {
           aggregate.retryableListenables ?? const [],
         );
 
-        errorStateListener?.call(
-          aggregate.errorInfo!,
-          aggregate.error!,
-          aggregate.stackTrace!,
-          onRetry,
+        final errorDetails = ErrorStateDetails(
+          errorInfo: ViewStateWidgetUtils.resolveErrorInfo(
+            context,
+            aggregate.errorInfo!,
+          ),
+          error: aggregate.error!,
+          stackTrace: aggregate.stackTrace!,
+          onRetry: onRetry,
         );
+
+        errorStateListener?.call(context, errorDetails);
 
       case MultiViewStateStatus.initial:
-        initialStateListener?.call();
+        initialStateListener?.call(context);
 
       case MultiViewStateStatus.loading:
-        loadingStateListener?.call(
-          aggregate.loadingMessage,
-          aggregate.loadingProgress,
+        final loadingDetails = LoadingStateDetails(
+          message: context.resolveViewStateMessage(aggregate.loadingMessage),
+          progress: aggregate.loadingProgress,
         );
+        loadingStateListener?.call(context, loadingDetails);
 
       case MultiViewStateStatus.empty:
-        emptyStateListener?.call(aggregate.emptyMessage);
+        final emptyStateDetails = EmptyStateDetails(
+          message: context.resolveViewStateMessage(aggregate.emptyMessage),
+        );
+        emptyStateListener?.call(context, emptyStateDetails);
 
       case MultiViewStateStatus.data:
-        dataStateListener?.call(state);
+        dataStateListener?.call(context, state);
     }
   }
 
@@ -259,6 +269,7 @@ final class MultiViewStateUtils {
     LoadingStateBuilder? loadingBuilder,
     EmptyStateBuilder? emptyBuilder,
     DataStateBuilder<T> dataBuilder,
+    Widget? child,
   ) {
     switch (aggregate.status) {
       case MultiViewStateStatus.error:
@@ -289,7 +300,7 @@ final class MultiViewStateUtils {
         );
 
       case MultiViewStateStatus.data:
-        return dataBuilder(state);
+        return dataBuilder(context, state, child);
     }
   }
 
@@ -303,19 +314,17 @@ final class MultiViewStateUtils {
       aggregate.retryableListenables ?? const [],
     );
 
-    return errorBuilder?.call(
-          aggregate.errorInfo!,
-          aggregate.error!,
-          aggregate.stackTrace!,
-          onRetry,
-          isSliver,
-        ) ??
-        context.errorStateWidget(
-          aggregate.errorInfo!,
-          aggregate.error!,
-          aggregate.stackTrace!,
-          onRetry,
-          isSliver,
-        );
+    final details = ErrorStateDetails(
+      errorInfo: ViewStateWidgetUtils.resolveErrorInfo(
+        context,
+        aggregate.errorInfo!,
+      ),
+      error: aggregate.error!,
+      stackTrace: aggregate.stackTrace!,
+      onRetry: onRetry,
+    );
+
+    return errorBuilder?.call(context, details) ??
+        context.errorStateWidget(context, details, isSliver);
   }
 }

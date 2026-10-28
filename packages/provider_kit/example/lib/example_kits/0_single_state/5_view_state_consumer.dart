@@ -17,10 +17,11 @@ class ViewStateConsumerExample extends StatelessWidget {
         return ScaffoldWithButton(
             title: "View State Consumer",
             child: ViewStateConsumer.of<ItemsProvider, List<Item>>(
-              initialStateListener: () => context.showToast('initial'),
+              initialStateListener: (context) => context.showToast('initial'),
               callListenerOnInit: true,
-              dataStateListener: (data) => context.showToast(data.toString()),
-              dataBuilder: (data) => Text(data.toString()),
+              dataStateListener: (context, data) =>
+                  context.showToast(data.toString()),
+              dataBuilder: (context, data, _) => Text(data.toString()),
             ));
       },
     );

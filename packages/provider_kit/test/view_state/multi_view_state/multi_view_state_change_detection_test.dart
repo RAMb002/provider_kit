@@ -455,7 +455,7 @@ void main() {
     );
 
     testWidgets(
-      'uses the latest retry callback from a later error provider without rebuilding or',
+      'uses the latest retry callback from a later error provider without rebuilding or listening again',
       (tester) async {
         int firstRetryCalls = 0;
         int oldSecondRetryCalls = 0;
@@ -495,12 +495,12 @@ void main() {
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
             callListenerOnInit: true,
-            onErrorBuilder: (_, __, ___, onRetry, ____) {
-              errorBuilderRetry = onRetry;
+            onErrorBuilder: (_, details) {
+              errorBuilderRetry = details.onRetry;
               return const SizedBox();
             },
-            onErrorListener: (_, __, ___, onRetry) {
-              errorListenerRetry = onRetry;
+            onErrorListener: (_, details) {
+              errorListenerRetry = details.onRetry;
             },
           ),
         );
@@ -776,7 +776,7 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ViewStateListener.multi(
               listenables: () => (useProvider1 ? provider1 : provider2).watch,
-              dataStateListener: (_) => listenerCount++,
+              dataStateListener: (_, __) => listenerCount++,
               child: const SizedBox(),
             ),
           );
@@ -924,7 +924,7 @@ Widget _buildConsumer<T>({
         onBuild();
         return const SizedBox();
       },
-      loadingBuilder: (_, __, ___) {
+      loadingBuilder: (_, __) {
         onBuild();
         return const SizedBox();
       },
@@ -932,29 +932,22 @@ Widget _buildConsumer<T>({
         onBuild();
         return const SizedBox();
       },
-      errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
+      errorBuilder: (context, details) {
         onBuild();
-        return onErrorBuilder?.call(
-              errorInfo,
-              error,
-              stackTrace,
-              onRetry,
-              isSliver,
-            ) ??
-            const SizedBox();
+        return onErrorBuilder?.call(context, details) ?? const SizedBox();
       },
-      dataBuilder: (_) {
+      dataBuilder: (_, __, ___) {
         onBuild();
         return const SizedBox();
       },
-      initialStateListener: onListen,
+      initialStateListener: (_) => onListen(),
       loadingStateListener: (_, __) => onListen(),
-      emptyStateListener: (_) => onListen(),
-      errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+      emptyStateListener: (_, __) => onListen(),
+      errorStateListener: (context, details) {
         onListen();
-        onErrorListener?.call(errorInfo, error, stackTrace, onRetry);
+        onErrorListener?.call(context, details);
       },
-      dataStateListener: (_) => onListen(),
+      dataStateListener: (_, __) => onListen(),
       listenWhen: listenWhen,
       rebuildWhen: rebuildWhen,
     ),

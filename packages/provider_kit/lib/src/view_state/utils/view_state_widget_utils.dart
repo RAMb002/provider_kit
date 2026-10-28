@@ -8,6 +8,7 @@ import 'package:provider_kit/src/view_state/notifiers/async/async_notifiers.dart
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/widgets/view_state_details.dart';
 
 @internal
 abstract class ViewStateWidgetUtils {
@@ -17,8 +18,8 @@ abstract class ViewStateWidgetUtils {
     bool isSliver,
   ) {
     return initialBuilder != null
-        ? initialBuilder(isSliver)
-        : context.initialStateWidget(isSliver);
+        ? initialBuilder(context)
+        : context.initialStateWidget(context, isSliver);
   }
 
   static Widget buildLoadingWidget(
@@ -28,10 +29,14 @@ abstract class ViewStateWidgetUtils {
     double? progress,
     bool isSliver,
   ) {
-    final resolvedMessage = context.resolveViewStateMessage(message);
+    final details = LoadingStateDetails(
+      message: context.resolveViewStateMessage(message),
+      progress: progress,
+    );
+
     return loadingBuilder != null
-        ? loadingBuilder(resolvedMessage, progress, isSliver)
-        : context.loadingStateWidget(resolvedMessage, progress, isSliver);
+        ? loadingBuilder(context, details)
+        : context.loadingStateWidget(context, details, isSliver);
   }
 
   static Widget buildEmptyWidget(
@@ -40,10 +45,12 @@ abstract class ViewStateWidgetUtils {
     String? message,
     bool isSliver,
   ) {
-    final resolvedMessage = context.resolveViewStateMessage(message);
+    final details = EmptyStateDetails(
+      message: context.resolveViewStateMessage(message),
+    );
     return emptyBuilder != null
-        ? emptyBuilder(resolvedMessage, isSliver)
-        : context.emptyStateWidget(resolvedMessage, isSliver);
+        ? emptyBuilder(context, details)
+        : context.emptyStateWidget(context, details, isSliver);
   }
 
   static Widget buildStateWidget<P, T>(
@@ -56,6 +63,7 @@ abstract class ViewStateWidgetUtils {
     LoadingStateBuilder? loadingBuilder,
     EmptyStateBuilder? emptyBuilder,
     bool isSliver,
+    Widget? child,
   ) {
     switch (state) {
       case InitialState<T>():
@@ -92,7 +100,7 @@ abstract class ViewStateWidgetUtils {
         );
 
       case DataState<T>():
-        return dataBuilder(state.data);
+        return dataBuilder(context, state.data, child);
     }
   }
 
@@ -107,29 +115,21 @@ abstract class ViewStateWidgetUtils {
         errorState.onRetry ??
         _getOnRetryFromListenable<P, T>(context, listenable);
 
-    final resolvedErrorInfo = _resolveErrorInfo(context, errorState.errorInfo);
+    final resolvedErrorInfo = resolveErrorInfo(context, errorState.errorInfo);
+
+    final details = ErrorStateDetails(
+      errorInfo: resolvedErrorInfo,
+      error: errorState.error,
+      stackTrace: errorState.stackTrace,
+      onRetry: effectiveOnRetry,
+    );
 
     return errorBuilder != null
-        ? errorBuilder(
-            resolvedErrorInfo,
-            errorState.error,
-            errorState.stackTrace,
-            effectiveOnRetry,
-            isSliver,
-          )
-        : context.errorStateWidget(
-            resolvedErrorInfo,
-            errorState.error,
-            errorState.stackTrace,
-            effectiveOnRetry,
-            isSliver,
-          );
+        ? errorBuilder(context, details)
+        : context.errorStateWidget(context, details, isSliver);
   }
 
-  static ErrorInfo _resolveErrorInfo(
-    BuildContext context,
-    ErrorInfo errorInfo,
-  ) {
+  static ErrorInfo resolveErrorInfo(BuildContext context, ErrorInfo errorInfo) {
     final resolvedMessage =
         context.resolveViewStateMessage(errorInfo.message) ?? errorInfo.message;
 
@@ -140,9 +140,10 @@ abstract class ViewStateWidgetUtils {
     return ErrorInfo(message: resolvedMessage, code: errorInfo.code);
   }
 
-  static void handleListener<T>({
+  static void handleListener<P, T>({
     required BuildContext context,
     required ViewState<T> state,
+    required P? listenable,
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,
     DataStateListener<T>? dataStateListener,
@@ -151,27 +152,38 @@ abstract class ViewStateWidgetUtils {
   }) {
     state.when(
       initialState: () {
-        initialStateListener?.call();
+        initialStateListener?.call(context);
       },
       loadingState: (message, progress) {
-        loadingStateListener?.call(
-          context.resolveViewStateMessage(message),
-          progress,
+        final loadingDetails = LoadingStateDetails(
+          message: context.resolveViewStateMessage(message),
+          progress: progress,
         );
+
+        loadingStateListener?.call(context, loadingDetails);
       },
       dataState: (data) {
-        dataStateListener?.call(data);
+        dataStateListener?.call(context, data);
       },
       emptyState: (message) {
-        emptyStateListener?.call(context.resolveViewStateMessage(message));
+        final emptyDetails = EmptyStateDetails(
+          message: context.resolveViewStateMessage(message),
+        );
+
+        emptyStateListener?.call(context, emptyDetails);
       },
       errorState: (errorInfo, error, stackTrace, onRetry) {
-        errorStateListener?.call(
-          _resolveErrorInfo(context, errorInfo),
-          error,
-          stackTrace,
-          onRetry,
+        final effectiveOnRetry =
+            onRetry ?? _getOnRetryFromListenable<P, T>(context, listenable);
+
+        final errorDetails = ErrorStateDetails(
+          errorInfo: resolveErrorInfo(context, errorInfo),
+          error: error,
+          stackTrace: stackTrace,
+          onRetry: effectiveOnRetry,
         );
+
+        errorStateListener?.call(context, errorDetails);
       },
     );
   }

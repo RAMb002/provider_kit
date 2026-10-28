@@ -17,6 +17,7 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
     super.loadingBuilder,
     super.emptyBuilder,
     super.isSliver = false,
+    super.child,
   }) : super.base();
 
   /// {@macro provider_kit.view_state_widget.listenable}
@@ -43,6 +44,7 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
       loadingBuilder,
       emptyBuilder,
       isSliver,
+      child
     );
   }
 
@@ -74,6 +76,7 @@ class _ViewStateBuilderBaseState<P extends ViewStateNotifier<T>, T>
       rebuildWhen: widget.rebuildWhen,
       builder: widget._buildState,
       widgetName: widget.debugWidgetName,
+      child: widget.child,
     );
   }
 }

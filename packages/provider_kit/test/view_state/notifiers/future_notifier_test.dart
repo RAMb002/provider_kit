@@ -17,6 +17,8 @@ class TestFutureNotifier<T> extends FutureNotifier<T> {
     required this.buildImpl,
     super.initialState,
     super.disableEmptyState,
+    super.loadingMessage,
+    super.emptyMessage,
   });
 
   final Future<T> Function(int buildNumber) buildImpl;
@@ -233,6 +235,64 @@ void main() {
 
           expect(notifier.buildCount, 1);
           expect(notifier.state, const DataState<String>('loaded'));
+        },
+      );
+
+      test(
+        'uses configured messages for generated loading and empty states',
+        () async {
+          final rebuildGate = Completer<List<int>>();
+
+          final notifier = TestFutureNotifier<List<int>>(
+            loadingMessage: 'products.loading',
+            emptyMessage: 'products.empty',
+            buildImpl: (buildNumber) {
+              if (buildNumber == 1) {
+                return Future<List<int>>.value(<int>[]);
+              }
+
+              return rebuildGate.future;
+            },
+          );
+          addTearDown(notifier.dispose);
+
+          // Initial loading state uses the configured message.
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          // An empty build result uses the configured empty message.
+          await waitForState(
+            notifier,
+            (state) => state is EmptyState<List<int>>,
+          );
+
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+
+          // A rebuild transitions back to loading with the same message.
+          final rebuildFuture = notifier.requestRebuild();
+          await notifier.waitForBuildStart(2);
+
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          // The next empty result also uses the configured empty message.
+          rebuildGate.complete(<int>[]);
+          await rebuildFuture.timeout(_testTimeout);
+
+          expect(notifier.state, isA<EmptyState<List<int>>>());
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
         },
       );
 

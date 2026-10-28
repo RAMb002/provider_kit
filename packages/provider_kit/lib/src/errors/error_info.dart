@@ -25,14 +25,18 @@ final class ErrorInfo {
   /// {@macro provider_kit.error_info}
   const ErrorInfo({required this.message, this.code});
 
+  /// {@template provider_kit.error_info.message}
   /// The message associated with the error.
   ///
   /// It may contain literal text or a localization key. ProviderKit's
   /// view-state widgets resolve it for display using the configured
   /// `ViewStateWidgetsProvider.messageResolver`
+  /// {@endtemplate}
   final String message;
 
+  /// {@template  provider_kit.error_info.code}
   /// An optional machine-readable error code.
+  /// {@endtemplate}
   final String? code;
 
   @override

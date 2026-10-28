@@ -119,8 +119,8 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
     return Center(
       child: ViewStateBuilder<String>(
         listenable: provider,
-        loadingBuilder: (_, __, ___) => const DemoLoadingContent(),
-        dataBuilder: (data) => DemoDataContent(
+        loadingBuilder: (_, __) => const DemoLoadingContent(),
+        dataBuilder: (_, data, __) => DemoDataContent(
           data: data,
         ),
       ),
@@ -137,8 +137,8 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
             _providerOne.watch,
             _providerTwo.watch,
           ],
-          loadingBuilder: (_, __, ___) => const DemoLoadingContent(),
-          dataBuilder: (states) {
+          loadingBuilder: (_, __) => const DemoLoadingContent(),
+          dataBuilder: (_, states, __) {
             final data = states.map((state) => state.data).join(' • ');
 
             return DemoDataContent(

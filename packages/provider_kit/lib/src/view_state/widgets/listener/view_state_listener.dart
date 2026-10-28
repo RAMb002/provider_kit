@@ -30,25 +30,30 @@ part 'view_state_listener_of.dart';
 ///
 /// ### Example Usage:
 /// ```dart
-/// ViewStateListener(
-///   listenable: myViewStateNotifier,
-///   callListenerOnInit: false, // Optional, default is false
-///   initialStateListener: () {
-///     // Handle initial state
+/// ViewStateListener<MyData>(
+///   listenable: myViewStateNotifier, // Required
+///   callListenerOnInit: false, // Optional; defaults to false
+///   listenWhen: (previous, current) => previous != current, // Optional
+///   initialStateListener: (context) {
+///     // Handle initial state.
 ///   },
-///   loadingStateListener: (message, progress) {
-///     // Handle loading state
+///   loadingStateListener: (context, details) {
+///     final message = details.message;
+///     final progress = details.progress;
 ///   },
-///   emptyStateListener: (message) {
-///     // Handle empty state
+///   emptyStateListener: (context, details) {
+///     final message = details.message;
 ///   },
-///   errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-///     // Handle error state
+///   errorStateListener: (context, details) {
+///     final errorInfo = details.errorInfo;
+///     final error = details.error;
+///     final stackTrace = details.stackTrace;
+///     final onRetry = details.onRetry;
 ///   },
-///   dataStateListener: (data) {
-///     // Handle data state
+///   dataStateListener: (context, data) {
+///     // Handle data state.
 ///   },
-///   child: SomeWidget(),
+///   child: const MyPage(),
 /// );
 /// ```
 ///
@@ -56,14 +61,14 @@ part 'view_state_listener_of.dart';
 /// `Provider`), you can use [ViewStateListener.of] to retrieve it:
 ///
 /// ```dart
-/// ViewStateListener.of<MyViewStateNotifier, DataType>(
-///   loadingStateListener: (message, progress) {
-///     // Handle loading state.
+/// ViewStateListener.of<MyViewStateNotifier, MyData>(
+///   loadingStateListener: (context, details) {
+///     // Use details.message and details.progress.
 ///   },
-///   dataStateListener: (data) {
+///   dataStateListener: (context, data) {
 ///     // Handle data state.
 ///   },
-///   child: SomeWidget(),
+///   child: const MyPage(),
 /// );
 /// ```
 /// ### Listening to Multiple View-State Notifiers
@@ -78,12 +83,12 @@ part 'view_state_listener_of.dart';
 ///     user: userNotifier.watch,
 ///     profile: profileNotifier.watch,
 ///   ),
-///   dataStateListener: (state) {
+///   dataStateListener: (context, state) {
 ///     // state.user.data
 ///     // state.profile.data
 ///   },
 ///   child: const MyPage(),
-/// )
+/// );
 /// ```
 ///
 /// The `dataStateListener` receives the combined value returned by the
@@ -92,6 +97,15 @@ part 'view_state_listener_of.dart';
 ///
 /// See [ViewStateListener.multi] for details on listening to multiple
 /// view-state notifiers and handling their combined state.
+///
+/// ### Message localization
+///
+/// Messages in loading and empty states, and error messages, can be plain text
+/// or localization keys. Configure `ViewStateWidgetsProvider.messageResolver`
+/// to resolve these messages into localized text. ProviderKit resolves them
+/// before passing them to the corresponding listener callback. If no resolver
+/// handles a message, the original message is used. Resolving messages does
+/// not modify the stored view state or its original error information.
 ///
 /// {@endtemplate}
 abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
@@ -108,35 +122,41 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
 
   /// {@template provider_kit.view_state.initial_listener}
   /// Called when the view-state notifier is in [InitialState].
+  ///
+  /// The callback receives the current [BuildContext].
   /// {@endtemplate}
   final InitialStateListener? initialStateListener;
 
   /// {@template provider_kit.view_state.loading_listener}
   /// Called when the view-state notifier is in [LoadingState].
   ///
-  /// The callback receives the loading message and progress.
+  /// The callback receives the current [BuildContext] and a
+  /// `LoadingStateDetails` object containing the loading message and progress.
   /// {@endtemplate}
   final LoadingStateListener? loadingStateListener;
 
   /// {@template provider_kit.view_state.empty_listener}
   /// Called when the view-state notifier is in [EmptyState].
   ///
-  /// The callback receives the empty-state message.
+  /// The callback receives the current [BuildContext] and an
+  /// `EmptyStateDetails` object containing the empty-state message.
   /// {@endtemplate}
   final EmptyStateListener? emptyStateListener;
 
   /// {@template provider_kit.view_state.error_listener}
   /// Called when the view-state notifier is in [ErrorState].
   ///
-  /// The callback receives the error information, error, stack trace, and a
-  /// retry callback.
+  /// The callback receives the current [BuildContext] and an
+  /// `ErrorStateDetails` object containing the error information, original
+  /// error, stack trace, and optional retry callback.
   /// {@endtemplate}
   final ErrorStateListener? errorStateListener;
 
   /// {@template provider_kit.view_state.data_listener}
   /// Called when the view-state notifier is in [DataState].
   ///
-  /// The callback receives the data contained in the [DataState].
+  /// The callback receives the current [BuildContext] and the data contained
+  /// in the [DataState].
   /// {@endtemplate}
   final DataStateListener<T>? dataStateListener;
 
@@ -170,21 +190,24 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   /// ### Parameters
   ///
   /// - **[listenables]** — Builds the combined state from one or more view-state
-  ///   notifiers.
-  /// - **[errorStateListener]** — Handles the first error state and receives a
-  ///   retry callback for all currently errored view states that have a retry
-  ///   operation available.
-  /// - **[initialStateListener]** — Handles the combined initial state.
-  /// - **[loadingStateListener]** — Handles the combined loading state and
-  ///   receives the first loading message and the average of the available
-  ///   loading progress values.
-  /// - **[emptyStateListener]** — Handles the combined empty state.
-  /// - **[dataStateListener]** — Handles the combined data state and receives
-  ///   the exact value returned by [listenables].
-  /// - **[listenWhen]** — Determines whether the listener should be called when
-  ///   the combined state changes.
-  /// - **[callListenerOnInit]** — Determines whether the listener should be
-  ///   called after initialization.
+  ///   notifiers through `.watch`.
+  /// - **[errorStateListener]** — Handles the combined error state. Receives the
+  ///   context and `ErrorStateDetails` (error information, original error, stack
+  ///   trace, and optional retry callback). The retry callback retries all
+  ///   errored notifiers that support retrying.
+  /// - **[initialStateListener]** — Handles the combined initial state and
+  ///   receives the context.
+  /// - **[loadingStateListener]** — Handles the combined loading state. Receives
+  ///   the context and `LoadingStateDetails` (first loading message and average
+  ///   of available progress values).
+  /// - **[emptyStateListener]** — Handles the combined empty state. Receives the
+  ///   context and `EmptyStateDetails` (first empty-state message).
+  /// - **[dataStateListener]** — Handles the combined data state. Receives the
+  ///   context and the exact value returned by [listenables].
+  /// - **[listenWhen]** — Controls whether the listener is called when the
+  ///   combined state changes.
+  /// - **[callListenerOnInit]** — Determines whether the listener is called
+  ///   after initialization.
   /// - **[child]** — The child widget displayed by this listener.
   ///
   /// ### Usage
@@ -198,7 +221,7 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///     profile: profileNotifier.watch,
   ///     settings: settingsNotifier.watch,
   ///   ),
-  ///   dataStateListener: (state) {
+  ///   dataStateListener: (context, state) {
   ///     // state.user.data
   ///     // state.profile.data
   ///     // state.settings.data
@@ -215,7 +238,7 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///     firstNotifier.watch,
   ///     secondNotifier.watch,
   ///   ],
-  ///   dataStateListener: (state) {
+  ///   dataStateListener: (context, state) {
   ///     // Handle the combined list.
   ///   },
   /// );
@@ -229,7 +252,7 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///     user: userNotifier.watch,
   ///     profile: profileNotifier.watch,
   ///   ),
-  ///   dataStateListener: (state) {
+  ///   dataStateListener: (context, state) {
   ///     // Handle the combined state.
   ///   },
   /// );
@@ -258,14 +281,14 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///
   /// ```dart
   /// ViewStateListener.of<MyViewStateNotifier, DataType>(
-  ///   loadingStateListener: (message, progress) {
+  ///   loadingStateListener: (context, details) {
   ///     // Handle loading state.
   ///   },
-  ///   dataStateListener: (data) {
+  ///   dataStateListener: (context, data) {
   ///     // Handle data state.
   ///   },
   ///   child: SomeWidget(),
-  /// )
+  /// );
   /// ```
   static Widget of<P extends ViewStateNotifier<T>, T>({
     Key? key,

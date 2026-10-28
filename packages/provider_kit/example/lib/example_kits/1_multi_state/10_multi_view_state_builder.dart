@@ -28,10 +28,10 @@ class MultiViewStateBuilderExample extends StatelessWidget {
               similarMovies: similarMoviesProvider.watch,
               trailers: trailersProvider.watch,
             ),
-            loadingBuilder: (message, progress, isSliver) {
+            loadingBuilder: (_, details) {
               return const CircularProgressIndicator();
             },
-            dataBuilder: (state) {
+            dataBuilder: (_, state, details) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

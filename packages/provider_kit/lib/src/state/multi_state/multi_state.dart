@@ -15,6 +15,7 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 import 'package:provider_kit/src/view_state/utils/view_state_widget_utils.dart';
 import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/widgets/view_state_details.dart';
 
 part '../../view_state/multi_view_state/internal/multi_view_state_aggregate.dart';
 part '../../view_state/multi_view_state/internal/multi_view_state_engine.dart';

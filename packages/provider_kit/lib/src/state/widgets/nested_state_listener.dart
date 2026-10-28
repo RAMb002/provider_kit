@@ -27,7 +27,7 @@ import 'package:nested/nested.dart';
 ///       },
 ///     ),
 ///     ViewStateListener.of<FeedProvider, List<Item>>(
-///       dataStateListener: (data) {
+///       dataStateListener: (context, data) {
 ///         // Handle view state changes
 ///       },
 ///     ),
@@ -36,7 +36,7 @@ import 'package:nested/nested.dart';
 ///         first: firstNotifier.watch,
 ///         second: secondNotifier.watch,
 ///       ),
-///       dataStateListener: (state) {
+///       dataStateListener: (context, state) {
 ///         // Handle state changes
 ///       },
 ///     ),

@@ -2,19 +2,23 @@
 
 **Multi-State**
 
-- Added type-safe, heterogeneous provider combinations to `MultiState` and `MultiViewState`.
+- Added type-safe, heterogeneous listenable combinations to `MultiState` and `MultiViewState`.
 - Standardized multi-provider APIs with `.multi` constructors across state and view-state widgets.
-- Added `WatchBuilder` for conveniently watching multiple providers with `.watch`.
+- Added `WatchBuilder` for conveniently watching multiple listenables with `.watch`.
 
 **State**
 
 - Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
 - Added `data` and `dataOrNull` getters to `ViewState` and `ViewStateNotifier`.
 - Rename widget parameters from provider/providers to listenable/listenables across state and view-state widgets.
+- Added `BuildContext` to view-state builder and listener callbacks, and `child` support to data builders.
+- Added details objects for loading, empty, and error callbacks in view-state widgets.
+- Added `ViewStateMessageResolver` for centralized message localization and scoped overrides through `ViewStateWidgetsProvider`.
 
 **Async Notifiers**
 - Overhauled `FutureNotifier` refresh, rebuild, error handling, and stale-operation protection.
 - Added `StreamNotifier` for stream-based state management with shared async build management.
+- Added configurable loading and empty messages to `FutureNotifier` and `StreamNotifier`.
 
 **Mixins**
 
@@ -34,7 +38,6 @@ its API names for caching and restoring `DataState`.
 - Updated `MutationGroup.dispose()` to optionally accept a key for disposing a
 specific keyed mutation.
 - Removed the separate `disposeKey()` API.
-
 
 ## 0.4.0
 

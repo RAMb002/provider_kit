@@ -21,6 +21,8 @@ class TestStreamNotifier<T> extends StreamNotifier<T> {
     required this.buildImpl,
     super.initialState,
     super.disableEmptyState,
+    super.emptyMessage,
+    super.loadingMessage,
   });
 
   final Stream<T> Function(int buildNumber) buildImpl;
@@ -303,6 +305,69 @@ void main() {
         controllers.single.add(<int>[]);
         expect(notifier.state, isA<EmptyState<List<int>>>());
       });
+
+      test(
+        'uses configured messages for generated loading and empty states',
+        () async {
+          final controllers = <StreamController<List<int>>>[];
+
+          final notifier = TestStreamNotifier<List<int>>(
+            loadingMessage: 'products.loading',
+            emptyMessage: 'products.empty',
+            buildImpl: (_) {
+              final controller = StreamController<List<int>>(sync: true);
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+          _addCleanup(notifier, controllers);
+
+          // The initial LoadingState uses the configured message.
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          await notifier.waitForBuildStart(1);
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial stream listener',
+            ),
+            'initial stream listener',
+          );
+
+          // An empty Iterable event uses the configured empty message.
+          controllers[0].add(<int>[]);
+
+          expect(notifier.state, isA<EmptyState<List<int>>>());
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+
+          // Rebuilding transitions back to LoadingState with the same message.
+          final rebuildFuture = notifier.requestRebuild();
+          await notifier.waitForBuildStart(2);
+          await _within(rebuildFuture, 'replacement subscription setup');
+
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          // The replacement stream's empty event also uses the configured message.
+          controllers[1].add(<int>[]);
+
+          expect(notifier.state, isA<EmptyState<List<int>>>());
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+        },
+      );
 
       test(
         'publishes an empty Iterable event as DataState when disabled',

@@ -30,23 +30,23 @@ class MultiViewStateConsumerExample extends StatelessWidget {
               similarMovies: similarMoviesProvider.watch,
               trailers: trailersProvider.watch,
             ),
-            initialStateListener: () => context.showToast('Initial state'),
-            loadingStateListener: (message, progress) =>
+            initialStateListener: (context) =>
+                context.showToast('Initial state'),
+            loadingStateListener: (context, details) =>
                 context.showToast('Loading state'),
-            emptyStateListener: (message) => context.showToast('Empty state'),
-            dataStateListener: (state) {
+            emptyStateListener: (context, details) =>
+                context.showToast('Empty state'),
+            dataStateListener: (context, state) {
               context.showToast(
                 'Movie: ${state.movie.data.title}\n'
                 'Similar movies: ${state.similarMovies.data.length}\n'
                 'Trailers: ${state.trailers.data.length}',
               );
             },
-            errorStateListener:
-                (errorMessage, onRetry, exception, stackTrace) =>
-                    context.showToast(
-              'Error state: $errorMessage',
+            errorStateListener: (context, details) => context.showToast(
+              'Error state: ${details.message}',
             ),
-            dataBuilder: (state) {
+            dataBuilder: (_, state, __) {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [

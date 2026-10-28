@@ -43,35 +43,37 @@ void main() {
             builtStates.add('initial');
             return const SizedBox();
           },
-          onLoadingBuilder: (message, progress, _) {
-            builtStates.add('loading:$message:$progress');
+          onLoadingBuilder: (context, details) {
+            builtStates.add('loading:${details.message}:${details.progress}');
             return const SizedBox();
           },
-          onEmptyBuilder: (message, _) {
-            builtStates.add('empty:$message');
+          onEmptyBuilder: (context, details) {
+            builtStates.add('empty:${details.message}');
             return const SizedBox();
           },
-          onErrorBuilder: (errorInfo, _, __, ___, ____) {
-            builtStates.add('error:${errorInfo.message}');
+          onErrorBuilder: (context, details) {
+            builtStates.add('error:${details.errorInfo.message}');
             return const SizedBox();
           },
-          onDataBuilder: (_) {
+          onDataBuilder: (context, data, _) {
             builtStates.add('data');
             return const SizedBox();
           },
-          onInitialListener: () {
+          onInitialListener: (_) {
             listenedStates.add('initial');
           },
-          onLoadingListener: (message, progress) {
-            listenedStates.add('loading:$message:$progress');
+          onLoadingListener: (_, details) {
+            listenedStates.add(
+              'loading:${details.message}:${details.progress}',
+            );
           },
-          onEmptyListener: (message) {
-            listenedStates.add('empty:$message');
+          onEmptyListener: (_, details) {
+            listenedStates.add('empty:${details.message}');
           },
-          onErrorListener: (errorInfo, _, __, ___) {
-            listenedStates.add('error:${errorInfo.message}');
+          onErrorListener: (_, details) {
+            listenedStates.add('error:${details.errorInfo.message}');
           },
-          onDataListener: (_) {
+          onDataListener: (_, data) {
             listenedStates.add('data');
           },
         ),
@@ -198,14 +200,14 @@ void main() {
             ],
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onLoadingBuilder: (message, progress, _) {
-              builtMessage = message;
-              builtProgress = progress;
+            onLoadingBuilder: (context, details) {
+              builtMessage = details.message;
+              builtProgress = details.progress;
               return const SizedBox();
             },
-            onLoadingListener: (message, progress) {
-              listenedMessage = message;
-              listenedProgress = progress;
+            onLoadingListener: (context, details) {
+              listenedMessage = details.message;
+              listenedProgress = details.progress;
             },
           ),
         );
@@ -274,12 +276,12 @@ void main() {
             callListenerOnInit: true,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onEmptyBuilder: (message, _) {
-              builtMessage = message;
+            onEmptyBuilder: (_, details) {
+              builtMessage = details.message;
               return const SizedBox();
             },
-            onEmptyListener: (message) {
-              listenedMessage = message;
+            onEmptyListener: (_, details) {
+              listenedMessage = details.message;
             },
           ),
         );
@@ -365,18 +367,18 @@ void main() {
             callListenerOnInit: true,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onErrorBuilder: (errorInfo, error, stackTrace, onRetry, __) {
-              builtErrorInfo = errorInfo;
-              builtError = error;
-              builtStackTrace = stackTrace;
-              builtOnRetry = onRetry;
+            onErrorBuilder: (_, details) {
+              builtErrorInfo = details.errorInfo;
+              builtError = details.error;
+              builtStackTrace = details.stackTrace;
+              builtOnRetry = details.onRetry;
               return const SizedBox();
             },
-            onErrorListener: (errorInfo, error, stackTrace, onRetry) {
-              listenedErrorInfo = errorInfo;
-              listenedError = error;
-              listenedStackTrace = stackTrace;
-              listenedOnRetry = onRetry;
+            onErrorListener: (context, details) {
+              listenedErrorInfo = details.errorInfo;
+              listenedError = details.error;
+              listenedStackTrace = details.stackTrace;
+              listenedOnRetry = details.onRetry;
             },
           ),
         );
@@ -440,12 +442,12 @@ void main() {
             ],
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onLoadingBuilder: (_, progress, __) {
-              builtProgress = progress;
+            onLoadingBuilder: (_, details) {
+              builtProgress = details.progress;
               return const SizedBox();
             },
-            onLoadingListener: (_, progress) {
-              listenedProgress = progress;
+            onLoadingListener: (_, details) {
+              listenedProgress = details.progress;
             },
           ),
         );
@@ -517,11 +519,11 @@ void main() {
             callListenerOnInit: true,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onDataBuilder: (state) {
+            onDataBuilder: (_, state, __) {
               builtState = state;
               return const SizedBox();
             },
-            onDataListener: (state) {
+            onDataListener: (_, state) {
               listenedState = state;
             },
           ),
@@ -569,12 +571,12 @@ void main() {
             callListenerOnInit: true,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onErrorBuilder: (_, __, ___, onRetry, ____) {
-              builderRetry = onRetry;
+            onErrorBuilder: (_, details) {
+              builderRetry = details.onRetry;
               return const SizedBox();
             },
-            onErrorListener: (_, __, ___, onRetry) {
-              listenerRetry = onRetry;
+            onErrorListener: (_, details) {
+              listenerRetry = details.onRetry;
             },
           ),
         );
@@ -635,12 +637,12 @@ void main() {
             callListenerOnInit: true,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onErrorBuilder: (_, __, ___, onRetry, _____) {
-              builderRetry = onRetry;
+            onErrorBuilder: (_, details) {
+              builderRetry = details.onRetry;
               return const SizedBox();
             },
-            onErrorListener: (_, __, ___, onRetry) {
-              listenerRetry = onRetry;
+            onErrorListener: (_, details) {
+              listenerRetry = details.onRetry;
             },
           ),
         );
@@ -677,53 +679,45 @@ Widget _buildConsumer<T>({
     child: ViewStateConsumer<T>.multi(
       listenables: providers,
       callListenerOnInit: callListenerOnInit,
-      initialBuilder: (isSliver) {
+      initialBuilder: (context) {
         onBuild();
-        return onInitialBuilder?.call(isSliver) ?? const SizedBox();
+        return onInitialBuilder?.call(context) ?? const SizedBox();
       },
-      loadingBuilder: (message, progress, isSliver) {
+      loadingBuilder: (context, details) {
         onBuild();
-        return onLoadingBuilder?.call(message, progress, isSliver) ??
-            const SizedBox();
+        return onLoadingBuilder?.call(context, details) ?? const SizedBox();
       },
-      emptyBuilder: (message, isSliver) {
+      emptyBuilder: (context, details) {
         onBuild();
-        return onEmptyBuilder?.call(message, isSliver) ?? const SizedBox();
+        return onEmptyBuilder?.call(context, details) ?? const SizedBox();
       },
-      errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
+      errorBuilder: (context, details) {
         onBuild();
-        return onErrorBuilder?.call(
-              errorInfo,
-              error,
-              stackTrace,
-              onRetry,
-              isSliver,
-            ) ??
-            const SizedBox();
+        return onErrorBuilder?.call(context, details) ?? const SizedBox();
       },
-      dataBuilder: (state) {
+      dataBuilder: (context, state, child) {
         onBuild();
-        return onDataBuilder?.call(state) ?? const SizedBox();
+        return onDataBuilder?.call(context, state, child) ?? const SizedBox();
       },
-      initialStateListener: () {
+      initialStateListener: (context) {
         onListen();
-        onInitialListener?.call();
+        onInitialListener?.call(context);
       },
-      loadingStateListener: (message, progress) {
+      loadingStateListener: (context, details) {
         onListen();
-        onLoadingListener?.call(message, progress);
+        onLoadingListener?.call(context, details);
       },
-      emptyStateListener: (message) {
+      emptyStateListener: (context, details) {
         onListen();
-        onEmptyListener?.call(message);
+        onEmptyListener?.call(context, details);
       },
-      errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+      errorStateListener: (context, details) {
         onListen();
-        onErrorListener?.call(errorInfo, error, stackTrace, onRetry);
+        onErrorListener?.call(context, details);
       },
-      dataStateListener: (state) {
+      dataStateListener: (context, details) {
         onListen();
-        onDataListener?.call(state);
+        onDataListener?.call(context, details);
       },
     ),
   );

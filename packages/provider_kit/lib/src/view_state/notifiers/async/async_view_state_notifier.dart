@@ -18,6 +18,10 @@ part of 'async_notifiers.dart';
 /// - [disableEmptyState]: Whether empty [Iterable] results and stream events
 ///   should be represented as [DataState] rather than [EmptyState]. Defaults
 ///   to `false`.
+/// - [loadingMessage]: An optional default message for [LoadingState]
+///   instances produced by this notifier, including during initialization and rebuilds.
+/// - [emptyMessage]: An optional default message for [EmptyState] instances
+///   produced by asynchronous build results.
 ///
 /// ### State handling
 ///
@@ -83,13 +87,31 @@ sealed class AsyncViewStateNotifier<T> extends ViewStateNotifier<T> {
   AsyncViewStateNotifier({
     ViewState<T>? initialState,
     this.disableEmptyState = false,
-  }) : super(initialState ?? LoadingState<T>()) {
+    this.loadingMessage,
+    this.emptyMessage,
+  }) : super(initialState ?? LoadingState<T>(loadingMessage)) {
     _buildManager.bindOperationInvalidator(_invalidateStateScopes);
     scheduleMicrotask(_startInitialBuild);
   }
 
+  /// Whether empty results should be represented as [DataState].
   @protected
   final bool disableEmptyState;
+
+  /// The default message for loading states produced by this notifier,
+  /// including the initial state and subsequent loading states during
+  /// rebuilds.
+  ///
+  /// Subclasses can reuse this value when manually creating a
+  /// [LoadingState].
+  @protected
+  final String? loadingMessage;
+
+  /// The configured message for empty asynchronous results.
+  ///
+  /// Subclasses can reuse this value when manually setting an empty state.
+  @protected
+  final String? emptyMessage;
 
   final AsyncBuildManager _buildManager = AsyncBuildManager();
 

@@ -1,23 +1,74 @@
 import 'package:flutter/widgets.dart';
 import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
 
-/// Resolves a state message using the current build context.
+/// {@template provider_kit.view_state_widget_provider}
+/// Configures the default UI builders and message resolution for view states.
 ///
-/// Return `null` when the message cannot be resolved, allowing the parent
-/// provider's resolver to try. If no resolver handles the message, the
-/// original message is used as a fallback.
-typedef ViewStateMessageResolver =
-    String? Function(BuildContext context, String message);
-
-/// Used to configure default widgets for InitialState, LoadingState, ErrorState, and EmptyState.
+/// Wrap your application's `MaterialApp` with a [ViewStateWidgetsProvider] to configure
+/// default widgets for initial, loading, error, and empty states. These
+/// defaults are used by [ViewStateBuilder] and [ViewStateConsumer] whenever
+/// a custom builder is not provided.
 ///
-/// Wrap this widget around any widget to change the default widgets for these
-/// states within its widget sub-tree.
+/// Use [messageResolver] to centralize localization of state messages.
+/// Resolvers can use the current [BuildContext] to access your application's
+/// localization system. Return `null` when a message cannot be resolved,
+/// allowing parent providers to try. If no resolver handles the message,
+/// the original message is used.
 ///
-/// Make sure to wrap this widget around the [MaterialApp], so that all pages
-/// and widgets can have access to these default state widgets.
+/// ### Example
+///
+/// ```dart
+/// ViewStateWidgetsProvider(
+///   initialStateBuilder: (_, _) => const SizedBox.shrink(),
+///   loadingStateBuilder: (_, details, _) =>
+///       Text(details.message ?? 'Loading...'),
+///   emptyStateBuilder: (_, details, _) =>
+///       Text(details.message ?? 'No results found.'),
+///   errorStateBuilder: (_, details, _) =>
+///       Text(details.message ?? 'Something went wrong.'),
+///   messageResolver: (context, message) {
+///     return switch (message) {
+///       'profile.loading' => 'Loading profile...',
+///       'profile.empty' => 'No profile found.',
+///       _ => null,
+///     };
+///   },
+///   child: const MyApp(),
+/// )
+/// ```
+///
+/// ### Override defaults for a subtree
+///
+/// Use [ViewStateWidgetsProvider.override] to customize selected builders
+/// or message resolution for a screen or route. Any builders you omit
+/// continue to use the parent provider's defaults. A local message resolver
+/// can handle screen-specific messages and return `null` to let parent
+/// resolvers handle other messages.
+///
+/// ```dart
+/// ViewStateWidgetsProvider.override(
+///   context: context,
+///   loadingStateBuilder: (_, details, isSliver) =>
+///       const Center(child: Text('Loading profile...')),
+///   messageResolver: (_, message) {
+///     if (message == 'profile.empty') return 'No profile found.';
+///     return null;
+///   },
+///   child: const ProfileScreen(),
+/// )
+/// ```
+///
+/// Replace the example strings with values from your localization system.
+/// Builders can use `isSliver` to return widgets appropriate for regular
+/// or sliver layouts.
+///
+/// See also:
+/// - [ViewStateBuilder], for building UI from a view state.
+/// - [ViewStateConsumer], for building UI and listening to state changes.
+/// - [ViewStateWidgetsProvider.override], for scoped customization.
+/// {@endtemplate}
 class ViewStateWidgetsProvider extends InheritedWidget {
-  /// Creates a root [ViewStateWidgetsProvider] with all required state builders.
+  /// {@macro provider_kit.view_state_widget_provider}
   const ViewStateWidgetsProvider({
     required this.initialStateBuilder,
     required this.loadingStateBuilder,
@@ -54,10 +105,10 @@ class ViewStateWidgetsProvider extends InheritedWidget {
   factory ViewStateWidgetsProvider.override({
     required BuildContext context,
     required Widget child,
-    InitialStateBuilder? initialStateBuilder,
-    LoadingStateBuilder? loadingStateBuilder,
-    ErrorStateBuilder? errorStateBuilder,
-    EmptyStateBuilder? emptyStateBuilder,
+    DefaultInitialStateBuilder? initialStateBuilder,
+    DefaultLoadingStateBuilder? loadingStateBuilder,
+    DefaultErrorStateBuilder? errorStateBuilder,
+    DefaultEmptyStateBuilder? emptyStateBuilder,
     ViewStateMessageResolver? messageResolver,
     Key? key,
   }) {
@@ -75,17 +126,25 @@ class ViewStateWidgetsProvider extends InheritedWidget {
     );
   }
 
-  /// Builder function for the initial state widget.
-  final InitialStateBuilder initialStateBuilder;
+  /// Builds the default UI for an initial state.
+  ///
+  /// Receives the current context and `isSliver`.
+  final DefaultInitialStateBuilder initialStateBuilder;
 
-  /// Builder function for the loading state widget.
-  final LoadingStateBuilder loadingStateBuilder;
+  /// Builds the default UI for a loading state.
+  ///
+  /// Receives the current context, loading details, and `isSliver`.
+  final DefaultLoadingStateBuilder loadingStateBuilder;
 
-  /// Builder function for the error state widget.
-  final ErrorStateBuilder errorStateBuilder;
+  /// Builds the default UI for an error state.
+  ///
+  /// Receives the current context, error details, and `isSliver`.
+  final DefaultErrorStateBuilder errorStateBuilder;
 
-  /// Builder function for the empty state widget.
-  final EmptyStateBuilder emptyStateBuilder;
+  /// Builds the default UI for an empty state.
+  ///
+  /// Receives the current context, empty-state details, and `isSliver`.
+  final DefaultEmptyStateBuilder emptyStateBuilder;
 
   /// Resolves a state message using the current build context.
   ///
@@ -160,21 +219,21 @@ class ViewStateWidgetsProvider extends InheritedWidget {
 
 /// Extension on [BuildContext] to easily access the state widget builders
 /// and message resolution from [ViewStateWidgetsProvider].
-extension ContextX on BuildContext {
+extension ViewStateWidgetsContextX on BuildContext {
   /// Retrieves the initial state widget builder from the nearest provider.
-  InitialStateBuilder get initialStateWidget =>
+  DefaultInitialStateBuilder get initialStateWidget =>
       ViewStateWidgetsProvider.of(this).initialStateBuilder;
 
   /// Retrieves the loading state widget builder from the nearest provider.
-  LoadingStateBuilder get loadingStateWidget =>
+  DefaultLoadingStateBuilder get loadingStateWidget =>
       ViewStateWidgetsProvider.of(this).loadingStateBuilder;
 
   /// Retrieves the error state widget builder from the nearest provider.
-  ErrorStateBuilder get errorStateWidget =>
+  DefaultErrorStateBuilder get errorStateWidget =>
       ViewStateWidgetsProvider.of(this).errorStateBuilder;
 
   /// Retrieves the empty state widget builder from the nearest provider.
-  EmptyStateBuilder get emptyStateWidget =>
+  DefaultEmptyStateBuilder get emptyStateWidget =>
       ViewStateWidgetsProvider.of(this).emptyStateBuilder;
 
   /// Resolves a view-state message using the nearest provider.
@@ -189,3 +248,11 @@ extension ContextX on BuildContext {
     return provider?._resolveMessage(this, message) ?? message;
   }
 }
+
+/// Resolves a state message using the current build context.
+///
+/// Return `null` when the message cannot be resolved, allowing the parent
+/// provider's resolver to try. If no resolver handles the message, the
+/// original message is used as a fallback.
+typedef ViewStateMessageResolver =
+    String? Function(BuildContext context, String message);

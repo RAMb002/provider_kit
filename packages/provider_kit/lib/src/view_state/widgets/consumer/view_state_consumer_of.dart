@@ -21,5 +21,6 @@ class _ViewStateConsumerOf<P extends ViewStateNotifier<T>, T>
     super.listenWhen,
     super.callListenerOnInit,
     super.isSliver,
+    super.child,
   }) : super(listenable: null);
 }

@@ -46,20 +46,20 @@ class _MultiViewStateListenerExampleState
           similarMovies: similarMoviesProvider.watch,
           trailers: trailersProvider.watch,
         ),
-        initialStateListener: () => context.showToast('Initial state'),
-        emptyStateListener: (message) => context.showToast('Empty state'),
-        loadingStateListener: (message, progress) =>
+        initialStateListener: (context) => context.showToast('Initial state'),
+        emptyStateListener: (context, details) =>
+            context.showToast('Empty state'),
+        loadingStateListener: (context, details) =>
             context.showToast('Loading state'),
-        dataStateListener: (state) {
+        dataStateListener: (context, state) {
           context.showToast(
             'Movie: ${state.movie.data.title}\n'
             'Similar movies: ${state.similarMovies.data.length}\n'
             'Trailers: ${state.trailers.data.length}',
           );
         },
-        errorStateListener: (errorMessage, onRetry, exception, stackTrace) =>
-            context.showToast(
-          'Error state: $errorMessage',
+        errorStateListener: (context, details) => context.showToast(
+          'Error state: ${details.message}',
         ),
         child: const Text('Listening to movie details'),
       ),

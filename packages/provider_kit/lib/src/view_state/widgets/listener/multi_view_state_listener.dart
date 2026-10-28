@@ -72,11 +72,12 @@ abstract class MultiViewStateListenerBase<T> extends ViewStateListener<T> {
   final ListenWhen<T>? listenWhen;
 
   void _handleStateChange(
-    BuildContext _,
+    BuildContext context,
     T state,
     MultiViewStateAggregate aggregate,
   ) {
     MultiViewStateUtils.handleListener(
+      context,
       state,
       aggregate,
       errorStateListener,
