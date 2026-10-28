@@ -9,6 +9,7 @@ import 'package:provider_kit/src/state/internal/listener_queue.dart';
 import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
 import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
 import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/utils/flutter_error_reporting.dart';
 import 'package:provider_kit/src/view_state/notifiers/async/async_notifiers.dart';
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';

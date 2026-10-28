@@ -238,7 +238,7 @@ abstract class FutureNotifier<T> extends AsyncViewStateNotifier<T> {
     if (!_isCurrentBuild(token)) return;
 
     if (_isEmptyState(result)) {
-      state = EmptyState<T>(emptyMessage);
+      _onEmpty();
     } else {
       state = DataState<T>(result);
     }

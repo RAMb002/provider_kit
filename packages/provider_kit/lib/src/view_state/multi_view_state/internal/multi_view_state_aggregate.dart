@@ -21,6 +21,7 @@ final class MultiViewStateAggregate {
     this.loadingMessage,
     this.loadingProgress,
     this.emptyMessage,
+    this.refreshableListenables,
   });
 
   const MultiViewStateAggregate.error({
@@ -48,8 +49,14 @@ final class MultiViewStateAggregate {
          loadingProgress: progress,
        );
 
-  const MultiViewStateAggregate.empty({required String? message})
-    : this._(status: MultiViewStateStatus.empty, emptyMessage: message);
+  const MultiViewStateAggregate.empty({
+    required String? message,
+    required List<ViewStateNotifier<dynamic>> refreshableListenables,
+  }) : this._(
+         status: MultiViewStateStatus.empty,
+         emptyMessage: message,
+         refreshableListenables: refreshableListenables,
+       );
 
   const MultiViewStateAggregate.data()
     : this._(status: MultiViewStateStatus.data);
@@ -74,6 +81,12 @@ final class MultiViewStateAggregate {
   // Empty aggregate.
   final String? emptyMessage;
 
+  /// Listenables that contribute to the combined refresh operation.
+  ///
+  /// Listenable identity matters because different listenables may expose
+  /// identical empty-state messages but represent different refresh operations.
+  final List<ViewStateNotifier<dynamic>>? refreshableListenables;
+
   /// Returns whether this aggregate represents the same observable state as
   /// [other].
   ///
@@ -91,7 +104,9 @@ final class MultiViewStateAggregate {
         loadingMessage == other.loadingMessage &&
             loadingProgress == other.loadingProgress,
 
-      MultiViewStateStatus.empty => emptyMessage == other.emptyMessage,
+      MultiViewStateStatus.empty =>
+        emptyMessage == other.emptyMessage &&
+            _sameRefreshableListenables(other),
 
       MultiViewStateStatus.error =>
         errorInfo == other.errorInfo &&
@@ -102,10 +117,20 @@ final class MultiViewStateAggregate {
   }
 
   bool _sameRetryableListenables(MultiViewStateAggregate other) {
-    final List<ViewStateNotifier<dynamic>>? previous = retryableListenables;
-    final List<ViewStateNotifier<dynamic>>? current =
-        other.retryableListenables;
+    return _sameListenables(retryableListenables, other.retryableListenables);
+  }
 
+  bool _sameRefreshableListenables(MultiViewStateAggregate other) {
+    return _sameListenables(
+      refreshableListenables,
+      other.refreshableListenables,
+    );
+  }
+
+  static bool _sameListenables(
+    List<ViewStateNotifier<dynamic>>? previous,
+    List<ViewStateNotifier<dynamic>>? current,
+  ) {
     if (identical(previous, current)) {
       return true;
     }

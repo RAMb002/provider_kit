@@ -759,6 +759,128 @@ void main() {
         },
       );
 
+      test(
+        'the default empty refresh callback restarts the stream and recovers',
+        () async {
+          final controllers = <StreamController<String>>[];
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (_) {
+              final controller = StreamController<String>(sync: true);
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial subscription',
+            ),
+            'initial stream listener',
+          );
+
+          // Complete without emitting any values to generate EmptyState.
+          await _within(
+            controllers[0].close(),
+            'initial empty stream completion',
+          );
+
+          await _waitForState(
+            notifier,
+            (state) => state is EmptyState<String>,
+            description: 'initial EmptyState',
+          );
+
+          final emptyState = notifier.state as EmptyState<String>;
+          final onRefresh = emptyState.onRefresh;
+
+          expect(onRefresh, isNotNull);
+
+          // Invoke the generated fire-and-forget UI callback.
+          onRefresh!();
+
+          await notifier.waitForBuildStart(2);
+
+          await _within(
+            _waitUntil(
+              () => controllers[1].hasListener,
+              description: 'replacement subscription',
+            ),
+            'replacement stream listener',
+          );
+
+          expect(notifier.buildCount, 2);
+          controllers[1].add('refreshed');
+          expect(notifier.state, const DataState<String>('refreshed'));
+        },
+      );
+
+      test(
+        'default empty refresh absorbs a synchronous setup failure',
+        () async {
+          final controllers = <StreamController<String>>[];
+          final error = StateError('empty refresh setup failed');
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (buildNumber) {
+              if (buildNumber == 1) {
+                final controller = StreamController<String>(sync: true);
+                controllers.add(controller);
+                return controller.stream;
+              }
+
+              throw error;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial subscription',
+            ),
+            'initial stream listener',
+          );
+
+          // Generate EmptyState by completing without data or errors.
+          await _within(
+            controllers[0].close(),
+            'initial empty stream completion',
+          );
+
+          await _waitForState(
+            notifier,
+            (state) => state is EmptyState<String>,
+            description: 'initial EmptyState',
+          );
+
+          final onRefresh = (notifier.state as EmptyState<String>).onRefresh;
+          expect(onRefresh, isNotNull);
+
+          // The callback deliberately does not expose or await refresh's Future.
+          onRefresh!();
+
+          await notifier.waitForBuildStart(2);
+          await _waitForState(
+            notifier,
+            (state) =>
+                state is ErrorState<String> && identical(state.error, error),
+            description: 'ErrorState after failed fire-and-forget refresh',
+          );
+
+          expect(notifier.buildCount, 2);
+          expect((notifier.state as ErrorState<String>).error, same(error));
+        },
+      );
+
       test('a synchronous throw from build becomes ErrorState', () async {
         final error = StateError('build threw');
         final notifier = TestStreamNotifier<String>(

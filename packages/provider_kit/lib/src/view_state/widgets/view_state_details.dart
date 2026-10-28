@@ -34,15 +34,26 @@ final class LoadingStateDetails {
 /// `ViewStateWidgetsProvider.messageResolver` before being passed to
 /// widget callbacks. If no resolver handles the message, the original
 /// message is retained.
+///
+/// The [onRefresh] callback uses [EmptyState.onRefresh] when provided.
+/// Otherwise, it falls back to the associated asynchronous notifier's
+/// `refresh` method when available.
 @immutable
 final class EmptyStateDetails {
   /// Creates empty-state presentation details.
-  const EmptyStateDetails({this.message});
+  const EmptyStateDetails({this.message, this.onRefresh});
 
   /// The empty-state message prepared for display.
   ///
   /// May be `null` if the empty state has no message.
   final String? message;
+
+  /// The callback used to refresh the empty state.
+  ///
+  /// An explicitly provided [EmptyState.onRefresh] callback takes precedence.
+  /// Otherwise, the associated asynchronous notifier's `refresh` method is
+  /// used when available. May be `null` if no refresh callback is available.
+  final VoidCallback? onRefresh;
 }
 
 /// Presentation details for an error state.

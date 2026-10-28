@@ -1,3 +1,5 @@
+// ignore_for_file: prefer_const_constructors
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -8,17 +10,18 @@ void main() {
     // -------------------------------------------------------------------------
     group('Equality & HashCode', () {
       test('InitialState equality', () {
-        const state1 = InitialState<String>();
-        const state2 = InitialState<String>();
+        final state1 = InitialState<String>();
+        final state2 = InitialState<String>();
 
+        expect(identical(state1, state2), isFalse);
         expect(state1, equals(state2));
         expect(state1.hashCode, equals(state2.hashCode));
       });
 
       test('LoadingState equality', () {
-        const state1 = LoadingState<String>('Loading...', 0.5);
-        const state2 = LoadingState<String>('Loading...', 0.5);
-        const state3 = LoadingState<String>('Loading...', 0.8);
+        final state1 = LoadingState<String>('Loading...', 0.5);
+        final state2 = LoadingState<String>('Loading...', 0.5);
+        final state3 = LoadingState<String>('Loading...', 0.8);
 
         expect(state1, equals(state2));
         expect(state1.hashCode, equals(state2.hashCode));
@@ -26,9 +29,9 @@ void main() {
       });
 
       test('EmptyState equality', () {
-        const state1 = EmptyState<String>('No data');
-        const state2 = EmptyState<String>('No data');
-        const state3 = EmptyState<String>('Different message');
+        final state1 = EmptyState<String>('No data');
+        final state2 = EmptyState<String>('No data');
+        final state3 = EmptyState<String>('Different message');
 
         expect(state1, equals(state2));
         expect(state1.hashCode, equals(state2.hashCode));
@@ -36,9 +39,9 @@ void main() {
       });
 
       test('DataState equality', () {
-        const state1 = DataState<String>('Hello');
-        const state2 = DataState<String>('Hello');
-        const state3 = DataState<String>('World');
+        final state1 = DataState<String>('Hello');
+        final state2 = DataState<String>('Hello');
+        final state3 = DataState<String>('World');
 
         expect(state1, equals(state2));
         expect(state1.hashCode, equals(state2.hashCode));
@@ -50,7 +53,7 @@ void main() {
         final error = Exception('Failed');
         final stackTrace = StackTrace.current;
 
-        const errorInfo = ErrorInfo(message: 'Error', code: 'failed');
+        final errorInfo = ErrorInfo(message: 'Error', code: 'failed');
 
         final state1 = ErrorState<String>(
           error,
@@ -79,11 +82,38 @@ void main() {
       test(
         'different state types are not equal even with same inner value',
         () {
-          const state1 = EmptyState<String>('test');
-          const state2 = DataState<String>('test');
+          final state1 = EmptyState<String>('test');
+          final state2 = DataState<String>('test');
 
           expect(state1, isNot(equals(state2)));
         },
+      );
+    });
+
+    test('different generic types are not equal', () {
+      expect(InitialState<int>(), isNot(equals(InitialState<String>())));
+
+      expect(
+        LoadingState<int>('Loading'),
+        isNot(equals(LoadingState<String>('Loading'))),
+      );
+
+      expect(
+        EmptyState<int>('Empty'),
+        isNot(equals(EmptyState<String>('Empty'))),
+      );
+
+      expect(
+        DataState<Object>('Hello'),
+        isNot(equals(DataState<String>('Hello'))),
+      );
+
+      final error = StateError('failure');
+      final stackTrace = StackTrace.current;
+
+      expect(
+        ErrorState<int>(error, stackTrace),
+        isNot(equals(ErrorState<String>(error, stackTrace))),
       );
     });
 
@@ -92,12 +122,12 @@ void main() {
     // -------------------------------------------------------------------------
     group('when()', () {
       test('executes correct branch for InitialState', () {
-        const ViewState<String> state = InitialState();
+        final ViewState<String> state = InitialState();
         final result = state.when(
           initialState: () => 'initial',
           loadingState: (_, __) => 'loading',
           dataState: (_) => 'data',
-          emptyState: (_) => 'empty',
+          emptyState: (_, __) => 'empty',
           errorState: (_, __, ___, ____) => 'error',
         );
         expect(result, 'initial');
@@ -106,12 +136,12 @@ void main() {
       test(
         'executes correct branch and passes parameters for LoadingState',
         () {
-          const ViewState<String> state = LoadingState('Fetching', 0.4);
+          final ViewState<String> state = LoadingState('Fetching', 0.4);
           final result = state.when(
             initialState: () => 'initial',
             loadingState: (msg, prog) => '$msg: $prog',
             dataState: (_) => 'data',
-            emptyState: (_) => 'empty',
+            emptyState: (_, __) => 'empty',
             errorState: (_, __, ___, ____) => 'error',
           );
           expect(result, 'Fetching: 0.4');
@@ -119,29 +149,50 @@ void main() {
       );
 
       test('executes correct branch and passes parameters for DataState', () {
-        const ViewState<String> state = DataState('Payload');
+        final ViewState<String> state = DataState('Payload');
         final result = state.when(
           initialState: () => 'initial',
           loadingState: (_, __) => 'loading',
           dataState: (data) => data,
-          emptyState: (_) => 'empty',
+          emptyState: (_, __) => 'empty',
           errorState: (_, __, ___, ____) => 'error',
         );
         expect(result, 'Payload');
       });
 
-      test('executes correct branch and passes parameters for EmptyState', () {
-        const ViewState<String> state = EmptyState('Nothing here');
-        final result = state.when(
-          initialState: () => 'initial',
-          loadingState: (_, __) => 'loading',
-          dataState: (_) => 'data',
-          emptyState: (msg) => msg ?? '',
-          errorState: (_, __, ___, ____) => 'error',
-        );
-        expect(result, 'Nothing here');
-      });
+      test(
+        'executes correct branch and passes message and onRefresh for EmptyState',
+        () {
+          bool refreshed = false;
 
+          void onRefresh() {
+            refreshed = true;
+          }
+
+          final ViewState<String> state = EmptyState<String>(
+            'Nothing here',
+            onRefresh,
+          );
+
+          final result = state.when(
+            initialState: () => 'initial',
+            loadingState: (_, __) => 'loading',
+            dataState: (_) => 'data',
+            emptyState: (message, callback) {
+              expect(message, 'Nothing here');
+              expect(callback, same(onRefresh));
+
+              callback?.call();
+
+              return 'empty_matched';
+            },
+            errorState: (_, __, ___, ____) => 'error',
+          );
+
+          expect(result, 'empty_matched');
+          expect(refreshed, isTrue);
+        },
+      );
       test(
         'executes correct branch and passes all parameters for ErrorState',
         () {
@@ -149,7 +200,7 @@ void main() {
           final error = Exception('Custom error');
           final stackTrace = StackTrace.current;
 
-          const errorInfo = ErrorInfo(message: 'Failed', code: 'custom_error');
+          final errorInfo = ErrorInfo(message: 'Failed', code: 'custom_error');
 
           final ViewState<String> state = ErrorState<String>(
             error,
@@ -162,7 +213,7 @@ void main() {
             initialState: () => 'initial',
             loadingState: (_, __) => 'loading',
             dataState: (_) => 'data',
-            emptyState: (_) => 'empty',
+            emptyState: (_, __) => 'empty',
             errorState: (errorInfo, error, stackTrace, onRetry) {
               expect(errorInfo, same(errorInfo));
               expect(error, same(error));
@@ -182,14 +233,14 @@ void main() {
     // -------------------------------------------------------------------------
     group('map()', () {
       test('maps each state to the corresponding callback', () {
-        const ViewState<String> s1 = InitialState();
-        const ViewState<String> s2 = LoadingState('loading');
-        const ViewState<String> s3 = DataState('data');
-        const ViewState<String> s4 = EmptyState('empty');
+        final ViewState<String> s1 = InitialState();
+        final ViewState<String> s2 = LoadingState('loading');
+        final ViewState<String> s3 = DataState('data');
+        final ViewState<String> s4 = EmptyState('empty');
         final error = StateError('failure');
         final stackTrace = StackTrace.current;
 
-        const errorInfo = ErrorInfo(message: 'error', code: 'failure');
+        final errorInfo = ErrorInfo(message: 'error', code: 'failure');
 
         final ViewState<String> s5 = ErrorState(
           error,
@@ -220,7 +271,7 @@ void main() {
     // -------------------------------------------------------------------------
     group('maybeWhen()', () {
       test('executes specific callback when provided', () {
-        const ViewState<String> state = DataState('Success');
+        final ViewState<String> state = DataState('Success');
         final result = state.maybeWhen(
           orElse: () => 'fallback',
           dataState: (data) => 'matched: $data',
@@ -231,7 +282,7 @@ void main() {
       test(
         'uses orElse for LoadingState when loadingState callback is absent',
         () {
-          const ViewState<String> state = LoadingState('Loading', 0.5);
+          final ViewState<String> state = LoadingState('Loading', 0.5);
 
           final result = state.maybeWhen(
             dataState: (_) => 'data',
@@ -243,9 +294,9 @@ void main() {
       );
 
       test('executes the provided callback for each state', () {
-        const ViewState<String> initialState = InitialState();
-        const ViewState<String> loadingState = LoadingState('Loading', 0.5);
-        const ViewState<String> emptyState = EmptyState('No data');
+        final ViewState<String> initialState = InitialState();
+        final ViewState<String> loadingState = LoadingState('Loading', 0.5);
+        final ViewState<String> emptyState = EmptyState('No data');
 
         expect(
           initialState.maybeWhen(
@@ -266,7 +317,7 @@ void main() {
         expect(
           emptyState.maybeWhen(
             orElse: () => 'fallback',
-            emptyState: (message) => message ?? '',
+            emptyState: (message, __) => message ?? '',
           ),
           'No data',
         );
@@ -277,7 +328,7 @@ void main() {
         final error = StateError('failure');
         final stackTrace = StackTrace.current;
 
-        const errorInfo = ErrorInfo(message: 'Fail', code: 'failure');
+        final errorInfo = ErrorInfo(message: 'Fail', code: 'failure');
 
         final ViewState<String> state = ErrorState(
           error,
@@ -299,7 +350,7 @@ void main() {
       });
 
       test('falls back to orElse when state callback is null', () {
-        const ViewState<String> state = InitialState();
+        final ViewState<String> state = InitialState();
         final result = state.maybeWhen(
           orElse: () => 'fallback',
           dataState: (_) => 'data',
@@ -327,7 +378,7 @@ void main() {
     // -------------------------------------------------------------------------
     group('whenOrNull()', () {
       test('executes the matching callback and returns its result', () {
-        const ViewState<String> state = DataState('Payload');
+        final ViewState<String> state = DataState('Payload');
 
         final result = state.whenOrNull(dataState: (data) => 'matched: $data');
 
@@ -335,7 +386,7 @@ void main() {
       });
 
       test('passes message and progress for LoadingState', () {
-        const ViewState<String> state = LoadingState('Loading', 0.5);
+        final ViewState<String> state = LoadingState('Loading', 0.5);
 
         final result = state.whenOrNull(
           loadingState: (message, progress) => '$message: $progress',
@@ -349,7 +400,7 @@ void main() {
         final error = StateError('failure');
         final stackTrace = StackTrace.current;
 
-        const errorInfo = ErrorInfo(message: 'Failed', code: 'failure');
+        final errorInfo = ErrorInfo(message: 'Failed', code: 'failure');
 
         final ViewState<String> state = ErrorState(
           error,
@@ -379,7 +430,7 @@ void main() {
       });
 
       test('returns null when no callback matches the current state', () {
-        const ViewState<String> state = LoadingState('Loading');
+        final ViewState<String> state = LoadingState('Loading');
 
         final result = state.whenOrNull(
           dataState: (_) => 'data',
@@ -395,7 +446,7 @@ void main() {
     // -------------------------------------------------------------------------
     group('maybeMap()', () {
       test('executes specific callback when provided', () {
-        const ViewState<String> state = LoadingState();
+        final ViewState<String> state = LoadingState();
         final result = state.maybeMap(
           orElse: () => 'fallback',
           loadingState: (s) => 'loading',
@@ -404,7 +455,7 @@ void main() {
       });
 
       test('falls back to orElse when state callback is null', () {
-        const ViewState<String> state = EmptyState();
+        final ViewState<String> state = EmptyState();
         final result = state.maybeMap(
           orElse: () => 'fallback',
           dataState: (_) => 'data',
@@ -412,7 +463,7 @@ void main() {
         expect(result, 'fallback');
       });
       test('executes initialState callback when provided', () {
-        const ViewState<String> state = InitialState();
+        final ViewState<String> state = InitialState();
 
         final result = state.maybeMap(
           orElse: () => 'fallback',
@@ -437,7 +488,7 @@ void main() {
       );
 
       test('passes the complete state object to the matching callback', () {
-        const ViewState<String> state = DataState('Payload');
+        final ViewState<String> state = DataState('Payload');
 
         final result = state.maybeMap(
           orElse: () => 'fallback',
@@ -453,7 +504,7 @@ void main() {
     // -------------------------------------------------------------------------
     group('mapOrNull()', () {
       test('executes the matching callback and returns its result', () {
-        const ViewState<String> state = DataState('Payload');
+        final ViewState<String> state = DataState('Payload');
 
         final result = state.mapOrNull(
           dataState: (state) => 'matched: ${state.data}',
@@ -466,7 +517,7 @@ void main() {
         final error = StateError('failure');
         final stackTrace = StackTrace.current;
 
-        const errorInfo = ErrorInfo(message: 'Failed', code: 'failure');
+        final errorInfo = ErrorInfo(message: 'Failed', code: 'failure');
 
         final ViewState<String> state = ErrorState(
           error,
@@ -489,7 +540,7 @@ void main() {
       });
 
       test('returns null when no callback matches the current state', () {
-        const ViewState<String> state = EmptyState('No data');
+        final ViewState<String> state = EmptyState('No data');
 
         final result = state.mapOrNull(
           dataState: (_) => 'data',
@@ -505,7 +556,7 @@ void main() {
     // -------------------------------------------------------------------------
     group('state type getters', () {
       test('InitialState has the correct flags', () {
-        const ViewState<String> state = InitialState();
+        final ViewState<String> state = InitialState();
 
         expect(state.isInitial, isTrue);
         expect(state.isLoading, isFalse);
@@ -515,7 +566,7 @@ void main() {
       });
 
       test('LoadingState has the correct flags', () {
-        const ViewState<String> state = LoadingState();
+        final ViewState<String> state = LoadingState();
 
         expect(state.isInitial, isFalse);
         expect(state.isLoading, isTrue);
@@ -525,7 +576,7 @@ void main() {
       });
 
       test('DataState has the correct flags', () {
-        const ViewState<String> state = DataState('data');
+        final ViewState<String> state = DataState('data');
 
         expect(state.isInitial, isFalse);
         expect(state.isLoading, isFalse);
@@ -535,7 +586,7 @@ void main() {
       });
 
       test('EmptyState has the correct flags', () {
-        const ViewState<String> state = EmptyState();
+        final ViewState<String> state = EmptyState();
 
         expect(state.isInitial, isFalse);
         expect(state.isLoading, isFalse);
@@ -559,7 +610,7 @@ void main() {
     });
     group('toString()', () {
       test('LoadingState', () {
-        const state = LoadingState<String>('Loading...', 0.5);
+        final state = LoadingState<String>('Loading...', 0.5);
 
         expect(
           state.toString(),
@@ -568,13 +619,16 @@ void main() {
       });
 
       test('EmptyState', () {
-        const state = EmptyState<String>('No data');
+        final state = EmptyState<String>('No data');
 
-        expect(state.toString(), 'EmptyState { message: No data }');
+        expect(
+          state.toString(),
+          'EmptyState { message: No data, onRefresh: false }',
+        );
       });
 
       test('DataState', () {
-        const state = DataState<String>('Hello');
+        final state = DataState<String>('Hello');
 
         expect(state.toString(), 'DataState { data: Hello }');
       });
@@ -583,7 +637,7 @@ void main() {
         final error = StateError('failure');
         final stackTrace = StackTrace.current;
 
-        const errorInfo = ErrorInfo(
+        final errorInfo = ErrorInfo(
           message: 'Something went wrong',
           code: 'failure',
         );
@@ -611,31 +665,31 @@ void main() {
     // -------------------------------------------------------------------------
     group('data accessors', () {
       test('data returns the payload for DataState', () {
-        const ViewState<String> state = DataState('Hello');
+        final ViewState<String> state = DataState('Hello');
 
         expect(state.data, 'Hello');
       });
 
       test('dataOrNull returns the payload for DataState', () {
-        const ViewState<String> state = DataState('Hello');
+        final ViewState<String> state = DataState('Hello');
 
         expect(state.dataOrNull, 'Hello');
       });
 
       test('dataOrNull returns null for InitialState', () {
-        const ViewState<String> state = InitialState();
+        final ViewState<String> state = InitialState();
 
         expect(state.dataOrNull, isNull);
       });
 
       test('dataOrNull returns null for LoadingState', () {
-        const ViewState<String> state = LoadingState('Loading');
+        final ViewState<String> state = LoadingState('Loading');
 
         expect(state.dataOrNull, isNull);
       });
 
       test('dataOrNull returns null for EmptyState', () {
-        const ViewState<String> state = EmptyState('No data');
+        final ViewState<String> state = EmptyState('No data');
 
         expect(state.dataOrNull, isNull);
       });
@@ -650,7 +704,7 @@ void main() {
       });
 
       test('data throws StateError for InitialState', () {
-        const ViewState<String> state = InitialState();
+        final ViewState<String> state = InitialState();
 
         expect(
           () => state.data,
@@ -667,7 +721,7 @@ void main() {
       });
 
       test('data throws StateError for LoadingState', () {
-        const ViewState<String> state = LoadingState('Loading');
+        final ViewState<String> state = LoadingState('Loading');
 
         expect(
           () => state.data,
@@ -684,7 +738,7 @@ void main() {
       });
 
       test('data throws StateError for EmptyState', () {
-        const ViewState<String> state = EmptyState('No data');
+        final ViewState<String> state = EmptyState('No data');
 
         expect(
           () => state.data,
@@ -721,7 +775,7 @@ void main() {
       });
 
       test('data and dataOrNull stay consistent for DataState', () {
-        const ViewState<int> state = DataState(42);
+        final ViewState<int> state = DataState(42);
 
         expect(state.dataOrNull, state.data);
         expect(state.data, 42);
@@ -729,7 +783,7 @@ void main() {
       });
 
       test('dataOrNull is safe to use without checking the state type', () {
-        const List<ViewState<String>> states = [
+        final List<ViewState<String>> states = [
           InitialState<String>(),
           LoadingState<String>('Loading'),
           EmptyState<String>('Empty'),

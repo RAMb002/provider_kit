@@ -492,6 +492,49 @@ void main() {
         expect((notifier.state as ErrorState<String>).error, same(retryError));
       });
 
+      test(
+        'default empty-state refresh absorbs a failed fire-and-forget refresh',
+        () async {
+          final refreshError = StateError('empty refresh failed');
+
+          final notifier = TestFutureNotifier<List<int>>(
+            buildImpl: (buildNumber) async {
+              if (buildNumber == 1) return <int>[];
+              throw refreshError;
+            },
+          );
+          addTearDown(notifier.dispose);
+
+          await waitForState(
+            notifier,
+            (state) => state is EmptyState<List<int>>,
+          );
+
+          final emptyState = notifier.state as EmptyState<List<int>>;
+          final onRefresh = emptyState.onRefresh;
+
+          expect(onRefresh, isNotNull);
+
+          // The generated UI callback is fire-and-forget.
+          onRefresh!.call();
+
+          await notifier.waitForBuildStart(2);
+
+          await waitForState(
+            notifier,
+            (state) =>
+                state is ErrorState<List<int>> &&
+                identical(state.error, refreshError),
+          );
+
+          expect(notifier.buildCount, 2);
+          expect(
+            (notifier.state as ErrorState<List<int>>).error,
+            same(refreshError),
+          );
+        },
+      );
+
       test('an onError hook that rebuilds lets a refresh waiter follow '
           'the replacement', () async {
         final initialGate = Completer<String>();

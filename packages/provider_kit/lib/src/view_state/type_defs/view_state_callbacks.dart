@@ -27,8 +27,10 @@ typedef DataStateCallback<T, R> = R Function(T data);
 /// A callback invoked for the [EmptyState].
 ///
 /// [message] is the optional empty-state message.
+/// [onRefresh] is the optional callback to refresh the operation.
 /// {@endtemplate}
-typedef EmptyStateCallback<R> = R Function(String? message);
+typedef EmptyStateCallback<R> =
+    R Function(String? message, VoidCallback? onRefresh);
 
 /// {@template provider_kit.error_state_callback}
 /// A callback invoked for the [ErrorState].
@@ -160,7 +162,6 @@ typedef ErrorStateBuilder =
 /// [details] contains the empty-state message prepared for display.
 typedef EmptyStateBuilder =
     Widget Function(BuildContext context, EmptyStateDetails details);
-
 
 // -----------------------------------------------------------------------------
 // Default ViewStateWidgetsProvider builders

@@ -220,7 +220,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
     _hasReceivedData = true;
 
     if (_isEmptyState(data)) {
-      state = EmptyState<T>(emptyMessage);
+      _onEmpty();
     } else {
       state = DataState<T>(data);
     }
@@ -252,7 +252,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
     // Preserve existing data, and do not replace an error state with empty
     // merely because the stream completed without emitting data.
     if (!_hasReceivedData && !_hasReceivedError && !state.isData) {
-      state = EmptyState<T>(emptyMessage);
+      _onEmpty();
     }
   }
 
@@ -265,7 +265,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
     try {
       await subscription.cancel();
     } catch (error, stackTrace) {
-      _reportErrorToFlutter(error, stackTrace, message: errorMessage);
+      reportErrorToFlutter(error, stackTrace, message: errorMessage);
     }
   }
 

@@ -13,6 +13,7 @@
 - Rename widget parameters from provider/providers to listenable/listenables across state and view-state widgets.
 - Added `BuildContext` to view-state builder and listener callbacks, and `child` support to data builders.
 - Added details objects for loading, empty, and error callbacks in view-state widgets.
+- Added `refresh` support to `EmptyState` in `ViewState`.
 - Added `ViewStateMessageResolver` for centralized message localization and scoped overrides through `ViewStateWidgetsProvider`.
 
 **Async Notifiers**
