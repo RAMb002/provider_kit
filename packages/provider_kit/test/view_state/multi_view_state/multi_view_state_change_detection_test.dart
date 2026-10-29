@@ -291,6 +291,151 @@ void main() {
     });
 
     testWidgets(
+      'uses the latest refresh callback from a later Empty provider without rebuilding or listening again',
+      (tester) async {
+        int oldRefreshCalls = 0;
+        int newRefreshCalls = 0;
+
+        final provider1 = TestViewStateNotifier<String>(
+          const EmptyState<String>('First'),
+        );
+
+        final provider2 = TestViewStateNotifier<String>(
+          EmptyState<String>('Second', () => oldRefreshCalls++),
+        );
+
+        int buildCount = 0;
+        int listenerCount = 0;
+
+        VoidCallback? builderRefresh;
+        VoidCallback? listenerRefresh;
+
+        await tester.pumpWidget(
+          _buildConsumer(
+            providers: () => [provider1.watch, provider2.watch],
+            callListenerOnInit: true,
+            onBuild: () => buildCount++,
+            onListen: () => listenerCount++,
+            onEmptyBuilder: (_, details) {
+              builderRefresh = details.onRefresh;
+              return const SizedBox();
+            },
+            onEmptyListener: (_, details) {
+              listenerRefresh = details.onRefresh;
+            },
+          ),
+        );
+
+        await tester.pump();
+
+        expect(buildCount, 1);
+        expect(listenerCount, 1);
+        expect(builderRefresh, isNotNull);
+        expect(listenerRefresh, isNotNull);
+
+        // The later provider's message and callback change.
+        // The first message and refreshable notifier list remain unchanged.
+        provider2.emit(
+          EmptyState<String>('Second changed', () => newRefreshCalls++),
+        );
+
+        await tester.pump();
+
+        expect(buildCount, 1);
+        expect(listenerCount, 1);
+
+        // Previously obtained callbacks must use the latest state callback.
+        builderRefresh!();
+
+        expect(oldRefreshCalls, 0);
+        expect(newRefreshCalls, 1);
+
+        listenerRefresh!();
+
+        expect(oldRefreshCalls, 0);
+        expect(newRefreshCalls, 2);
+      },
+    );
+
+    testWidgets(
+      'reacts when a refreshable Empty provider leaves the refresh set',
+      (tester) async {
+        final provider1 = TestViewStateNotifier<String>(
+          const EmptyState<String>('First'),
+        );
+
+        final provider2 = TestViewStateNotifier<String>(
+          EmptyState<String>('Second', () {}),
+        );
+
+        int buildCount = 0;
+        int listenerCount = 0;
+
+        await tester.pumpWidget(
+          _buildConsumer(
+            providers: () => [provider1.watch, provider2.watch],
+            onBuild: () => buildCount++,
+            onListen: () => listenerCount++,
+          ),
+        );
+
+        expect(buildCount, 1);
+        expect(listenerCount, 0);
+
+        // provider1 remains Empty with the same message.
+        // provider2 is no longer Empty and is no longer refreshable.
+        provider2.emit(const DataState<String>('two'));
+
+        await tester.pump();
+
+        expect(buildCount, 2);
+        expect(listenerCount, 1);
+      },
+    );
+
+    testWidgets('reacts when the set of refreshable Empty providers changes', (
+      tester,
+    ) async {
+      final provider1 = TestViewStateNotifier<String>(
+        const EmptyState<String>('First'),
+      );
+
+      final provider2 = TestViewStateNotifier<String>(
+        const EmptyState<String>('Second'),
+      );
+
+      int buildCount = 0;
+      int listenerCount = 0;
+
+      await tester.pumpWidget(
+        _buildConsumer(
+          providers: () => [provider1.watch, provider2.watch],
+          onBuild: () => buildCount++,
+          onListen: () => listenerCount++,
+        ),
+      );
+
+      expect(buildCount, 1);
+      expect(listenerCount, 0);
+
+      // Add a refresh operation without changing either Empty message.
+      provider2.emit(EmptyState<String>('Second', () {}));
+
+      await tester.pump();
+
+      expect(buildCount, 2);
+      expect(listenerCount, 1);
+
+      // Remove the refresh operation while provider2 remains Empty.
+      provider2.emit(const EmptyState<String>('Second'));
+
+      await tester.pump();
+
+      expect(buildCount, 3);
+      expect(listenerCount, 2);
+    });
+
+    testWidgets(
       'ignores changes to a later Error when first error details and retry set stay the same',
       (tester) async {
         final firstError = StateError('first');
@@ -455,7 +600,7 @@ void main() {
     );
 
     testWidgets(
-      'uses the latest retry callback from a later error provider without rebuilding or',
+      'uses the latest retry callback from a later error provider without rebuilding or listening again',
       (tester) async {
         int firstRetryCalls = 0;
         int oldSecondRetryCalls = 0;
@@ -495,12 +640,12 @@ void main() {
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
             callListenerOnInit: true,
-            onErrorBuilder: (_, __, ___, onRetry, ____) {
-              errorBuilderRetry = onRetry;
+            onErrorBuilder: (_, details) {
+              errorBuilderRetry = details.onRetry;
               return const SizedBox();
             },
-            onErrorListener: (_, __, ___, onRetry) {
-              errorListenerRetry = onRetry;
+            onErrorListener: (_, details) {
+              errorListenerRetry = details.onRetry;
             },
           ),
         );
@@ -776,7 +921,7 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ViewStateListener.multi(
               listenables: () => (useProvider1 ? provider1 : provider2).watch,
-              dataStateListener: (_) => listenerCount++,
+              dataStateListener: (_, __) => listenerCount++,
               child: const SizedBox(),
             ),
           );
@@ -911,6 +1056,8 @@ Widget _buildConsumer<T>({
   required VoidCallback onListen,
   ErrorStateBuilder? onErrorBuilder,
   ErrorStateListener? onErrorListener,
+  EmptyStateBuilder? onEmptyBuilder,
+  EmptyStateListener? onEmptyListener,
   ListenWhen<T>? listenWhen,
   RebuildWhen<T>? rebuildWhen,
   bool callListenerOnInit = false,
@@ -924,37 +1071,33 @@ Widget _buildConsumer<T>({
         onBuild();
         return const SizedBox();
       },
-      loadingBuilder: (_, __, ___) {
+      loadingBuilder: (_, __) {
         onBuild();
         return const SizedBox();
       },
-      emptyBuilder: (_, __) {
+      emptyBuilder: (context, details) {
+        onBuild();
+        return onEmptyBuilder?.call(context, details) ?? const SizedBox();
+      },
+      errorBuilder: (context, details) {
+        onBuild();
+        return onErrorBuilder?.call(context, details) ?? const SizedBox();
+      },
+      dataBuilder: (_, __, ___) {
         onBuild();
         return const SizedBox();
       },
-      errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
-        onBuild();
-        return onErrorBuilder?.call(
-              errorInfo,
-              error,
-              stackTrace,
-              onRetry,
-              isSliver,
-            ) ??
-            const SizedBox();
-      },
-      dataBuilder: (_) {
-        onBuild();
-        return const SizedBox();
-      },
-      initialStateListener: onListen,
+      initialStateListener: (_) => onListen(),
       loadingStateListener: (_, __) => onListen(),
-      emptyStateListener: (_) => onListen(),
-      errorStateListener: (errorInfo, error, stackTrace, onRetry) {
+      emptyStateListener: (context, details) {
         onListen();
-        onErrorListener?.call(errorInfo, error, stackTrace, onRetry);
+        onEmptyListener?.call(context, details);
       },
-      dataStateListener: (_) => onListen(),
+      errorStateListener: (context, details) {
+        onListen();
+        onErrorListener?.call(context, details);
+      },
+      dataStateListener: (_, __) => onListen(),
       listenWhen: listenWhen,
       rebuildWhen: rebuildWhen,
     ),

@@ -687,17 +687,55 @@ void main() {
 
         mutation.dispose();
       });
+
+      test('a success state is equal to itself when data is NaN', () async {
+        final mutation = Mutation<double>();
+        addTearDown(mutation.dispose);
+        await mutation.run(() async => double.nan);
+        final state = mutation.state;
+        expect(state == state, isTrue);
+      });
+
+      test('idle states with different generic types are not equal', () {
+        final intMutation = Mutation<int>();
+        final stringMutation = Mutation<String>();
+        addTearDown(intMutation.dispose);
+        addTearDown(stringMutation.dispose);
+
+        expect(intMutation.state, isNot(equals(stringMutation.state)));
+      });
+
+      test('error states with different stack traces are not equal', () async {
+        final error = StateError('failure');
+        final first = Mutation<int>();
+        final second = Mutation<int>();
+        addTearDown(first.dispose);
+        addTearDown(second.dispose);
+
+        final firstStackTrace = StackTrace.current;
+        final secondStackTrace = StackTrace.current;
+
+        try {
+          await first.run(
+            () async => Error.throwWithStackTrace(error, firstStackTrace),
+          );
+        } catch (_) {}
+
+        try {
+          await second.run(
+            () async => Error.throwWithStackTrace(error, secondStackTrace),
+          );
+        } catch (_) {}
+
+        expect(first.state, isNot(equals(second.state)));
+      });
     });
     group('toString()', () {
       test('MutationSuccess toString', () async {
         final mutation = Mutation<String>();
-
         await mutation.run(() async => 'success');
-
         final state = mutation.state;
-
         expect(state.toString(), 'MutationSuccess { data: success }');
-
         mutation.dispose();
       });
       test('MutationError toString', () async {

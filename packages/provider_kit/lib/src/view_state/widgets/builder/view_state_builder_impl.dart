@@ -15,5 +15,6 @@ class _ViewStateBuilder<T>
     super.loadingBuilder,
     super.emptyBuilder,
     super.isSliver,
+    super.child,
   }) : super(listenable: listenable);
 }

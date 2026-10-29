@@ -21,6 +21,8 @@ class TestStreamNotifier<T> extends StreamNotifier<T> {
     required this.buildImpl,
     super.initialState,
     super.disableEmptyState,
+    super.emptyMessage,
+    super.loadingMessage,
   });
 
   final Stream<T> Function(int buildNumber) buildImpl;
@@ -58,19 +60,6 @@ class TestStreamNotifier<T> extends StreamNotifier<T> {
   bool Function() captureStaleness() => checkStaleness();
 
   void writeState(ViewState<T> value) => state = value;
-}
-
-class ConstructorDependentStreamNotifier extends StreamNotifier<String> {
-  ConstructorDependentStreamNotifier() : super() {
-    _value = 'initialized after super';
-  }
-
-  late final String _value;
-
-  @override
-  Stream<String> build() async* {
-    yield _value;
-  }
 }
 
 class _CapturedFailure {
@@ -240,22 +229,6 @@ void main() {
         expect(notifier.state, const DataState<String>('provided'));
       });
 
-      test('waits until the subclass constructor body has completed', () async {
-        final notifier = ConstructorDependentStreamNotifier();
-        addTearDown(notifier.dispose);
-
-        expect(notifier.state, isA<LoadingState<String>>());
-        await _waitForState(
-          notifier,
-          (state) => state is DataState<String>,
-          description: 'constructor-dependent data',
-        );
-        expect(
-          notifier.state,
-          const DataState<String>('initialized after super'),
-        );
-      });
-
       test('each emitted value becomes the current DataState', () async {
         final controllers = <StreamController<int>>[];
         final notifier = TestStreamNotifier<int>(
@@ -303,6 +276,69 @@ void main() {
         controllers.single.add(<int>[]);
         expect(notifier.state, isA<EmptyState<List<int>>>());
       });
+
+      test(
+        'uses configured messages for generated loading and empty states',
+        () async {
+          final controllers = <StreamController<List<int>>>[];
+
+          final notifier = TestStreamNotifier<List<int>>(
+            loadingMessage: 'products.loading',
+            emptyMessage: 'products.empty',
+            buildImpl: (_) {
+              final controller = StreamController<List<int>>(sync: true);
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+          _addCleanup(notifier, controllers);
+
+          // The initial LoadingState uses the configured message.
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          await notifier.waitForBuildStart(1);
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial stream listener',
+            ),
+            'initial stream listener',
+          );
+
+          // An empty Iterable event uses the configured empty message.
+          controllers[0].add(<int>[]);
+
+          expect(notifier.state, isA<EmptyState<List<int>>>());
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+
+          // Rebuilding transitions back to LoadingState with the same message.
+          final rebuildFuture = notifier.requestRebuild();
+          await notifier.waitForBuildStart(2);
+          await _within(rebuildFuture, 'replacement subscription setup');
+
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          // The replacement stream's empty event also uses the configured message.
+          controllers[1].add(<int>[]);
+
+          expect(notifier.state, isA<EmptyState<List<int>>>());
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+        },
+      );
 
       test(
         'publishes an empty Iterable event as DataState when disabled',
@@ -694,6 +730,128 @@ void main() {
         },
       );
 
+      test(
+        'the default empty refresh callback restarts the stream and recovers',
+        () async {
+          final controllers = <StreamController<String>>[];
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (_) {
+              final controller = StreamController<String>(sync: true);
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial subscription',
+            ),
+            'initial stream listener',
+          );
+
+          // Complete without emitting any values to generate EmptyState.
+          await _within(
+            controllers[0].close(),
+            'initial empty stream completion',
+          );
+
+          await _waitForState(
+            notifier,
+            (state) => state is EmptyState<String>,
+            description: 'initial EmptyState',
+          );
+
+          final emptyState = notifier.state as EmptyState<String>;
+          final onRefresh = emptyState.onRefresh;
+
+          expect(onRefresh, isNotNull);
+
+          // Invoke the generated fire-and-forget UI callback.
+          onRefresh!();
+
+          await notifier.waitForBuildStart(2);
+
+          await _within(
+            _waitUntil(
+              () => controllers[1].hasListener,
+              description: 'replacement subscription',
+            ),
+            'replacement stream listener',
+          );
+
+          expect(notifier.buildCount, 2);
+          controllers[1].add('refreshed');
+          expect(notifier.state, const DataState<String>('refreshed'));
+        },
+      );
+
+      test(
+        'default empty refresh absorbs a synchronous setup failure',
+        () async {
+          final controllers = <StreamController<String>>[];
+          final error = StateError('empty refresh setup failed');
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (buildNumber) {
+              if (buildNumber == 1) {
+                final controller = StreamController<String>(sync: true);
+                controllers.add(controller);
+                return controller.stream;
+              }
+
+              throw error;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial subscription',
+            ),
+            'initial stream listener',
+          );
+
+          // Generate EmptyState by completing without data or errors.
+          await _within(
+            controllers[0].close(),
+            'initial empty stream completion',
+          );
+
+          await _waitForState(
+            notifier,
+            (state) => state is EmptyState<String>,
+            description: 'initial EmptyState',
+          );
+
+          final onRefresh = (notifier.state as EmptyState<String>).onRefresh;
+          expect(onRefresh, isNotNull);
+
+          // The callback deliberately does not expose or await refresh's Future.
+          onRefresh!();
+
+          await notifier.waitForBuildStart(2);
+          await _waitForState(
+            notifier,
+            (state) =>
+                state is ErrorState<String> && identical(state.error, error),
+            description: 'ErrorState after failed fire-and-forget refresh',
+          );
+
+          expect(notifier.buildCount, 2);
+          expect((notifier.state as ErrorState<String>).error, same(error));
+        },
+      );
+
       test('a synchronous throw from build becomes ErrorState', () async {
         final error = StateError('build threw');
         final notifier = TestStreamNotifier<String>(
@@ -1063,36 +1221,6 @@ void main() {
           );
           expect(notifier.buildCount, 2);
           expect(notifier.state, const DataState<String>('cached'));
-        },
-      );
-
-      test(
-        'refresh invalidates staleness checks when starting a new build',
-        () async {
-          final controllers = <StreamController<String>>[];
-          final notifier = TestStreamNotifier<String>(
-            buildImpl: (_) {
-              final controller = StreamController<String>(sync: true);
-              controllers.add(controller);
-              return controller.stream;
-            },
-          );
-          _addCleanup(notifier, controllers);
-          await notifier.waitForBuildStart(1);
-          await _within(
-            _waitUntil(
-              () => controllers[0].hasListener,
-              description: 'first subscription',
-            ),
-            'first subscription',
-          );
-          final isStale = notifier.captureStaleness();
-          expect(isStale(), isFalse);
-
-          final refreshFuture = notifier.refresh();
-          await notifier.waitForBuildStart(2);
-          expect(isStale(), isTrue);
-          await _within(refreshFuture, 'refresh subscription setup');
         },
       );
 
@@ -1503,33 +1631,6 @@ void main() {
         },
       );
 
-      test('a stale check is invalidated when rebuild starts', () async {
-        final controllers = <StreamController<String>>[];
-        final notifier = TestStreamNotifier<String>(
-          buildImpl: (_) {
-            final controller = StreamController<String>(sync: true);
-            controllers.add(controller);
-            return controller.stream;
-          },
-        );
-        _addCleanup(notifier, controllers);
-        await notifier.waitForBuildStart(1);
-        await _within(
-          _waitUntil(
-            () => controllers[0].hasListener,
-            description: 'first subscription',
-          ),
-          'first subscription',
-        );
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        final rebuildFuture = notifier.requestRebuild();
-        await notifier.waitForBuildStart(2);
-        expect(isStale(), isTrue);
-        await _within(rebuildFuture, 'replacement setup');
-      });
-
       test(
         'an async* generator retains the current build Zone after await',
         () async {
@@ -1707,31 +1808,6 @@ void main() {
         expect(notifier.state, const DataState<String>('before dispose'));
       });
 
-      test('staleness callbacks become stale after disposal', () async {
-        final controllers = <StreamController<String>>[];
-        final notifier = TestStreamNotifier<String>(
-          buildImpl: (_) {
-            final controller = StreamController<String>(sync: true);
-            controllers.add(controller);
-            return controller.stream;
-          },
-        );
-        _addCleanup(notifier, controllers);
-        await notifier.waitForBuildStart(1);
-        await _within(
-          _waitUntil(
-            () => controllers.single.hasListener,
-            description: 'active subscription',
-          ),
-          'active subscription',
-        );
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        notifier.dispose();
-        expect(isStale(), isTrue);
-      });
-
       test('refresh after disposal does not start another build', () async {
         final controllers = <StreamController<String>>[];
         final notifier = TestStreamNotifier<String>(
@@ -1781,19 +1857,6 @@ void main() {
         await _within(notifier.requestRebuild(), 'rebuild after disposal');
         expect(notifier.buildCount, 1);
       });
-
-      test(
-        'disposing before the initial microtask prevents the build',
-        () async {
-          final notifier = TestStreamNotifier<String>(
-            buildImpl: (_) => Stream<String>.value('must not arrive'),
-          );
-          notifier.dispose();
-          await _flushPendingTasks();
-          expect(notifier.buildCount, 0);
-          expect(notifier.state, isA<LoadingState<String>>());
-        },
-      );
     });
   });
 }

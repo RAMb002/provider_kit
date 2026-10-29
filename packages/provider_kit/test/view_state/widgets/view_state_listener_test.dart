@@ -6,6 +6,7 @@ import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
+import '../../shared/view_state_message_resolver_helpers.dart';
 
 void main() {
   group('ViewStateListener', () {
@@ -76,7 +77,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          initialStateListener: () => initialCalled = true,
+          initialStateListener: (_) => initialCalled = true,
           callListenerOnInit: true,
         ),
       );
@@ -105,7 +106,7 @@ void main() {
         await tester.pumpWidget(
           buildListener(
             provider: provider,
-            initialStateListener: () => initialCalled = true,
+            initialStateListener: (_) => initialCalled = true,
             callListenerOnInit: false,
           ),
         );
@@ -132,9 +133,9 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          loadingStateListener: (message, progress) {
-            capturedMessage = message;
-            capturedProgress = progress;
+          loadingStateListener: (_, details) {
+            capturedMessage = details.message;
+            capturedProgress = details.progress;
           },
         ),
       );
@@ -153,7 +154,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (data) => capturedData = data,
+          dataStateListener: (_, data) => capturedData = data,
         ),
       );
 
@@ -170,7 +171,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          emptyStateListener: (message) => capturedMessage = message,
+          emptyStateListener: (_, details) => capturedMessage = details.message,
         ),
       );
 
@@ -179,6 +180,100 @@ void main() {
 
       expect(capturedMessage, 'No items found');
     });
+
+    testWidgets(
+      'resolves loading, empty, and error messages before listener callbacks',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const InitialState<String>(),
+        );
+
+        BuildContext? loadingContext;
+        BuildContext? emptyContext;
+        BuildContext? errorContext;
+
+        LoadingStateDetails? loadingDetails;
+        EmptyStateDetails? emptyDetails;
+        ErrorStateDetails? errorDetails;
+
+        const originalErrorInfo = ErrorInfo(
+          message: 'error.network',
+          code: 'network_error',
+        );
+
+        await tester.pumpWidget(
+          ViewStateWidgetsProvider(
+            initialStateBuilder: (_, __) => const SizedBox(),
+            loadingStateBuilder: (_, __, ___) => const SizedBox(),
+            emptyStateBuilder: (_, __, ___) => const SizedBox(),
+            errorStateBuilder: (_, __, ___) => const SizedBox(),
+            messageResolver: (context, message) => 'localized:$message',
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: ViewStateListener<String>(
+                listenable: provider,
+                loadingStateListener: (context, details) {
+                  loadingContext = context;
+                  loadingDetails = details;
+                },
+                emptyStateListener: (context, details) {
+                  emptyContext = context;
+                  emptyDetails = details;
+                },
+                errorStateListener: (context, details) {
+                  errorContext = context;
+                  errorDetails = details;
+                },
+                child: const SizedBox(),
+              ),
+            ),
+          ),
+        );
+
+        // Loading message.
+        provider.emit(const LoadingState<String>('profile.loading'));
+        await tester.pump();
+
+        expect(loadingContext, isA<BuildContext>());
+        expect(loadingDetails!.message, 'localized:profile.loading');
+
+        // Empty message.
+        provider.emit(const EmptyState<String>('profile.empty'));
+        await tester.pump();
+
+        expect(emptyContext, isA<BuildContext>());
+        expect(emptyDetails!.message, 'localized:profile.empty');
+
+        // Error message.
+        final error = StateError('Request failed');
+
+        provider.emit(
+          ErrorState<String>(
+            error,
+            StackTrace.current,
+            errorInfo: originalErrorInfo,
+          ),
+        );
+        await tester.pump();
+
+        expect(errorContext, isA<BuildContext>());
+        expect(errorContext, isA<BuildContext>());
+
+        // Test the new convenience getters.
+        expect(errorDetails!.message, 'localized:error.network');
+        expect(errorDetails!.code, 'network_error');
+
+        // Full error information remains accessible.
+        expect(errorDetails!.errorInfo.message, 'localized:error.network');
+        expect(errorDetails!.errorInfo.code, 'network_error');
+        expect(errorDetails!.error, same(error));
+
+        // Resolution must not mutate the stored error information.
+        final storedState = provider.state as ErrorState<String>;
+        expect(storedState.errorInfo.message, 'error.network');
+        expect(storedState.errorInfo.code, 'network_error');
+      },
+    );
 
     testWidgets('calls errorStateListener with correct parameters', (
       tester,
@@ -202,11 +297,11 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-            capturedErrorInfo = errorInfo;
-            capturedOnRetry = onRetry;
-            capturedError = error;
-            capturedStackTrace = stackTrace;
+          errorStateListener: (_, details) {
+            capturedErrorInfo = details.errorInfo;
+            capturedOnRetry = details.onRetry;
+            capturedError = details.error;
+            capturedStackTrace = details.stackTrace;
           },
         ),
       );
@@ -237,7 +332,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -264,11 +359,11 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          initialStateListener: () => initialCount++,
+          initialStateListener: (_) => initialCount++,
           loadingStateListener: (_, __) => loadingCount++,
-          dataStateListener: (_) => dataCount++,
-          emptyStateListener: (_) => emptyCount++,
-          errorStateListener: (_, __, ___, ____) => errorCount++,
+          dataStateListener: (_, __) => dataCount++,
+          emptyStateListener: (_, __) => emptyCount++,
+          errorStateListener: (_, __) => errorCount++,
           callListenerOnInit: false,
         ),
       );
@@ -327,7 +422,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           listenWhen: listenWhen,
           callListenerOnInit: false,
         ),
@@ -357,7 +452,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: true,
         ),
       );
@@ -380,7 +475,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -403,7 +498,7 @@ void main() {
                 return Scaffold(
                   body: ViewStateListener<String>(
                     listenable: provider,
-                    dataStateListener: (data) {
+                    dataStateListener: (_, data) {
                       showDialog(
                         context: context,
                         builder: (_) =>
@@ -435,7 +530,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            dataStateListener: (_) => dataCalled = true,
+            dataStateListener: (_, __) => dataCalled = true,
             child: const SizedBox(),
           ),
         ),
@@ -459,7 +554,7 @@ void main() {
             value: provider,
             child: ViewStateListener.of<TestViewStateNotifier<String>, String>(
               // no provider, uses context.read
-              dataStateListener: (_) => dataCalled = true,
+              dataStateListener: (_, __) => dataCalled = true,
               child: const SizedBox(),
             ),
           ),
@@ -479,7 +574,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            dataStateListener: (_) {},
+            dataStateListener: (_, __) {},
             child: const SizedBox(),
           ),
         ),
@@ -507,7 +602,7 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
               listenable: provider,
-              dataStateListener: (data) {
+              dataStateListener: (_, data) {
                 if (provider == provider1) {
                   dataCount1++;
                 } else if (provider == provider2) {
@@ -563,7 +658,7 @@ void main() {
                 currentList.add(current);
                 return true;
               },
-              dataStateListener: (_) {},
+              dataStateListener: (_, __) {},
               child: const SizedBox(),
             ),
           ),
@@ -595,8 +690,8 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            errorStateListener: (_, ___, __, onRetry) {
-              capturedOnRetry = onRetry;
+            errorStateListener: (_, details) {
+              capturedOnRetry = details.onRetry;
             },
             child: const SizedBox(),
           ),
@@ -634,11 +729,11 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
               listenable: provider,
-              errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-                capturedErrorInfo = errorInfo;
-                capturedOnRetry = onRetry;
-                capturedError = error;
-                capturedStackTrace = stackTrace;
+              errorStateListener: (_, details) {
+                capturedErrorInfo = details.errorInfo;
+                capturedOnRetry = details.onRetry;
+                capturedError = details.error;
+                capturedStackTrace = details.stackTrace;
               },
               callListenerOnInit: true,
               child: const SizedBox(),
@@ -669,7 +764,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            dataStateListener: (_) {},
+            dataStateListener: (_, __) {},
             child: const SizedBox(),
           ),
         ),
@@ -678,6 +773,147 @@ void main() {
       provider.emit(const LoadingState<String>());
       await tester.pump();
     });
+
+    testWidgets(
+      'uses the latest resolved message when listeners fire after locale changes',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const InitialState<String>(),
+        );
+
+        addTearDown(provider.dispose);
+
+        var locale = 'en';
+        late StateSetter changeLocale;
+
+        final loadingMessages = <String?>[];
+        final emptyMessages = <String?>[];
+        final errorMessages = <String?>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                changeLocale = setState;
+
+                return TestLocaleInherited(
+                  locale: locale,
+                  child: ViewStateWidgetsProvider(
+                    initialStateBuilder: testDefaultInitialStateBuilder,
+                    loadingStateBuilder: testDefaultLoadingStateBuilder,
+                    emptyStateBuilder: testDefaultEmptyStateBuilder,
+                    errorStateBuilder: testDefaultErrorStateBuilder,
+                    messageResolver: testLocaleMessageResolver,
+                    child: ViewStateListener<String>(
+                      listenable: provider,
+                      loadingStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        loadingMessages.add(details.message);
+                      },
+                      emptyStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        emptyMessages.add(details.message);
+                      },
+                      errorStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        errorMessages.add(details.errorInfo.message);
+                      },
+                      child: const SizedBox(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        // First event uses English.
+        provider.emit(const LoadingState<String>('profile.loading'));
+        await tester.pump();
+
+        expect(loadingMessages, ['en:profile.loading']);
+
+        // Changing locale alone must not invoke the listener again.
+        changeLocale(() {
+          locale = 'fr';
+        });
+        await tester.pump();
+
+        expect(loadingMessages, ['en:profile.loading']);
+
+        // The next loading event uses the latest locale.
+        provider.emit(const LoadingState<String>('profile.refreshing'));
+        await tester.pump();
+
+        expect(loadingMessages, [
+          'en:profile.loading',
+          'fr:profile.refreshing',
+        ]);
+
+        // The empty-state listener uses the latest locale.
+        changeLocale(() {
+          locale = 'es';
+        });
+        await tester.pump();
+
+        expect(emptyMessages, isEmpty);
+
+        provider.emit(const EmptyState<String>('profile.empty'));
+        await tester.pump();
+
+        expect(emptyMessages, ['es:profile.empty']);
+
+        // The error-state listener uses the latest locale.
+        changeLocale(() {
+          locale = 'de';
+        });
+        await tester.pump();
+
+        expect(errorMessages, isEmpty);
+
+        provider.emit(
+          ErrorState<String>(
+            StateError('Request failed'),
+            StackTrace.current,
+            errorInfo: const ErrorInfo(
+              message: 'error.network',
+              code: 'network_error',
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(errorMessages, ['de:error.network']);
+
+        // Resolving a message must not mutate the stored original message.
+        final storedState = provider.state as ErrorState<String>;
+
+        expect(storedState.errorInfo.message, 'error.network');
+        expect(storedState.errorInfo.code, 'network_error');
+      },
+    );
 
     // -----------------------------------------------------------------------
     // 9. Diagnostics
@@ -689,11 +925,11 @@ void main() {
 
       ViewStateListener<String>(
         listenable: TestViewStateNotifier<String>(),
-        dataStateListener: (_) {},
+        dataStateListener: (_, __) {},
         loadingStateListener: (_, __) {},
-        emptyStateListener: (_) {},
-        errorStateListener: (_, __, ___, ____) {},
-        initialStateListener: () {},
+        emptyStateListener: (_, __) {},
+        errorStateListener: (_, __) {},
+        initialStateListener: (_) {},
         listenWhen: (_, __) => true,
         callListenerOnInit: true,
         child: const SizedBox(),

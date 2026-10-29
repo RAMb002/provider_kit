@@ -22,5 +22,6 @@ class _ViewStateConsumer<T>
     super.dataStateListener,
     super.callListenerOnInit,
     super.isSliver,
+    super.child,
   }) : super(listenable: listenable);
 }

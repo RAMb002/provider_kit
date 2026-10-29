@@ -35,16 +35,16 @@ part 'view_state_consumer_of.dart';
 /// ```dart
 /// ViewStateConsumer(
 ///   listenable: myViewStateNotifier,
-///   dataBuilder: (data) {
+///   dataBuilder: (context, data, child) {
 ///     return ...;
 ///   },
-///   loadingBuilder: (message, progress, isSliver) {
+///   loadingBuilder: (context, details) {
 ///     return ...;
 ///   },
-///   dataStateListener: (data) {
-///     // Handle DataState.
+///   dataStateListener: (context, data) {
+///     // Handle the data state.
 ///   },
-/// )
+/// );
 /// ```
 ///
 /// If the view-state notifier is available in the widget tree (e.g., exposed through
@@ -52,13 +52,13 @@ part 'view_state_consumer_of.dart';
 ///
 /// ```dart
 /// ViewStateConsumer.of<MyViewStateNotifier, DataType>(
-///   dataBuilder: (data) {
+///   dataBuilder: (context, data, child) {
 ///     return ...;
 ///   },
-///   loadingBuilder: (message, progress, isSliver) {
+///   loadingBuilder: (context, details) {
 ///     return ...;
 ///   },
-/// )
+/// );
 /// ```
 ///
 /// ### Using Multiple View-State Notifiers
@@ -73,7 +73,7 @@ part 'view_state_consumer_of.dart';
 ///     user: userNotifier.watch,
 ///     profile: profileNotifier.watch,
 ///   ),
-///   dataBuilder: (state) {
+///   dataBuilder: (context, state, child) {
 ///     return Column(
 ///       children: [
 ///         Text(state.user.data.toString()),
@@ -81,10 +81,10 @@ part 'view_state_consumer_of.dart';
 ///       ],
 ///     );
 ///   },
-///   dataStateListener: (state) {
+///   dataStateListener: (context, state) {
 ///     // Handle the combined data state.
 ///   },
-/// )
+/// );
 /// ```
 ///
 /// The data builder and data listener are invoked only when all watched
@@ -95,6 +95,16 @@ part 'view_state_consumer_of.dart';
 ///
 /// See [ViewStateConsumer.multi] for details on building UI and handling
 /// callbacks for multiple view-state notifiers.
+///
+/// ### Message localization
+///
+/// Messages in loading and empty states, and error messages, can be plain text
+/// or localization keys. Configure `ViewStateWidgetsProvider.messageResolver`
+/// to resolve these messages into localized text. ProviderKit resolves them
+/// before passing them to the corresponding builder or listener callback. If
+/// no resolver handles a message, the original message is used. Resolving
+/// messages does not modify the stored view state or its original error
+/// information.
 /// {@endtemplate}
 abstract class ViewStateConsumer<T> extends StatefulWidget {
   const ViewStateConsumer.base({
@@ -111,6 +121,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
     this.dataStateListener,
     this.callListenerOnInit = false,
     this.isSliver = false,
+    this.child,
   });
 
   /// {@macro provider_kit.view_state.initial_builder}
@@ -149,6 +160,9 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   /// {@macro provider_kit.view_state.is_sliver}
   final bool isSliver;
 
+  /// {@macro provider_kit.view_state_builder.child}
+  final Widget? child;
+
   /// {@macro provider_kit.view_state_consumer}
   ///
   /// Listens to the supplied [ViewStateNotifier] and builds the corresponding UI.
@@ -169,6 +183,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
     ListenWhen<ViewState<T>>? listenWhen,
     bool callListenerOnInit,
     bool isSliver,
+    Widget? child,
   }) = _ViewStateConsumer<T>;
 
   /// {@template provider_kit.multi_view_state_consumer.description}
@@ -185,33 +200,43 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   /// ### Parameters
   ///
   /// - **[listenables]** — Builds the combined state from one or more view-state
-  ///   notifiers.
-  /// - **[initialBuilder]** — Builds the UI when the combined state is initial.
-  /// - **[loadingBuilder]** — Builds the UI when the combined state is loading.
-  /// - **[emptyBuilder]** — Builds the UI when the combined state is empty.
-  /// - **[errorBuilder]** — Builds the UI when the combined state contains an
-  ///   error and receives a retry callback for all currently errored view-state
-  ///   notifiers that have a retry operation available.
-  /// - **[dataBuilder]** — Builds the UI when the combined state is data and
-  ///   receives the exact value returned by [listenables].
-  /// - **[initialStateListener]** — Handles the combined initial state.
-  /// - **[loadingStateListener]** — Handles the combined loading state and
-  ///   receives the first loading message and the average of the available
-  ///   loading progress values.
-  /// - **[emptyStateListener]** — Handles the combined empty state.
-  /// - **[errorStateListener]** — Handles the first error state and receives a
-  ///   retry callback for all currently errored view-state notifiers that have a
-  ///   retry operation available.
-  /// - **[dataStateListener]** — Handles the combined data state and receives
-  ///   the exact value returned by [listenables].
-  /// - **[rebuildWhen]** — Determines whether the widget should rebuild when the
+  ///   notifiers through `.watch`.
+  /// - **[initialBuilder]** — Builds the UI for the initial state. Receives the
+  ///   context.
+  /// - **[loadingBuilder]** — Builds the UI for the loading state. Receives the
+  ///   context and `LoadingStateDetails` (message and progress).
+  /// - **[emptyBuilder]** — Builds the UI for the empty state. Receives the
+  ///   context and `EmptyStateDetails` (message).
+  /// - **[errorBuilder]** — Builds the UI for the error state. Receives the
+  ///   context and `ErrorStateDetails` (error information, original error, stack
+  ///   trace, and optional retry callback). The retry callback retries all
+  ///   errored notifiers that support retrying.
+  /// - **[dataBuilder]** — Builds the UI when all watched notifiers are in
+  ///   [DataState]. Receives the context, the combined value returned by
+  ///   [listenables], and the optional [child].
+  /// - **[initialStateListener]** — Handles the combined initial state and
+  ///   receives the context.
+  /// - **[loadingStateListener]** — Handles the combined loading state. Receives
+  ///   the context and `LoadingStateDetails` (first loading message and average
+  ///   of available progress values).
+  /// - **[emptyStateListener]** — Handles the combined empty state. Receives the
+  ///   context and `EmptyStateDetails` (first empty-state message).
+  /// - **[errorStateListener]** — Handles the combined error state. Receives the
+  ///   context and `ErrorStateDetails` (error information, original error, stack
+  ///   trace, and optional retry callback).
+  /// - **[dataStateListener]** — Handles the combined data state. Receives the
+  ///   context and the exact value returned by [listenables].
+  /// - **[rebuildWhen]** — Controls whether the widget rebuilds when the
   ///   combined state changes.
-  /// - **[listenWhen]** — Determines whether the listener should be called when
-  ///   the combined state changes.
-  /// - **[callListenerOnInit]** — Determines whether the listener should be
-  ///   called after initialization.
-  /// - **[isSliver]** — Determines whether the default state widgets are built
-  ///   for use in a sliver.
+  /// - **[listenWhen]** — Controls whether the listener is called when the
+  ///   combined state changes.
+  /// - **[callListenerOnInit]** — Determines whether the listener is called
+  ///   after initialization.
+  /// - **[isSliver]** — Whether the default state widgets from
+  ///   [ViewStateWidgetsProvider] should use sliver-compatible layouts.
+  ///   Defaults to `false`.
+  /// - **[child]** — An optional prebuilt widget passed to [dataBuilder] for
+  ///   reuse.
   ///
   /// **Note:** If a builder for a particular state is not provided, ProviderKit
   /// uses the corresponding default widget from [ViewStateWidgetsProvider].
@@ -227,7 +252,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///     profile: profileNotifier.watch,
   ///     settings: settingsNotifier.watch,
   ///   ),
-  ///   dataBuilder: (state) {
+  ///   dataBuilder: (context, state, child) {
   ///     return Column(
   ///       children: [
   ///         Text(state.user.data.toString()),
@@ -236,7 +261,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///       ],
   ///     );
   ///   },
-  ///   dataStateListener: (state) {
+  ///   dataStateListener: (context, state) {
   ///     // Handle the combined data state.
   ///   },
   /// );
@@ -250,14 +275,14 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///     firstNotifier.watch,
   ///     secondNotifier.watch,
   ///   ],
-  ///   dataBuilder: (state) {
+  ///   dataBuilder: (context, state, child) {
   ///     return Column(
   ///       children: state
   ///           .map((value) => Text(value.toString()))
   ///           .toList(),
   ///     );
   ///   },
-  ///   dataStateListener: (state) {
+  ///   dataStateListener: (context, state) {
   ///     // Handle the combined list.
   ///   },
   /// );
@@ -271,10 +296,10 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///     user: userNotifier.watch,
   ///     profile: profileNotifier.watch,
   ///   ),
-  ///   dataBuilder: (state) {
+  ///   dataBuilder: (context, state, child) {
   ///     return Text(state.user.data.toString());
   ///   },
-  ///   dataStateListener: (state) {
+  ///   dataStateListener: (context, state) {
   ///     // Handle the combined state.
   ///   },
   /// );
@@ -297,14 +322,15 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit,
     bool isSliver,
+    Widget? child,
   }) = _MultiViewStateConsumer<T>;
 
   /// {@macro provider_kit.view_state_widget.of}
   ///
   /// ```dart
   /// ViewStateConsumer.of<MyViewStateNotifier, User>(
-  ///   dataBuilder: (user) => Text(user.name),
-  ///   dataStateListener: (user) {
+  ///   dataBuilder: (context, user, child) => Text(user.name),
+  ///   dataStateListener: (context, user) {
   ///     // Handle the data state.
   ///   },
   /// )
@@ -325,6 +351,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
     ListenWhen<ViewState<T>>? listenWhen,
     bool callListenerOnInit = false,
     bool isSliver = false,
+    Widget? child,
   }) {
     return _ViewStateConsumerOf<P, T>(
       key: key,
@@ -342,6 +369,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
       listenWhen: listenWhen,
       callListenerOnInit: callListenerOnInit,
       isSliver: isSliver,
+      child: child,
     );
   }
 
@@ -416,7 +444,8 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
       )
       ..add(
         DiagnosticsProperty<bool>('isSliver', isSliver, defaultValue: false),
-      );
+      )
+      ..add(DiagnosticsProperty<Widget?>('child', child, defaultValue: null));
   }
 
   /// The public widget name used in diagnostics.

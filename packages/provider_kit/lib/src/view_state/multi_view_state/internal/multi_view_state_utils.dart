@@ -72,8 +72,9 @@ part of '../../../state/multi_state/multi_state.dart';
 /// - **Loading** — a change is detected when the loading message from the
 ///   first view-state notifier accessed through [listenables] that is in [LoadingState] changes, or when
 ///   the aggregated loading progress changes.
-/// - **Empty** — a change is detected when the message from the first view-state
-///   notifier accessed through [listenables] that is in [EmptyState] changes.
+/// - **Empty** — a change is detected when the empty-state message changes
+///   or when the ordered list of notifiers with an available refresh
+///   operation changes.
 /// - **Data** — a change is detected when the combined value returned by
 ///   [listenables] changes.
 ///
@@ -103,6 +104,8 @@ final class MultiViewStateUtils {
     EmptyState<dynamic>? firstEmptyState;
 
     final List<ViewStateNotifier<dynamic>> retryableListenables =
+        <ViewStateNotifier<dynamic>>[];
+    final List<ViewStateNotifier<dynamic>> refreshableListenables =
         <ViewStateNotifier<dynamic>>[];
 
     bool hasInitialState = false;
@@ -143,6 +146,12 @@ final class MultiViewStateUtils {
 
       if (state is EmptyState<dynamic>) {
         firstEmptyState ??= state;
+
+        if (state.onRefresh != null ||
+            listenable is AsyncViewStateNotifier<dynamic>) {
+          refreshableListenables.add(listenable);
+        }
+
         continue;
       }
     }
@@ -172,7 +181,10 @@ final class MultiViewStateUtils {
     }
 
     if (firstEmptyState != null) {
-      return MultiViewStateAggregate.empty(message: firstEmptyState.message);
+      return MultiViewStateAggregate.empty(
+        message: firstEmptyState.message,
+        refreshableListenables: List.unmodifiable(refreshableListenables),
+      );
     }
 
     return const MultiViewStateAggregate.data();
@@ -181,36 +193,81 @@ final class MultiViewStateUtils {
   static VoidCallback? _createRetryCallback(
     List<ViewStateNotifier<dynamic>> listenables,
   ) {
-    final bool hasRetry = listenables.any((listenable) {
-      final ViewState<dynamic> state = listenable.state;
+    return _createStateActionCallback(
+      listenables: listenables,
+      matchesState: (state) => state is ErrorState<dynamic>,
+      getStateCallback: (state) {
+        return state is ErrorState<dynamic> ? state.onRetry : null;
+      },
+      callbackErrorMessage:
+          'While invoking ErrorState.onRetry in the MultiViewState retry operation.',
+    );
+  }
 
-      return state is ErrorState<dynamic> &&
-          (state.onRetry != null ||
+  static VoidCallback? _createRefreshCallback(
+    List<ViewStateNotifier<dynamic>> listenables,
+  ) {
+    return _createStateActionCallback(
+      listenables: listenables,
+      matchesState: (state) => state is EmptyState<dynamic>,
+      getStateCallback: (state) {
+        return state is EmptyState<dynamic> ? state.onRefresh : null;
+      },
+      callbackErrorMessage:
+          'While invoking EmptyState.onRefresh in the MultiViewState refresh operation.',
+    );
+  }
+
+  static VoidCallback? _createStateActionCallback({
+    required List<ViewStateNotifier<dynamic>> listenables,
+    required bool Function(ViewState<dynamic> state) matchesState,
+    required VoidCallback? Function(ViewState<dynamic> state) getStateCallback,
+    required String callbackErrorMessage,
+  }) {
+    bool canPerformAction(ViewStateNotifier<dynamic> listenable) {
+      final state = listenable.state;
+
+      return matchesState(state) &&
+          (getStateCallback(state) != null ||
               listenable is AsyncViewStateNotifier<dynamic>);
-    });
+    }
 
-    if (!hasRetry) {
+    if (!listenables.any(canPerformAction)) {
       return null;
     }
 
     return () {
       for (final ViewStateNotifier<dynamic> listenable in listenables) {
-        final ViewState<dynamic> state = listenable.state;
+        final state = listenable.state;
 
-        if (state is! ErrorState<dynamic>) {
+        if (!matchesState(state)) {
           continue;
         }
 
-        if (state.onRetry != null) {
-          state.onRetry!.call();
+        final callback = getStateCallback(state);
+
+        if (callback != null) {
+          try {
+            callback();
+          } catch (error, stackTrace) {
+            reportErrorToFlutter(
+              error,
+              stackTrace,
+              message:
+                  '$callbackErrorMessage '
+                  'Notifier: ${listenable.runtimeType}; '
+                  'state: ${state.runtimeType}.',
+            );
+          }
         } else if (listenable is AsyncViewStateNotifier<dynamic>) {
-          listenable.refresh();
+          listenable.refresh().ignore();
         }
       }
     };
   }
 
   static void handleListener<T>(
+    BuildContext context,
     T state,
     MultiViewStateAggregate aggregate,
     ErrorStateListener? errorStateListener,
@@ -225,27 +282,42 @@ final class MultiViewStateUtils {
           aggregate.retryableListenables ?? const [],
         );
 
-        errorStateListener?.call(
-          aggregate.errorInfo!,
-          aggregate.error!,
-          aggregate.stackTrace!,
-          onRetry,
+        final errorDetails = ErrorStateDetails(
+          errorInfo: ViewStateWidgetUtils.resolveErrorInfo(
+            context,
+            aggregate.errorInfo!,
+          ),
+          error: aggregate.error!,
+          stackTrace: aggregate.stackTrace!,
+          onRetry: onRetry,
         );
+
+        errorStateListener?.call(context, errorDetails);
 
       case MultiViewStateStatus.initial:
-        initialStateListener?.call();
+        initialStateListener?.call(context);
 
       case MultiViewStateStatus.loading:
-        loadingStateListener?.call(
-          aggregate.loadingMessage,
-          aggregate.loadingProgress,
+        final loadingDetails = LoadingStateDetails(
+          message: context.resolveViewStateMessage(aggregate.loadingMessage),
+          progress: aggregate.loadingProgress,
         );
+        loadingStateListener?.call(context, loadingDetails);
 
       case MultiViewStateStatus.empty:
-        emptyStateListener?.call(aggregate.emptyMessage);
+        final onRefresh = _createRefreshCallback(
+          aggregate.refreshableListenables ?? const [],
+        );
+
+        final emptyStateDetails = EmptyStateDetails(
+          message: context.resolveViewStateMessage(aggregate.emptyMessage),
+          onRefresh: onRefresh,
+        );
+
+        emptyStateListener?.call(context, emptyStateDetails);
 
       case MultiViewStateStatus.data:
-        dataStateListener?.call(state);
+        dataStateListener?.call(context, state);
     }
   }
 
@@ -259,6 +331,7 @@ final class MultiViewStateUtils {
     LoadingStateBuilder? loadingBuilder,
     EmptyStateBuilder? emptyBuilder,
     DataStateBuilder<T> dataBuilder,
+    Widget? child,
   ) {
     switch (aggregate.status) {
       case MultiViewStateStatus.error:
@@ -281,16 +354,30 @@ final class MultiViewStateUtils {
         );
 
       case MultiViewStateStatus.empty:
-        return ViewStateWidgetUtils.buildEmptyWidget(
-          context,
-          emptyBuilder,
-          aggregate.emptyMessage,
-          isSliver,
-        );
+        return _buildEmptyWidget(aggregate, emptyBuilder, context, isSliver);
 
       case MultiViewStateStatus.data:
-        return dataBuilder(state);
+        return dataBuilder(context, state, child);
     }
+  }
+
+  static Widget _buildEmptyWidget(
+    MultiViewStateAggregate aggregate,
+    EmptyStateBuilder? emptyBuilder,
+    BuildContext context,
+    bool isSliver,
+  ) {
+    final VoidCallback? onRefresh = _createRefreshCallback(
+      aggregate.refreshableListenables ?? const [],
+    );
+
+    final details = EmptyStateDetails(
+      message: context.resolveViewStateMessage(aggregate.emptyMessage),
+      onRefresh: onRefresh,
+    );
+
+    return emptyBuilder?.call(context, details) ??
+        context.emptyStateWidget(context, details, isSliver);
   }
 
   static Widget _buildErrorWidget(
@@ -303,19 +390,17 @@ final class MultiViewStateUtils {
       aggregate.retryableListenables ?? const [],
     );
 
-    return errorBuilder?.call(
-          aggregate.errorInfo!,
-          aggregate.error!,
-          aggregate.stackTrace!,
-          onRetry,
-          isSliver,
-        ) ??
-        context.errorStateWidget(
-          aggregate.errorInfo!,
-          aggregate.error!,
-          aggregate.stackTrace!,
-          onRetry,
-          isSliver,
-        );
+    final details = ErrorStateDetails(
+      errorInfo: ViewStateWidgetUtils.resolveErrorInfo(
+        context,
+        aggregate.errorInfo!,
+      ),
+      error: aggregate.error!,
+      stackTrace: aggregate.stackTrace!,
+      onRetry: onRetry,
+    );
+
+    return errorBuilder?.call(context, details) ??
+        context.errorStateWidget(context, details, isSliver);
   }
 }

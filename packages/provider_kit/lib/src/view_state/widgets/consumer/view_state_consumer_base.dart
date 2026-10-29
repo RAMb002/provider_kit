@@ -24,6 +24,7 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
     super.dataStateListener,
     super.callListenerOnInit,
     super.isSliver,
+    super.child,
   }) : super.base();
 
   /// {@macro provider_kit.view_state_widget.listenable}
@@ -50,12 +51,15 @@ abstract class ViewStateConsumerBase<P extends ViewStateNotifier<T>, T>
       loadingBuilder,
       emptyBuilder,
       isSliver,
+      child,
     );
   }
 
-  void _handleStateChange(BuildContext _, ViewState<T> state) {
-    ViewStateWidgetUtils.handleListener<T>(
+  void _handleStateChange(BuildContext context, ViewState<T> state) {
+    ViewStateWidgetUtils.handleListener<P, T>(
       state: state,
+      context: context,
+      listenable: listenable,
       initialStateListener: initialStateListener,
       loadingStateListener: loadingStateListener,
       dataStateListener: dataStateListener,
@@ -101,6 +105,7 @@ class _ViewStateConsumerBaseState<P extends ViewStateNotifier<T>, T>
       builder: widget._buildState,
       listener: widget._handleStateChange,
       widgetName: widget.debugWidgetName,
+      child: widget.child,
     );
   }
 }

@@ -20,14 +20,14 @@ class ViewStateListenerExample extends StatelessWidget {
             onTap: () => context.read<ItemsProvider>().refresh(),
             child: ViewStateListener.of<ItemsProvider, List<Item>>(
               callListenerOnInit: true,
-              initialStateListener: () => context.showToast("initial state"),
-              loadingStateListener: (message, progress) =>
+              initialStateListener: (context) => context.showToast("initial state"),
+              loadingStateListener: (context, details) =>
                   context.showToast("loading state"),
-              emptyStateListener: (message) => context.showToast("empty state"),
-              dataStateListener: (data) => context.showToast(data.toString()),
+              emptyStateListener: (context, details) => context.showToast("empty state"),
+              dataStateListener: (context,data) => context.showToast(data.toString()),
               errorStateListener:
-                  (errorMessage, onRetry, exception, stackTrace) =>
-                      context.showToast("error state, message - $errorMessage"),
+                  (context, details) =>
+                      context.showToast("error state, message - ${details.errorInfo.message}"),
               child: const Text("We are just listening"),
             ));
       },

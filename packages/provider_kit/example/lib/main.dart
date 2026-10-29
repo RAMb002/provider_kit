@@ -32,15 +32,14 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ViewStateWidgetsProvider(
-      initialStateBuilder: (isSliver) => InitialStateWidget(
+      initialStateBuilder: (context, isSliver) => InitialStateWidget(
         isSliver: isSliver,
       ),
-      emptyStateBuilder: (message, isSliver) =>
+      emptyStateBuilder: (context, details, isSliver) =>
           EmptyStateWidget(isSliver: isSliver),
-      errorStateBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) =>
-          ErrorStateWidget(
-              text: errorInfo.message, onTap: onRetry, isSliver: isSliver),
-      loadingStateBuilder: (message, progress, isSliver) =>
+      errorStateBuilder: (context, details, isSliver) => ErrorStateWidget(
+          text: details.message, onTap: details.onRetry, isSliver: isSliver),
+      loadingStateBuilder: (context, details, isSliver) =>
           LoadingStateWidget(isSliver: isSliver),
       child: MaterialApp(
         title: 'Provider Kit Widgets Demo',

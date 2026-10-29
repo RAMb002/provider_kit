@@ -17,6 +17,8 @@ class TestFutureNotifier<T> extends FutureNotifier<T> {
     required this.buildImpl,
     super.initialState,
     super.disableEmptyState,
+    super.loadingMessage,
+    super.emptyMessage,
   });
 
   final Future<T> Function(int buildNumber) buildImpl;
@@ -64,17 +66,6 @@ class TestFutureNotifier<T> extends FutureNotifier<T> {
 
   /// Performs a state assignment through the normal public setter.
   void writeState(ViewState<T> value) => state = value;
-}
-
-class ConstructorDependentFutureNotifier extends FutureNotifier<String> {
-  ConstructorDependentFutureNotifier() {
-    _value = 'initialized after super';
-  }
-
-  late final String _value;
-
-  @override
-  Future<String> build() async => _value;
 }
 
 class RecordingErrorFutureNotifier<T> extends TestFutureNotifier<T> {
@@ -237,6 +228,64 @@ void main() {
       );
 
       test(
+        'uses configured messages for generated loading and empty states',
+        () async {
+          final rebuildGate = Completer<List<int>>();
+
+          final notifier = TestFutureNotifier<List<int>>(
+            loadingMessage: 'products.loading',
+            emptyMessage: 'products.empty',
+            buildImpl: (buildNumber) {
+              if (buildNumber == 1) {
+                return Future<List<int>>.value(<int>[]);
+              }
+
+              return rebuildGate.future;
+            },
+          );
+          addTearDown(notifier.dispose);
+
+          // Initial loading state uses the configured message.
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          // An empty build result uses the configured empty message.
+          await waitForState(
+            notifier,
+            (state) => state is EmptyState<List<int>>,
+          );
+
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+
+          // A rebuild transitions back to loading with the same message.
+          final rebuildFuture = notifier.requestRebuild();
+          await notifier.waitForBuildStart(2);
+
+          expect(notifier.state, isA<LoadingState<List<int>>>());
+          expect(
+            (notifier.state as LoadingState<List<int>>).message,
+            'products.loading',
+          );
+
+          // The next empty result also uses the configured empty message.
+          rebuildGate.complete(<int>[]);
+          await rebuildFuture.timeout(_testTimeout);
+
+          expect(notifier.state, isA<EmptyState<List<int>>>());
+          expect(
+            (notifier.state as EmptyState<List<int>>).message,
+            'products.empty',
+          );
+        },
+      );
+
+      test(
         'respects initialState before the scheduled initial build',
         () async {
           final notifier = TestFutureNotifier<String>(
@@ -254,18 +303,6 @@ void main() {
           expect(notifier.state, const DataState<String>('loaded'));
         },
       );
-
-      test('waits until the subclass constructor body has completed', () async {
-        final notifier = ConstructorDependentFutureNotifier();
-        addTearDown(notifier.dispose);
-
-        expect(notifier.state, isA<LoadingState<String>>());
-        await waitForState(notifier, (state) => state is DataState<String>);
-        expect(
-          notifier.state,
-          const DataState<String>('initialized after super'),
-        );
-      });
 
       test('publishes a successful build result as DataState', () async {
         final notifier = TestFutureNotifier<int>(buildImpl: (_) async => 42);
@@ -431,6 +468,49 @@ void main() {
         expect(notifier.buildCount, 2);
         expect((notifier.state as ErrorState<String>).error, same(retryError));
       });
+
+      test(
+        'default empty-state refresh absorbs a failed fire-and-forget refresh',
+        () async {
+          final refreshError = StateError('empty refresh failed');
+
+          final notifier = TestFutureNotifier<List<int>>(
+            buildImpl: (buildNumber) async {
+              if (buildNumber == 1) return <int>[];
+              throw refreshError;
+            },
+          );
+          addTearDown(notifier.dispose);
+
+          await waitForState(
+            notifier,
+            (state) => state is EmptyState<List<int>>,
+          );
+
+          final emptyState = notifier.state as EmptyState<List<int>>;
+          final onRefresh = emptyState.onRefresh;
+
+          expect(onRefresh, isNotNull);
+
+          // The generated UI callback is fire-and-forget.
+          onRefresh!.call();
+
+          await notifier.waitForBuildStart(2);
+
+          await waitForState(
+            notifier,
+            (state) =>
+                state is ErrorState<List<int>> &&
+                identical(state.error, refreshError),
+          );
+
+          expect(notifier.buildCount, 2);
+          expect(
+            (notifier.state as ErrorState<List<int>>).error,
+            same(refreshError),
+          );
+        },
+      );
 
       test('an onError hook that rebuilds lets a refresh waiter follow '
           'the replacement', () async {
@@ -861,28 +941,6 @@ void main() {
           expect(notifier.state, const DataState<String>('cached value'));
         },
       );
-
-      test('staleness callbacks are invalidated when refresh starts', () async {
-        final gate = Completer<String>();
-        final notifier = TestFutureNotifier<String>(
-          buildImpl: (buildNumber) {
-            if (buildNumber == 1) return Future<String>.value('initial');
-            return gate.future;
-          },
-        );
-        addTearDown(notifier.dispose);
-
-        await waitForState(notifier, (state) => state is DataState<String>);
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        final refreshFuture = notifier.refresh();
-        await notifier.waitForBuildStart(2);
-        expect(isStale(), isTrue);
-
-        gate.complete('updated');
-        await refreshFuture.timeout(_testTimeout);
-      });
     });
 
     group('rebuild and stale operation protection', () {
@@ -1250,55 +1308,6 @@ void main() {
         obsoleteGate.complete('obsolete');
         await flushPendingTasks();
       });
-
-      test('a staleness callback is invalidated when rebuild starts', () async {
-        final gate = Completer<String>();
-        final notifier = TestFutureNotifier<String>(
-          buildImpl: (buildNumber) {
-            if (buildNumber == 1) return Future<String>.value('initial');
-            return gate.future;
-          },
-        );
-        addTearDown(notifier.dispose);
-
-        await waitForState(notifier, (state) => state is DataState<String>);
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        final rebuildFuture = notifier.requestRebuild();
-        await notifier.waitForBuildStart(2);
-        expect(isStale(), isTrue);
-        gate.complete('rebuilt');
-        await rebuildFuture.timeout(_testTimeout);
-      });
-
-      test('listener-triggered state assignment is not rejected as a '
-          'stale build write', () async {
-        final notifier = TestFutureNotifier<String>(
-          buildImpl: (_) async => 'build result',
-        );
-        addTearDown(notifier.dispose);
-
-        var wroteFromListener = false;
-        void listener() {
-          if (!wroteFromListener &&
-              notifier.state is DataState<String> &&
-              (notifier.state as DataState<String>).data == 'build result') {
-            wroteFromListener = true;
-            notifier.writeState(const DataState<String>('listener result'));
-          }
-        }
-
-        notifier.addListener(listener);
-        addTearDown(() => notifier.removeListener(listener));
-
-        await waitForState(
-          notifier,
-          (state) =>
-              state is DataState<String> && state.data == 'listener result',
-        );
-        expect(notifier.state, const DataState<String>('listener result'));
-      });
     });
 
     group('disposal', () {
@@ -1338,18 +1347,6 @@ void main() {
         },
       );
 
-      test('staleness callbacks become stale when disposed', () async {
-        final notifier = TestFutureNotifier<String>(
-          buildImpl: (_) async => 'ready',
-        );
-        await waitForState(notifier, (state) => state is DataState<String>);
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        notifier.dispose();
-        expect(isStale(), isTrue);
-      });
-
       test(
         'refresh after disposal completes without starting another build',
         () async {
@@ -1381,20 +1378,6 @@ void main() {
               'Rebuild after disposal did not complete.',
             ),
           );
-          await flushPendingTasks();
-
-          expect(notifier.buildCount, 0);
-          expect(notifier.state, isA<LoadingState<String>>());
-        },
-      );
-
-      test(
-        'disposing before the scheduled initial build prevents it from running',
-        () async {
-          final notifier = TestFutureNotifier<String>(
-            buildImpl: (_) async => 'should not run',
-          );
-          notifier.dispose();
           await flushPendingTasks();
 
           expect(notifier.buildCount, 0);

@@ -12,6 +12,12 @@ import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart'
 ///
 /// Use the concrete state classes such as [InitialState], [LoadingState],
 /// [DataState], [EmptyState], and [ErrorState] to represent the current state.
+///
+/// Messages carried by [LoadingState] and [EmptyState], along with
+/// [ErrorInfo.message] in [ErrorState], are stored as provided. This class
+/// does not localize them. ProviderKit's view-state widgets resolve these
+/// messages for display using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
 /// {@endtemplate}
 sealed class ViewState<T> {
   /// {@macro provider_kit.view_state}
@@ -28,9 +34,9 @@ sealed class ViewState<T> {
   /// ```dart
   /// final text = state.when(
   ///   initialState: () => 'Initial',
-  ///   loadingState: (_, __) => 'Loading',
+  ///   loadingState: (message, progress) => 'Loading',
   ///   dataState: (data) => 'Data: $data',
-  ///   emptyState: (_) => 'No data',
+  ///   emptyState: (message, onRefresh) => 'No data',
   ///   errorState: (errorInfo, error, stackTrace, onRetry) =>
   ///       errorInfo.message,
   /// );
@@ -47,7 +53,7 @@ sealed class ViewState<T> {
       InitialState<T>() => initialState(),
       LoadingState<T>() => loadingState(state.message, state.progress),
       DataState<T>() => dataState(state.data),
-      EmptyState<T>() => emptyState(state.message),
+      EmptyState<T>() => emptyState(state.message, state.onRefresh),
       ErrorState<T>() => errorState(
         state.errorInfo,
         state.error,
@@ -94,7 +100,9 @@ sealed class ViewState<T> {
             : loadingState(state.message, state.progress),
       DataState<T>() => dataState == null ? orElse() : dataState(state.data),
       EmptyState<T>() =>
-        emptyState == null ? orElse() : emptyState(state.message),
+        emptyState == null
+            ? orElse()
+            : emptyState(state.message, state.onRefresh),
       ErrorState<T>() =>
         errorState == null
             ? orElse()
@@ -139,7 +147,7 @@ sealed class ViewState<T> {
       InitialState<T>() => initialState?.call(),
       LoadingState<T>() => loadingState?.call(state.message, state.progress),
       DataState<T>() => dataState?.call(state.data),
-      EmptyState<T>() => emptyState?.call(state.message),
+      EmptyState<T>() => emptyState?.call(state.message, state.onRefresh),
       ErrorState<T>() => errorState?.call(
         state.errorInfo,
         state.error,
@@ -319,91 +327,153 @@ sealed class ViewState<T> {
   }
 }
 
+/// {@template provider_kit.view_state.initial_state}
 /// Represents the initial state of a view.
+/// {@endtemplate}
 class InitialState<T> extends ViewState<T> {
+  /// {@macro provider_kit.view_state.initial_state}
   const InitialState();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is InitialState<T> && runtimeType == other.runtimeType;
+
+  @override
+  int get hashCode => runtimeType.hashCode;
 }
 
+/// {@template provider_kit.view_state.loading_state}
 /// Represents the loading state of a view.
 ///
-/// [message] optionally describes the current loading operation.
+/// [message] optionally describes the current loading operation. It may be
+/// literal text or a localization key. ProviderKit's view-state widgets
+/// resolve the message for display using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
+///
 /// [progress] optionally indicates the loading progress.
+/// {@endtemplate}
 class LoadingState<T> extends ViewState<T> {
   final String? message;
   final double? progress;
+
+  /// {@macro provider_kit.view_state.loading_state}
   const LoadingState([this.message, this.progress]);
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is LoadingState &&
+    return other is LoadingState<T> &&
+        runtimeType == other.runtimeType &&
         other.message == message &&
         other.progress == progress;
   }
 
   @override
-  int get hashCode => Object.hash(message, progress);
+  int get hashCode => Object.hash(runtimeType, message, progress);
 
   @override
   String toString() =>
       'LoadingState { message: $message, progress: $progress }';
 }
 
+/// {@template provider_kit.view_state.empty_state}
 /// Represents the empty state of a view.
 ///
-/// [message] optionally describes why no data is available.
+/// [message] optionally describes why no data is available. It may be
+/// literal text or a localization key. ProviderKit's view-state widgets
+/// resolve the message for display using the configured
+/// `ViewStateWidgetsProvider.messageResolver`.
+///
+/// [onRefresh] optionally provides a callback to refresh the operation
+/// that produced this empty state. When omitted, view-state widgets can
+/// fall back to the associated asynchronous notifier's [refresh] method
+/// when available.
+/// {@endtemplate}
+
 class EmptyState<T> extends ViewState<T> {
+  /// An optional message describing why no data is available.
   final String? message;
-  const EmptyState([this.message]);
+
+  /// Called to refresh the operation that produced this empty state.
+  ///
+  /// When `null`, view-state widgets can fall back to the associated
+  /// asynchronous notifier's [refresh] method when available.
+  final VoidCallback? onRefresh;
+
+  /// {@macro provider_kit.view_state.empty_state}
+  const EmptyState([this.message, this.onRefresh]);
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is EmptyState && other.message == message;
+    return other is EmptyState<T> &&
+        runtimeType == other.runtimeType &&
+        other.message == message &&
+        other.onRefresh == onRefresh;
   }
 
   @override
-  int get hashCode => message.hashCode;
+  int get hashCode => Object.hash(runtimeType, message, onRefresh);
 
   @override
-  String toString() => 'EmptyState { message: $message }';
+  String toString() =>
+      'EmptyState { message: $message, '
+      'onRefresh: ${onRefresh != null} }';
 }
 
+/// {@template provider_kit.view_state.data_state}
 /// Represents the data state of a view.
 ///
 /// [data] contains the data produced by the operation.
+/// {@endtemplate}
 class DataState<T> extends ViewState<T> {
+  /// {@macro provider_kit.view_state.data_state}
   const DataState(this.data);
+
   @override
   final T data;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is DataState &&
+      other is DataState<T> &&
           runtimeType == other.runtimeType &&
           data == other.data;
 
   @override
-  int get hashCode => data.hashCode;
+  int get hashCode => Object.hash(runtimeType, data);
 
   @override
   String toString() => 'DataState { data: $data }';
 }
 
-/// {@template provider_kit.error_state}
+/// {@template provider_kit.view_state.error_state}
 /// Represents a failed state of a view.
 ///
 /// [error] contains the original error, [stackTrace] contains its associated
-/// stack trace, and [errorInfo] contains the mapped error information.
-/// An optional [onRetry] callback can be provided to retry the operation.
+/// stack trace, and [errorInfo] contains the information used to describe
+/// the error.
+///
+/// If [errorInfo] is not provided, it is generated using the configured
+/// [ErrorInfoMapper]. If no custom mapper is configured, the error's string
+/// representation is used as the default message.
+///
+/// [errorInfo.message] may contain literal text or a localization key.
+/// ProviderKit's view-state widgets resolve it for display using the
+/// configured `ViewStateWidgetsProvider.messageResolver`.
+///
+/// [onRetry] optionally provides a callback to retry the failed operation.
+/// When omitted, supported view-state widgets fall back to the associated
+/// asynchronous notifier's `refresh` method when available.
 /// {@endtemplate}
 class ErrorState<T> extends ViewState<T> {
   /// {@template provider_kit.error_info_field}
-  /// The mapped information for this error.
+  /// The information describing this error.
   ///
-  /// The information is produced by the configured [ErrorInfoMapper] via
-  /// [ProviderKit.configure].
+  /// If not provided to the constructor, this value is generated using the
+  /// configured [ErrorInfoMapper] through [ProviderKit.resolveErrorInfo].
+  /// Explicitly supplied [ErrorInfo] is used as provided.
   /// {@endtemplate}
   final ErrorInfo errorInfo;
 
@@ -417,8 +487,13 @@ class ErrorState<T> extends ViewState<T> {
   final VoidCallback? onRetry;
 
   /// The message provided by [errorInfo].
+  ///
+  /// The message may be literal text or a localization key. ProviderKit's
+  /// view-state widgets resolve it for display using the configured
+  /// `ViewStateWidgetsProvider.messageResolver`.
   String get message => errorInfo.message;
 
+  /// {@macro provider_kit.view_state.error_state}
   ErrorState(this.error, this.stackTrace, {ErrorInfo? errorInfo, this.onRetry})
     : errorInfo = errorInfo ?? ProviderKit.resolveErrorInfo(error, stackTrace);
 
@@ -426,6 +501,7 @@ class ErrorState<T> extends ViewState<T> {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is ErrorState<T> &&
+        runtimeType == other.runtimeType &&
         other.errorInfo == errorInfo &&
         other.error == error &&
         other.stackTrace == stackTrace &&
@@ -433,7 +509,8 @@ class ErrorState<T> extends ViewState<T> {
   }
 
   @override
-  int get hashCode => Object.hash(errorInfo, error, stackTrace, onRetry);
+  int get hashCode =>
+      Object.hash(runtimeType, errorInfo, error, stackTrace, onRetry);
 
   @override
   String toString() =>

@@ -37,7 +37,9 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
 
   /// Dispatches the current state to its corresponding callback.
   void onStateChange(BuildContext context, ViewState<T> state) {
-    ViewStateWidgetUtils.handleListener<T>(
+    ViewStateWidgetUtils.handleListener<P,T>(
+      context: context,
+      listenable: listenable,
       state: state,
       initialStateListener: initialStateListener,
       loadingStateListener: loadingStateListener,
@@ -55,7 +57,9 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null))
+      ..add(
+        DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null),
+      )
       ..add(
         ObjectFlagProperty<ListenWhen<ViewState<T>>?>.has(
           'listenWhen',

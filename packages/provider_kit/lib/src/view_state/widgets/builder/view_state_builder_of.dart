@@ -14,5 +14,6 @@ class _ViewStateBuilderOf<P extends ViewStateNotifier<T>, T>
     super.emptyBuilder,
     super.rebuildWhen,
     super.isSliver,
+    super.child,
   }) : super(listenable: null);
 }

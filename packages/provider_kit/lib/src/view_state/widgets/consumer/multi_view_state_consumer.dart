@@ -19,6 +19,7 @@ class _MultiViewStateConsumer<T> extends MultiViewStateConsumerBase<T> {
     super.listenWhen,
     super.callListenerOnInit,
     super.isSliver,
+    super.child,
   });
 }
 
@@ -44,6 +45,7 @@ abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
     this.listenWhen,
     super.callListenerOnInit = false,
     super.isSliver = false,
+    super.child,
   }) : super.base();
 
   /// {@macro provider_kit.multi_view_state.listenables_param}
@@ -78,15 +80,17 @@ abstract class MultiViewStateConsumerBase<T> extends ViewStateConsumer<T> {
       loadingBuilder,
       emptyBuilder,
       dataBuilder,
+      child,
     );
   }
 
   void _handleStateChange(
-    BuildContext _,
+    BuildContext context,
     T state,
     MultiViewStateAggregate aggregate,
   ) {
     MultiViewStateUtils.handleListener(
+      context,
       state,
       aggregate,
       errorStateListener,
@@ -125,6 +129,7 @@ class _MultiViewStateConsumerBaseState<T>
       callListenerOnInit: widget.callListenerOnInit,
       builder: widget._buildState,
       listener: widget._handleStateChange,
+      child: widget.child,
     );
   }
 }
