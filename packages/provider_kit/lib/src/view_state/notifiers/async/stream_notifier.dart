@@ -173,7 +173,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
     if (state.isData || state.isError) {
       dispatchErrorToObserver(error, stackTrace);
     } else {
-      _onError(error, stackTrace);
+      setError(error, stackTrace);
     }
 
     // Error handling and observer callbacks can trigger another operation.
@@ -220,7 +220,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
     _hasReceivedData = true;
 
     if (_isEmptyState(data)) {
-      _onEmpty();
+      setEmpty();
     } else {
       state = DataState<T>(data);
     }
@@ -239,7 +239,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
       if (state.isData || state.isError) {
         dispatchErrorToObserver(error, stackTrace);
       } else {
-        _onError(error, stackTrace);
+        setError(error, stackTrace);
       }
     }, zoneValues: {_buildZoneKey: null});
   }
@@ -252,7 +252,7 @@ abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
     // Preserve existing data, and do not replace an error state with empty
     // merely because the stream completed without emitting data.
     if (!_hasReceivedData && !_hasReceivedError && !state.isData) {
-      _onEmpty();
+      setEmpty();
     }
   }
 

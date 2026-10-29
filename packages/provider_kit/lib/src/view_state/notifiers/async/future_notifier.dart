@@ -238,7 +238,7 @@ abstract class FutureNotifier<T> extends AsyncViewStateNotifier<T> {
     if (!_isCurrentBuild(token)) return;
 
     if (_isEmptyState(result)) {
-      _onEmpty();
+      setEmpty();
     } else {
       state = DataState<T>(result);
     }
@@ -257,7 +257,7 @@ abstract class FutureNotifier<T> extends AsyncViewStateNotifier<T> {
     if (state.isData || state.isError) {
       dispatchErrorToObserver(error, stackTrace);
     } else {
-      _onError(error, stackTrace);
+      setError(error, stackTrace);
     }
 
     // Error handlers and observers can synchronously trigger another rebuild.

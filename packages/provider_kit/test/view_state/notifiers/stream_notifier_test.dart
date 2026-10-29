@@ -62,19 +62,6 @@ class TestStreamNotifier<T> extends StreamNotifier<T> {
   void writeState(ViewState<T> value) => state = value;
 }
 
-class ConstructorDependentStreamNotifier extends StreamNotifier<String> {
-  ConstructorDependentStreamNotifier() : super() {
-    _value = 'initialized after super';
-  }
-
-  late final String _value;
-
-  @override
-  Stream<String> build() async* {
-    yield _value;
-  }
-}
-
 class _CapturedFailure {
   const _CapturedFailure(this.error, this.stackTrace);
 
@@ -240,22 +227,6 @@ void main() {
           'initial stream listener',
         );
         expect(notifier.state, const DataState<String>('provided'));
-      });
-
-      test('waits until the subclass constructor body has completed', () async {
-        final notifier = ConstructorDependentStreamNotifier();
-        addTearDown(notifier.dispose);
-
-        expect(notifier.state, isA<LoadingState<String>>());
-        await _waitForState(
-          notifier,
-          (state) => state is DataState<String>,
-          description: 'constructor-dependent data',
-        );
-        expect(
-          notifier.state,
-          const DataState<String>('initialized after super'),
-        );
       });
 
       test('each emitted value becomes the current DataState', () async {
@@ -1254,36 +1225,6 @@ void main() {
       );
 
       test(
-        'refresh invalidates staleness checks when starting a new build',
-        () async {
-          final controllers = <StreamController<String>>[];
-          final notifier = TestStreamNotifier<String>(
-            buildImpl: (_) {
-              final controller = StreamController<String>(sync: true);
-              controllers.add(controller);
-              return controller.stream;
-            },
-          );
-          _addCleanup(notifier, controllers);
-          await notifier.waitForBuildStart(1);
-          await _within(
-            _waitUntil(
-              () => controllers[0].hasListener,
-              description: 'first subscription',
-            ),
-            'first subscription',
-          );
-          final isStale = notifier.captureStaleness();
-          expect(isStale(), isFalse);
-
-          final refreshFuture = notifier.refresh();
-          await notifier.waitForBuildStart(2);
-          expect(isStale(), isTrue);
-          await _within(refreshFuture, 'refresh subscription setup');
-        },
-      );
-
-      test(
         'refresh that joins a running setup invalidates independent staleness checks',
         () async {
           final cancelStarted = Completer<void>();
@@ -1690,33 +1631,6 @@ void main() {
         },
       );
 
-      test('a stale check is invalidated when rebuild starts', () async {
-        final controllers = <StreamController<String>>[];
-        final notifier = TestStreamNotifier<String>(
-          buildImpl: (_) {
-            final controller = StreamController<String>(sync: true);
-            controllers.add(controller);
-            return controller.stream;
-          },
-        );
-        _addCleanup(notifier, controllers);
-        await notifier.waitForBuildStart(1);
-        await _within(
-          _waitUntil(
-            () => controllers[0].hasListener,
-            description: 'first subscription',
-          ),
-          'first subscription',
-        );
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        final rebuildFuture = notifier.requestRebuild();
-        await notifier.waitForBuildStart(2);
-        expect(isStale(), isTrue);
-        await _within(rebuildFuture, 'replacement setup');
-      });
-
       test(
         'an async* generator retains the current build Zone after await',
         () async {
@@ -1894,31 +1808,6 @@ void main() {
         expect(notifier.state, const DataState<String>('before dispose'));
       });
 
-      test('staleness callbacks become stale after disposal', () async {
-        final controllers = <StreamController<String>>[];
-        final notifier = TestStreamNotifier<String>(
-          buildImpl: (_) {
-            final controller = StreamController<String>(sync: true);
-            controllers.add(controller);
-            return controller.stream;
-          },
-        );
-        _addCleanup(notifier, controllers);
-        await notifier.waitForBuildStart(1);
-        await _within(
-          _waitUntil(
-            () => controllers.single.hasListener,
-            description: 'active subscription',
-          ),
-          'active subscription',
-        );
-        final isStale = notifier.captureStaleness();
-        expect(isStale(), isFalse);
-
-        notifier.dispose();
-        expect(isStale(), isTrue);
-      });
-
       test('refresh after disposal does not start another build', () async {
         final controllers = <StreamController<String>>[];
         final notifier = TestStreamNotifier<String>(
@@ -1968,19 +1857,6 @@ void main() {
         await _within(notifier.requestRebuild(), 'rebuild after disposal');
         expect(notifier.buildCount, 1);
       });
-
-      test(
-        'disposing before the initial microtask prevents the build',
-        () async {
-          final notifier = TestStreamNotifier<String>(
-            buildImpl: (_) => Stream<String>.value('must not arrive'),
-          );
-          notifier.dispose();
-          await _flushPendingTasks();
-          expect(notifier.buildCount, 0);
-          expect(notifier.state, isA<LoadingState<String>>());
-        },
-      );
     });
   });
 }

@@ -88,6 +88,24 @@ part of 'async_notifiers.dart';
 /// These checks prevent outdated asynchronous work from continuing to act on
 /// the current state, but do not cancel the underlying work automatically.
 ///
+/// ### Manually setting states
+///
+/// Subclasses can use the state-setting helpers to update the current
+/// [ViewState] while preserving ProviderKit's default behavior:
+///
+/// - [setInitial] sets the initial state.
+/// - [setLoading] sets a loading state using the configured default message
+///   unless an override is provided. An optional progress value can represent
+///   progress within a multi-stage operation.
+/// - [setData] publishes the supplied data through [DataState].
+/// - [setEmpty] sets an empty state using the configured default message and
+///   provides a callback that refreshes the notifier.
+/// - [setError] sets an error state using the configured error-info mapping
+///   and provides a callback that refreshes the notifier. The error is also
+///   dispatched to the NotifierObserver`
+///
+/// These helpers do nothing after the notifier has been disposed.
+///
 /// {@endtemplate}
 sealed class AsyncViewStateNotifier<T> extends ViewStateNotifier<T> {
   AsyncViewStateNotifier({
@@ -253,6 +271,58 @@ sealed class AsyncViewStateNotifier<T> extends ViewStateNotifier<T> {
     };
   }
 
+  /// Sets the current state to [InitialState].
+  @protected
+  @nonVirtual
+  void setInitial() {
+    if (!mounted) return;
+    state = InitialState<T>();
+  }
+
+  /// Sets the current state to [LoadingState].
+  ///
+  /// Uses [message] when provided, or [loadingMessage] otherwise.
+  /// The optional [progress] value is passed to the loading state.
+  @protected
+  @nonVirtual
+  void setLoading({String? message, double? progress}) {
+    if (!mounted) return;
+    state = LoadingState<T>(message ?? loadingMessage, progress);
+  }
+
+  /// Sets the current state to [DataState] with the provided [data].
+  @protected
+  @nonVirtual
+  void setData(T data) {
+    if (!mounted) return;
+    state = DataState<T>(data);
+  }
+
+  /// Sets the current state to [EmptyState].
+  ///
+  /// Uses [message] when provided, or [emptyMessage] otherwise.
+  /// The state receives a default refresh callback that invokes [refresh].
+  @protected
+  @nonVirtual
+  void setEmpty([String? message]) {
+    if (!mounted) return;
+    state = EmptyState<T>(message ?? emptyMessage, () => refresh().ignore());
+  }
+
+  /// Sets the current state to [ErrorState] for the provided [error] and
+  /// [stackTrace].
+  ///
+  /// Error information is resolved using the configured `ErrorInfoMapper`.
+  /// The state receives a default retry callback that invokes [refresh].
+  /// The error is also dispatched to the 'NotifierObserver'.
+  @protected
+  @nonVirtual
+  void setError(Object error, StackTrace stackTrace) {
+    if (!mounted) return;
+    state = ErrorState<T>(error, stackTrace, onRetry: () => refresh().ignore());
+    dispatchError(error, stackTrace);
+  }
+
   /// Invalidates all checks captured before this call.
   void _invalidateStateScopes() {
     _generationGuard.next();
@@ -263,18 +333,6 @@ sealed class AsyncViewStateNotifier<T> extends ViewStateNotifier<T> {
   /// Subclasses can override this internal hook for resources such as stream
   /// subscriptions. The manager is invalidated before this hook is called.
   void _disposeAsyncResources() {}
-
-  void _onEmpty() {
-    if (!mounted) return;
-    state = EmptyState<T>(emptyMessage, () => refresh().ignore());
-  }
-
-  void _onError(Object error, StackTrace stackTrace) {
-    if (!mounted) return;
-
-    state = ErrorState<T>(error, stackTrace, onRetry: () => refresh().ignore());
-    dispatchError(error, stackTrace);
-  }
 
   @mustCallSuper
   @override
