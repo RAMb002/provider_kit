@@ -128,10 +128,38 @@ _TestAsyncViewStateNotifier<T> _pendingNotifier<T>({
   );
 }
 
+class _InitializingTestNotifier extends _TestAsyncViewStateNotifier<int> {
+  _InitializingTestNotifier({
+    required super.buildImpl,
+    required this.events,
+    this.initializationError,
+  });
+
+  final List<String> events;
+  final Object? initializationError;
+
+  @override
+  void onInitialize() {
+    events.add('initialize');
+    super.onInitialize();
+
+    final error = initializationError;
+    if (error != null) {
+      Error.throwWithStackTrace(error, StackTrace.current);
+    }
+  }
+
+  @override
+  Future<int> build() {
+    events.add('build');
+    return super.build();
+  }
+}
+
 void main() {
   setUp(ProviderKit.resetForTesting);
 
-  group('AsyncViewStateNotifier shared behavior', () {
+  group('AsyncViewStateNotifierBase shared behavior', () {
     group('state-setting helpers', () {
       test('setInitial sets InitialState', () async {
         final notifier = _pendingNotifier<String>();
@@ -263,7 +291,72 @@ void main() {
         expect(notifier.dispatchedErrors, isEmpty);
       });
     });
+    test('runs onInitialize before the initial build', () async {
+      final events = <String>[];
 
+      final notifier = _InitializingTestNotifier(
+        events: events,
+        buildImpl: (_) async => 42,
+      );
+      addTearDown(notifier.dispose);
+
+      await _waitForState(notifier, (state) => state is DataState<int>);
+
+      expect(events, ['initialize', 'build']);
+      expect(notifier.state, const DataState<int>(42));
+    });
+
+    test('starts initial build even when onInitialize throws', () async {
+      final events = <String>[];
+
+      final initializationError = StateError('Initialization failed');
+      final initializationErrorCaught = Completer<void>();
+      final buildResult = Completer<int>();
+
+      final uncaughtErrors = <(Object, StackTrace)>[];
+
+      late final _InitializingTestNotifier notifier;
+
+      runZonedGuarded<void>(
+        () {
+          notifier = _InitializingTestNotifier(
+            events: events,
+            initializationError: initializationError,
+            buildImpl: (_) => buildResult.future,
+          );
+        },
+        (error, stackTrace) {
+          uncaughtErrors.add((error, stackTrace));
+
+          if (identical(error, initializationError) &&
+              !initializationErrorCaught.isCompleted) {
+            initializationErrorCaught.complete();
+          }
+        },
+      );
+
+      addTearDown(notifier.dispose);
+
+      // Wait for both the initialization error and the initial build.
+      await Future.wait([
+        initializationErrorCaught.future.timeout(_testTimeout),
+        notifier.waitForBuildStart(1),
+      ]);
+
+      // The initialization error must not be swallowed.
+      expect(uncaughtErrors, hasLength(1));
+      expect(uncaughtErrors.single.$1, same(initializationError));
+
+      // The initial build must still have started.
+      expect(events, ['initialize', 'build']);
+
+      // Complete the build and verify that its result is published.
+      buildResult.complete(42);
+
+      await _waitForState(notifier, (state) => state is DataState<int>);
+
+      expect(notifier.state, const DataState<int>(42));
+    });
     test('waits until the subclass constructor body has completed', () async {
       final notifier = _ConstructorDependentNotifier();
       addTearDown(notifier.dispose);

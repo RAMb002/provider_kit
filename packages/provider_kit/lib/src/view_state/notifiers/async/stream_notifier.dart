@@ -84,7 +84,7 @@ part of 'async_notifiers.dart';
 /// [refresh].
 ///
 /// {@endtemplate}
-abstract class StreamNotifier<T> extends AsyncViewStateNotifier<T> {
+abstract class StreamNotifier<T> extends _AsyncViewStateNotifierBase<T> {
   /// {@macro provider_kit.stream_notifier}
   StreamNotifier({
     super.initialState,

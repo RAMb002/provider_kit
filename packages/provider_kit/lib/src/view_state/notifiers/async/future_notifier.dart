@@ -181,7 +181,7 @@ part of 'async_notifiers.dart';
 /// stop subsequent work when the operation becomes outdated.
 ///
 /// {@endtemplate}
-abstract class FutureNotifier<T> extends AsyncViewStateNotifier<T> {
+abstract class FutureNotifier<T> extends _AsyncViewStateNotifierBase<T> {
   /// {@macro provider_kit.future_notifier}
   FutureNotifier({
     super.initialState,
