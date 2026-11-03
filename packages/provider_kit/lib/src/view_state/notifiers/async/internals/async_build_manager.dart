@@ -119,55 +119,106 @@ final class AsyncBuildManager {
     return _waitForLatestOperation(operation);
   }
 
+  /// Invalidates pending and running operations without starting replacements.
+  ///
+  /// Waiting callers are released, and future state updates from invalidated
+  /// operations are rejected.
+  void invalidate() {
+    if (_disposed) return;
+
+    // Invalidate independent operations using the notifier's generation guard.
+    _invalidateOperations();
+
+    // Invalidate managed build generations.
+    _generationGuard.next();
+
+    // Cancel any rebuild that has not started yet.
+    final pending = _pendingRebuild;
+    _pendingRebuild = null;
+    pending?.invalidate();
+
+    // Invalidate running operations and release their waiting callers.
+    for (final operation in _runningOperations.toList()) {
+      operation.invalidate();
+    }
+
+    _activeOperation = null;
+    _latestOperation = null;
+  }
+
   /// Waits for an operation, following its replacement if superseded.
   ///
   /// Waiting resumes when the operation completes or becomes outdated.
   /// Consequently, callers can follow a replacement without waiting for
   /// the outdated operation's underlying asynchronous work to finish.
   ///
-  /// An outdated operation's error does not fail the waiting caller when a
-  /// replacement exists. The current operation's error is propagated.
+  /// Errors from operations replaced while still running are ignored.
+  /// Errors from operations that finish before being replaced are propagated
+  /// to their waiting callers, even if the manager is invalidated afterward.
   Future<void> _waitForLatestOperation(
     _AsyncBuildOperation initialOperation,
   ) async {
-    var operation = initialOperation;
+    _AsyncBuildOperation operation = initialOperation;
 
     while (!_disposed) {
       await operation.changed;
 
-      if (_disposed) return;
+      if (_disposed || operation.isInvalidated) return;
 
-      if (!_isCurrentOperation(operation)) {
-        final latest = _latestOperation;
-        // coverage:ignore-start
-        assert(
-          latest != null &&
-              !identical(latest, operation) &&
-              _isCurrentOperation(latest),
-          'A superseded build must have a current replacement operation.',
+      final wasReplaced = operation.isSuperseded;
+      final hasFinished = operation.hasExecutionCompleted;
+
+      // Follow the newer build when this one was replaced.
+      // Also follow it when this operation is outdated but hasn't finished.
+      if (wasReplaced || (!hasFinished && !_isCurrentOperation(operation))) {
+        final _AsyncBuildOperation? replacement = _getLatestReplacement(
+          operation,
         );
 
-        if (latest == null ||
-            identical(latest, operation) ||
-            !_isCurrentOperation(latest)) {
-          return; // invariant violated; asserted above in debug
-        }
-        // coverage:ignore-end
-        operation = latest;
+        if (replacement == null) return;
+
+        operation = replacement;
         continue;
       }
+
+      // Deliver the result of a genuinely completed build.
+      if (hasFinished) {
+        if (operation.hasError) {
+          Error.throwWithStackTrace(operation.error!, operation.stackTrace!);
+        }
+
+        return;
+      }
+
+      // An operation should not signal a change without reaching
+      // a completed, invalidated, or replaced state.
       // coverage:ignore-start
-      if (!operation.isCompleted) {
-        assert(false, 'A current build was signalled without completing.');
-        return; // release: release the waiter instead of failing or spinning
-      }
+      assert(
+        operation.isCompleted,
+        'A current build was signalled without completing.',
+      );
       // coverage:ignore-end
-      if (operation.hasError) {
-        Error.throwWithStackTrace(operation.error!, operation.stackTrace!);
-      }
 
       return;
     }
+  }
+
+  _AsyncBuildOperation? _getLatestReplacement(_AsyncBuildOperation operation) {
+    final _AsyncBuildOperation? latest = _latestOperation;
+
+    if (latest == null) return null;
+    // coverage:ignore-start
+    assert(
+      !identical(latest, operation) && _isCurrentOperation(latest),
+      'A replaced build must have a current replacement operation.',
+    );
+
+    if (identical(latest, operation) || !_isCurrentOperation(latest)) {
+      return null;
+    }
+    // coverage:ignore-end
+
+    return latest;
   }
 
   /// Joins valid work or starts a fresh refresh.
@@ -252,9 +303,9 @@ final class AsyncBuildManager {
 
     try {
       await execute(token, operation.reason);
-      operation.complete();
+      operation.completeExecution();
     } catch (error, stackTrace) {
-      operation.completeError(error, stackTrace);
+      operation.completeExecutionError(error, stackTrace);
     } finally {
       _runningOperations.remove(operation);
 
@@ -314,6 +365,24 @@ final class _AsyncBuildOperation {
   Object? _error;
   StackTrace? _stackTrace;
 
+  bool _isInvalidated = false;
+
+  bool _isSuperseded = false;
+  bool _hasExecutionCompleted = false;
+
+  bool get isSuperseded => _isSuperseded;
+  bool get hasExecutionCompleted => _hasExecutionCompleted;
+
+  bool get isInvalidated => _isInvalidated;
+
+  /// Invalidates the operation and releases its waiting callers.
+  void invalidate() {
+    if (_isInvalidated) return;
+
+    _isInvalidated = true;
+    complete();
+  }
+
   /// Completes when the operation first finishes or becomes outdated.
   Future<void> get changed => _changedCompleter.future;
 
@@ -325,6 +394,9 @@ final class _AsyncBuildOperation {
 
   /// Wakes waiting callers so they can follow the replacement operation.
   void markSuperseded() {
+    if (_isSuperseded || _isInvalidated || _isCompleted) return;
+
+    _isSuperseded = true;
     _signalChanged();
   }
 
@@ -335,15 +407,22 @@ final class _AsyncBuildOperation {
     _signalChanged();
   }
 
-  void completeError(Object error, StackTrace stackTrace) {
+  void completeExecution() {
     if (_isCompleted) return;
 
-    _isCompleted = true;
+    _hasExecutionCompleted = true;
+    complete();
+  }
+
+  void completeExecutionError(Object error, StackTrace stackTrace) {
+    if (_isCompleted) return;
+
+    _hasExecutionCompleted = true;
     _hasError = true;
     _error = error;
     _stackTrace = stackTrace;
 
-    _signalChanged();
+    complete();
   }
 
   void _signalChanged() {

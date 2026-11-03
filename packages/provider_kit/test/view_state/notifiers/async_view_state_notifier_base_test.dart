@@ -11,7 +11,8 @@ const _testTimeout = Duration(seconds: 3);
 class _TestAsyncViewStateNotifier<T> extends FutureNotifier<T> {
   _TestAsyncViewStateNotifier({
     required this.buildImpl,
-    super.disableEmptyState,
+    super.startInitialBuild,
+    super.enableEmptyState,
     super.loadingMessage,
     super.emptyMessage,
   });
@@ -61,6 +62,8 @@ class _TestAsyncViewStateNotifier<T> extends FutureNotifier<T> {
   bool Function() captureStaleness() => checkStaleness();
 
   Future<void> rebuildForTest() => rebuild();
+
+  void invalidateBuildForTest() => invalidateBuild();
 
   void writeStateForTest(ViewState<T> value) => state = value;
 
@@ -118,12 +121,12 @@ Future<void> _waitForState<T>(
 _TestAsyncViewStateNotifier<T> _pendingNotifier<T>({
   String? loadingMessage,
   String? emptyMessage,
-  bool disableEmptyState = false,
+  bool enableEmptyState = true,
 }) {
   return _TestAsyncViewStateNotifier<T>(
     loadingMessage: loadingMessage,
     emptyMessage: emptyMessage,
-    disableEmptyState: disableEmptyState,
+    enableEmptyState: enableEmptyState,
     buildImpl: (_) => Completer<T>().future,
   );
 }
@@ -153,6 +156,19 @@ class _InitializingTestNotifier extends _TestAsyncViewStateNotifier<int> {
   Future<int> build() {
     events.add('build');
     return super.build();
+  }
+}
+
+class _CachedInitializingTestNotifier extends _InitializingTestNotifier {
+  _CachedInitializingTestNotifier({
+    required super.buildImpl,
+    required super.events,
+  });
+
+  @override
+  void onInitialize() {
+    super.onInitialize();
+    setDataForTest(41);
   }
 }
 
@@ -245,6 +261,59 @@ void main() {
         },
       );
 
+      test(
+        'setEmpty does not notify when called repeatedly with the same message',
+        () async {
+          final notifier = _pendingNotifier<List<int>>();
+          addTearDown(notifier.dispose);
+
+          await notifier.waitForBuildStart(1);
+
+          var notificationCount = 0;
+
+          void listener() => notificationCount++;
+
+          notifier.addListener(listener);
+          addTearDown(() => notifier.removeListener(listener));
+
+          notifier.setEmptyForTest('No items');
+
+          expect(notificationCount, 1);
+
+          notifier.setEmptyForTest('No items');
+
+          expect(notificationCount, 1);
+        },
+      );
+
+      test(
+        'setError does not notify when called repeatedly with the same error',
+        () async {
+          final notifier = _pendingNotifier<String>();
+          addTearDown(notifier.dispose);
+
+          await notifier.waitForBuildStart(1);
+
+          var notificationCount = 0;
+
+          void listener() => notificationCount++;
+
+          notifier.addListener(listener);
+          addTearDown(() => notifier.removeListener(listener));
+
+          final error = StateError('Something went wrong');
+          final stackTrace = StackTrace.current;
+
+          notifier.setErrorForTest(error, stackTrace);
+
+          expect(notificationCount, 1);
+
+          notifier.setErrorForTest(error, stackTrace);
+
+          expect(notificationCount, 1);
+        },
+      );
+
       test('setError sets ErrorState and dispatches the error', () async {
         final notifier = _pendingNotifier<String>();
         addTearDown(notifier.dispose);
@@ -303,6 +372,34 @@ void main() {
       await _waitForState(notifier, (state) => state is DataState<int>);
 
       expect(events, ['initialize', 'build']);
+      expect(notifier.state, const DataState<int>(42));
+    });
+
+    test('preserves cached data while the initial build is pending', () async {
+      final events = <String>[];
+      final buildResult = Completer<int>();
+
+      final notifier = _CachedInitializingTestNotifier(
+        events: events,
+        buildImpl: (_) => buildResult.future,
+      );
+      addTearDown(notifier.dispose);
+
+      await notifier.waitForBuildStart(1);
+
+      // Initialization publishes cached data before the build starts.
+      expect(events, ['initialize', 'build']);
+      expect(notifier.state, const DataState<int>(41));
+
+      // The fresh build replaces the cached data when it completes.
+      buildResult.complete(42);
+
+      await _waitForState(
+        notifier,
+        (state) => state is DataState<int> && state.data == 42,
+        description: 'fresh build data',
+      );
+
       expect(notifier.state, const DataState<int>(42));
     });
 
@@ -374,6 +471,75 @@ void main() {
       );
     });
 
+    test(
+      'startInitialBuild false allows an explicit refresh to start a build',
+      () async {
+        final gate = Completer<String>();
+
+        final notifier = _TestAsyncViewStateNotifier<String>(
+          startInitialBuild: false,
+          buildImpl: (_) => gate.future,
+        );
+        addTearDown(notifier.dispose);
+
+        // No initial build should run automatically.
+        expect(notifier.state, isA<InitialState<String>>());
+        expect(notifier.buildCount, 0);
+
+        await _flushPendingTasks();
+
+        // Still waiting for an explicit request.
+        expect(notifier.state, isA<InitialState<String>>());
+        expect(notifier.buildCount, 0);
+
+        // Manually start the first build.
+        final refreshFuture = notifier.refresh();
+
+        await notifier.waitForBuildStart(1);
+
+        expect(notifier.buildCount, 1);
+        expect(notifier.state, isA<LoadingState<String>>());
+
+        // Complete the manually requested build.
+        gate.complete('loaded manually');
+
+        await refreshFuture.timeout(_testTimeout);
+
+        expect(notifier.state, const DataState<String>('loaded manually'));
+        expect(notifier.buildCount, 1);
+      },
+    );
+
+    test(
+      'startInitialBuild false allows an explicit rebuild to start a build',
+      () async {
+        final gate = Completer<String>();
+
+        final notifier = _TestAsyncViewStateNotifier<String>(
+          startInitialBuild: false,
+          buildImpl: (_) => gate.future,
+        );
+        addTearDown(notifier.dispose);
+
+        expect(notifier.state, isA<InitialState<String>>());
+        expect(notifier.buildCount, 0);
+
+        final rebuildFuture = notifier.rebuildForTest();
+
+        await notifier.waitForBuildStart(1);
+
+        expect(notifier.buildCount, 1);
+        expect(notifier.state, isA<LoadingState<String>>());
+
+        gate.complete('rebuilt manually');
+
+        await rebuildFuture.timeout(_testTimeout);
+
+        expect(notifier.state, const DataState<String>('rebuilt manually'));
+        expect(notifier.buildCount, 1);
+      },
+    );
+
     test('a staleness callback becomes stale when disposed', () async {
       final notifier = _TestAsyncViewStateNotifier<String>(
         buildImpl: (_) async => 'ready',
@@ -427,6 +593,133 @@ void main() {
 
       rebuildGate.complete('rebuilt');
       await rebuildFuture.timeout(_testTimeout);
+    });
+
+    test('a stale build cannot dispatch an error through setError', () async {
+      final staleBuildGate = Completer<void>();
+      final staleError = StateError('stale build failure');
+      final staleStackTrace = StackTrace.current;
+
+      late _TestAsyncViewStateNotifier<String> notifier;
+
+      notifier = _TestAsyncViewStateNotifier<String>(
+        buildImpl: (buildNumber) async {
+          if (buildNumber == 1) {
+            await staleBuildGate.future;
+            notifier.setErrorForTest(staleError, staleStackTrace);
+            return 'stale result';
+          }
+
+          return 'current result';
+        },
+      );
+      addTearDown(notifier.dispose);
+
+      await notifier.waitForBuildStart(1);
+
+      final rebuildFuture = notifier.rebuildForTest();
+      await notifier.waitForBuildStart(2);
+
+      await _waitForState(
+        notifier,
+        (state) => state is DataState<String> && state.data == 'current result',
+        description: 'current build result',
+      );
+
+      await rebuildFuture.timeout(_testTimeout);
+
+      staleBuildGate.complete();
+      await _flushPendingTasks();
+
+      expect(notifier.state, const DataState<String>('current result'));
+
+      expect(notifier.dispatchedErrors, isEmpty);
+    });
+
+    group('build invalidation', () {
+      test(
+        'completes waiting operations normally without starting a replacement',
+        () async {
+          final buildGate = Completer<String>();
+
+          final notifier = _TestAsyncViewStateNotifier<String>(
+            buildImpl: (_) => buildGate.future,
+          );
+          addTearDown(notifier.dispose);
+          await notifier.waitForBuildStart(1);
+          final stateBeforeInvalidation = notifier.state;
+
+          // Refresh joins the currently running initial build.
+          final refreshFuture = notifier.refresh();
+          notifier.invalidateBuildForTest();
+
+          // Invalidation completes the waiting Future normally,
+          // even though the underlying build is still pending.
+          await refreshFuture.timeout(_testTimeout);
+
+          expect(notifier.buildCount, 1);
+          expect(notifier.state, same(stateBeforeInvalidation));
+
+          // The underlying Future can still complete after invalidation.
+          buildGate.complete('late result');
+          await _flushPendingTasks();
+
+          // Its outdated result must not change the state.
+          expect(notifier.state, same(stateBeforeInvalidation));
+          expect(notifier.buildCount, 1);
+        },
+      );
+
+      test('prevents a pending rebuild from starting', () async {
+        final initialBuildGate = Completer<String>();
+
+        final notifier = _TestAsyncViewStateNotifier<String>(
+          buildImpl: (buildNumber) {
+            if (buildNumber == 1) {
+              return initialBuildGate.future;
+            }
+
+            return Future<String>.value('unexpected replacement');
+          },
+        );
+        addTearDown(notifier.dispose);
+        await notifier.waitForBuildStart(1);
+
+        // Schedules a replacement build.
+        final rebuildFuture = notifier.rebuildForTest();
+        // Invalidate before the scheduled replacement starts.
+        notifier.invalidateBuildForTest();
+
+        // The rebuild waiter should complete normally.
+        await rebuildFuture.timeout(_testTimeout);
+        await _flushPendingTasks();
+        expect(notifier.buildCount, 1);
+
+        // Release the original underlying build.
+        initialBuildGate.complete('outdated result');
+        await _flushPendingTasks();
+        // No replacement should have started.
+        expect(notifier.buildCount, 1);
+      });
+
+      test('invalidates a captured staleness callback', () async {
+        final buildGate = Completer<String>();
+
+        final notifier = _TestAsyncViewStateNotifier<String>(
+          buildImpl: (_) => buildGate.future,
+        );
+        addTearDown(notifier.dispose);
+        await notifier.waitForBuildStart(1);
+        final isStale = notifier.captureStaleness();
+        expect(isStale(), isFalse);
+
+        notifier.invalidateBuildForTest();
+        expect(isStale(), isTrue);
+        buildGate.complete('outdated result');
+
+        await _flushPendingTasks();
+        expect(isStale(), isTrue);
+      });
     });
 
     test(

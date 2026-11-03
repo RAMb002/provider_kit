@@ -16,7 +16,7 @@ class TestFutureNotifier<T> extends FutureNotifier<T> {
   TestFutureNotifier({
     required this.buildImpl,
     super.initialState,
-    super.disableEmptyState,
+    super.enableEmptyState,
     super.loadingMessage,
     super.emptyMessage,
   });
@@ -61,6 +61,9 @@ class TestFutureNotifier<T> extends FutureNotifier<T> {
   /// Exposes the protected framework operation to test rebuild behavior.
   Future<void> requestRebuild() => rebuild();
 
+  /// Exposes build invalidation for lifecycle tests.
+  void invalidateBuildForTest() => invalidateBuild();
+
   /// Exposes the protected staleness guard for assertions in tests.
   bool Function() captureStaleness() => checkStaleness();
 
@@ -72,7 +75,7 @@ class RecordingErrorFutureNotifier<T> extends TestFutureNotifier<T> {
   RecordingErrorFutureNotifier({
     required super.buildImpl,
     super.initialState,
-    super.disableEmptyState,
+    super.enableEmptyState,
   });
 
   final List<Object> hookErrors = <Object>[];
@@ -87,7 +90,7 @@ class ThrowingErrorHookFutureNotifier<T> extends TestFutureNotifier<T> {
   ThrowingErrorHookFutureNotifier({
     required super.buildImpl,
     super.initialState,
-    super.disableEmptyState,
+    super.enableEmptyState,
   });
 
   @override
@@ -324,7 +327,7 @@ void main() {
 
       test('publishes an empty Iterable as DataState when disabled', () async {
         final notifier = TestFutureNotifier<List<int>>(
-          disableEmptyState: true,
+          enableEmptyState: false,
           buildImpl: (_) async => <int>[],
         );
         addTearDown(notifier.dispose);
@@ -964,6 +967,70 @@ void main() {
         expect(notifier.state, const DataState<String>('new inputs'));
       });
 
+      test('rebuild resets staged loading message and progress', () async {
+        final outdatedGate = Completer<String>();
+        final currentGate = Completer<String>();
+
+        final notifier = TestFutureNotifier<String>(
+          loadingMessage: 'default.loading',
+          buildImpl: (buildNumber) {
+            if (buildNumber == 1) {
+              return Future<String>.value('initial');
+            }
+
+            if (buildNumber == 2) return outdatedGate.future;
+
+            return currentGate.future;
+          },
+        );
+        addTearDown(notifier.dispose);
+
+        await waitForState(notifier, (state) => state is DataState<String>);
+
+        // Start the first rebuild and keep it pending.
+        final firstRebuild = notifier.requestRebuild();
+        await notifier.waitForBuildStart(2);
+
+        // Simulate a loading stage during the build.
+        notifier.writeState(
+          const LoadingState<String>('Downloading files', 0.45),
+        );
+
+        // Request another rebuild while the notifier is already loading.
+        final secondRebuild = notifier.requestRebuild();
+        await notifier.waitForBuildStart(3);
+
+        // The new rebuild must reset the previous loading stage.
+        expect(
+          notifier.state,
+          isA<LoadingState<String>>()
+              .having((state) => state.message, 'message', 'default.loading')
+              .having((state) => state.progress, 'progress', isNull),
+        );
+
+        // Release the outdated build.
+        outdatedGate.complete('outdated result');
+        await flushPendingTasks();
+
+        // The outdated result must not change the loading state.
+        expect(
+          notifier.state,
+          isA<LoadingState<String>>()
+              .having((state) => state.message, 'message', 'default.loading')
+              .having((state) => state.progress, 'progress', isNull),
+        );
+
+        // Finish the current build.
+        currentGate.complete('replacement result');
+
+        await Future.wait<void>([
+          firstRebuild,
+          secondRebuild,
+        ]).timeout(_testTimeout);
+
+        expect(notifier.state, const DataState<String>('replacement result'));
+      });
+
       test('failed rebuild publishes LoadingState before ErrorState', () async {
         final failureGate = Completer<String>();
         final error = StateError('rebuild failed');
@@ -1310,6 +1377,130 @@ void main() {
       });
     });
 
+    group('build invalidation', () {
+      test(
+        'does not publish a result from a build invalidated while pending',
+        () async {
+          final buildGate = Completer<String>();
+
+          final notifier = TestFutureNotifier<String>(
+            buildImpl: (_) => buildGate.future,
+          );
+          addTearDown(notifier.dispose);
+
+          await notifier.waitForBuildStart(1);
+
+          final stateBeforeInvalidation = notifier.state;
+
+          notifier.invalidateBuildForTest();
+
+          // The underlying Future can still finish after invalidation.
+          buildGate.complete('late result');
+
+          await flushPendingTasks();
+
+          expect(notifier.buildCount, 1);
+          expect(notifier.state, same(stateBeforeInvalidation));
+          expect(notifier.state, isA<LoadingState<String>>());
+        },
+      );
+
+      test(
+        'ignores state assignments from an invalidated build after an await',
+        () async {
+          final buildGate = Completer<void>();
+          final stateWriteAttempted = Completer<void>();
+
+          late TestFutureNotifier<String> notifier;
+
+          notifier = TestFutureNotifier<String>(
+            buildImpl: (_) async {
+              await buildGate.future;
+
+              notifier.writeState(
+                const DataState<String>('stale manual write'),
+              );
+
+              stateWriteAttempted.complete();
+
+              return 'stale returned result';
+            },
+          );
+          addTearDown(notifier.dispose);
+
+          await notifier.waitForBuildStart(1);
+
+          final stateBeforeInvalidation = notifier.state;
+
+          notifier.invalidateBuildForTest();
+
+          // Allow the outdated build to continue executing.
+          buildGate.complete();
+
+          await stateWriteAttempted.future.timeout(_testTimeout);
+          await flushPendingTasks();
+
+          // Both the manual state assignment and returned value must be ignored.
+          expect(notifier.buildCount, 1);
+          expect(notifier.state, same(stateBeforeInvalidation));
+          expect(notifier.state, isA<LoadingState<String>>());
+        },
+      );
+      test('ignores an error from a build invalidated while pending', () async {
+        final buildGate = Completer<String>();
+        final error = StateError('outdated build failure');
+        final stackTrace = StackTrace.current;
+
+        final notifier = TestFutureNotifier<String>(
+          buildImpl: (_) => buildGate.future,
+        );
+        addTearDown(notifier.dispose);
+        await notifier.waitForBuildStart(1);
+        final stateBeforeInvalidation = notifier.state;
+        notifier.invalidateBuildForTest();
+
+        // The outdated Future fails after invalidation.
+        buildGate.completeError(error, stackTrace);
+        await flushPendingTasks();
+
+        // The outdated error must not replace the current state.
+        expect(notifier.state, same(stateBeforeInvalidation));
+        expect(notifier.state, isA<LoadingState<String>>());
+        expect(notifier.buildCount, 1);
+      });
+
+      test('completes a running refresh normally when invalidated', () async {
+        final refreshGate = Completer<String>();
+
+        final notifier = TestFutureNotifier<String>(
+          buildImpl: (buildNumber) {
+            if (buildNumber == 1) {
+              return Future<String>.value('cached');
+            }
+            return refreshGate.future;
+          },
+        );
+        addTearDown(notifier.dispose);
+        await waitForState(notifier, (state) => state is DataState<String>);
+
+        final refreshFuture = notifier.refresh();
+        await notifier.waitForBuildStart(2);
+
+        notifier.invalidateBuildForTest();
+
+        // The caller is released without waiting for the underlying Future.
+        await refreshFuture.timeout(_testTimeout);
+
+        expect(notifier.buildCount, 2);
+        expect(notifier.state, const DataState<String>('cached'));
+
+        // A late result must not overwrite the cached data.
+        refreshGate.complete('late refresh result');
+        await flushPendingTasks();
+
+        expect(notifier.state, const DataState<String>('cached'));
+      });
+    });
     group('disposal', () {
       test(
         'dispose while a build is pending prevents a later data update',

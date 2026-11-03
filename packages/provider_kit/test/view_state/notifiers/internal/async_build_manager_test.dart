@@ -490,6 +490,26 @@ void main() {
       expect(secondInvalidatorCalls, 2);
     });
 
+    test(
+      'propagates an error when an operation completed before invalidation',
+      () async {
+        final manager = AsyncBuildManager();
+        addTearDown(manager.dispose);
+
+        final completer = Completer<void>();
+        final error = StateError('Build failed');
+
+        final waiting = manager.startInitial((_, _) => completer.future);
+
+        completer.completeError(error, StackTrace.current);
+
+        // Queue invalidation after the operation's execution continuation,
+        // but before the waiting caller's continuation.
+        scheduleMicrotask(manager.invalidate);
+
+        await expectLater(waiting, throwsA(same(error)));
+      },
+    );
     test('disposal releases active and pending waiters and prevents '
         'scheduled work from starting', () async {
       final manager = AsyncBuildManager();

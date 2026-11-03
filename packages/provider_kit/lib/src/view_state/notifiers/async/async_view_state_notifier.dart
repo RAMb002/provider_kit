@@ -14,8 +14,12 @@ part of 'async_notifiers.dart';
 /// prescribing an execution strategy. Implementations are responsible for
 /// providing the behavior of the declared asynchronous operations.
 ///
-/// It also serves as a common type for creating reusable mixins that work
-/// with different asynchronous notifier implementations.
+/// This class primarily serves as a common contract for reusable mixins
+/// that need to work with different asynchronous notifier implementations.
+///
+/// Mixins can use this type as their constraint to access shared lifecycle
+/// operations and state-setting helpers without depending on a specific
+/// implementation, such as [FutureNotifier] or [StreamNotifier].
 ///
 /// ### Lifecycle
 ///
@@ -67,7 +71,8 @@ part of 'async_notifiers.dart';
 /// has become outdated.
 ///
 /// For ProviderKit's built-in asynchronous notifiers, a captured operation
-/// becomes stale when a refresh, rebuild, or disposal invalidates it.
+/// becomes stale when a refresh, rebuild, explicit build invalidation,
+/// or disposal invalidates it.
 ///
 /// Use this to prevent independent asynchronous operations from continuing
 /// with outdated results:
@@ -154,6 +159,75 @@ abstract class AsyncViewStateNotifier<T> extends ViewStateNotifier<T> {
   /// Implementations can use this hook to perform framework-managed
   /// initialization that must happen after user initialization.
   void _afterInitialize() {}
+
+  /// Invalidates the current asynchronous build operation.
+  ///
+  /// Any running or pending build becomes outdated and can no longer
+  /// publish state through its build operation.
+  ///
+  /// This does not start a replacement build or change the current
+  /// [ViewState].
+  ///
+  /// For [StreamNotifier], the active stream subscription is also cancelled.
+  ///
+  /// This method is intended for notifier implementations and reusable
+  /// mixins that need to invalidate ongoing build work.
+  @protected
+  void invalidateBuild();
+
+  /// Resets the notifier to its initial state.
+  ///
+  /// This replaces the current state with [InitialState].
+  ///
+  /// This method is intended for notifier implementations and reusable
+  /// mixins that need to reset the current view state.
+  @protected
+  void setInitial();
+
+  /// Sets the notifier's current state to [LoadingState].
+  ///
+  /// Uses the notifier's configured loading message when [message] is
+  /// omitted. The optional [progress] value can represent progress within
+  /// a multi-stage operation.
+  ///
+  /// This method is intended for notifier implementations and reusable
+  /// mixins that need to publish a loading state.
+  @protected
+  void setLoading({String? message, double? progress});
+
+  /// Publishes [data] through [DataState].
+  ///
+  /// This explicitly sets a data state, regardless of whether [data]
+  /// represents an empty result. Automatic empty-state handling is not
+  /// applied by this method.
+  ///
+  /// This method is intended for notifier implementations and reusable
+  /// mixins that need to publish data.
+  @protected
+  void setData(T data);
+
+  /// Sets the notifier's current state to [EmptyState].
+  ///
+  /// Uses the notifier's configured empty message when [message] is
+  /// omitted. The resulting state provides a refresh callback that
+  /// invokes [refresh].
+  ///
+  /// This method is intended for notifier implementations and reusable
+  /// mixins that need to explicitly publish an empty state.
+  @protected
+  void setEmpty([String? message]);
+
+  /// Sets the notifier's current state to [ErrorState].
+  ///
+  /// The error state uses the configured error information and provides
+  /// a retry callback that invokes [refresh].
+  ///
+  /// The error is also dispatched to [NotifierObserver].
+  ///
+  /// This method is intended for notifier implementations and reusable
+  /// mixins that need to publish and report an error.
+  @protected
+  void setError(Object error, StackTrace stackTrace);
 
   /// Refreshes the notifier using its current inputs.
   ///

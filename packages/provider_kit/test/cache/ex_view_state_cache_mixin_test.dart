@@ -10,7 +10,7 @@ class TestExCachedProvider extends FutureNotifier<List<String>>
     this.dataToReturn = const ['Item A', 'Item B'],
     this.exceptionToThrow,
     super.initialState,
-    super.disableEmptyState,
+    super.enableEmptyState,
   });
 
   @override

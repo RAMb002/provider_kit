@@ -20,7 +20,7 @@ class TestStreamNotifier<T> extends StreamNotifier<T> {
   TestStreamNotifier({
     required this.buildImpl,
     super.initialState,
-    super.disableEmptyState,
+    super.enableEmptyState,
     super.emptyMessage,
     super.loadingMessage,
   });
@@ -56,6 +56,8 @@ class TestStreamNotifier<T> extends StreamNotifier<T> {
   }
 
   Future<void> requestRebuild() => rebuild();
+
+  void invalidateBuildForTest() => invalidateBuild();
 
   bool Function() captureStaleness() => checkStaleness();
 
@@ -345,7 +347,7 @@ void main() {
         () async {
           final controllers = <StreamController<List<int>>>[];
           final notifier = TestStreamNotifier<List<int>>(
-            disableEmptyState: true,
+            enableEmptyState: false,
             buildImpl: (_) {
               final controller = StreamController<List<int>>(sync: true);
               controllers.add(controller);
@@ -1327,6 +1329,226 @@ void main() {
       );
     });
 
+    group('build invalidation', () {
+      test(
+        'cancels the active subscription without starting a replacement',
+        () async {
+          final cancellationStarted = Completer<void>();
+          final cancellationGate = Completer<void>();
+
+          final controllers = <StreamController<String>>[];
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (_) {
+              final controller = StreamController<String>(
+                sync: true,
+                onCancel: () {
+                  if (!cancellationStarted.isCompleted) {
+                    cancellationStarted.complete();
+                  }
+                  return cancellationGate.future;
+                },
+              );
+
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers.single.hasListener,
+              description: 'initial subscription',
+            ),
+            'initial subscription',
+          );
+
+          controllers.single.add('cached');
+          expect(notifier.state, const DataState<String>('cached'));
+
+          notifier.invalidateBuildForTest();
+
+          // Invalidation must immediately start subscription cancellation.
+          await _within(
+            cancellationStarted.future,
+            'active subscription cancellation',
+          );
+
+          expect(controllers.single.hasListener, isFalse);
+          expect(notifier.buildCount, 1);
+          expect(notifier.state, const DataState<String>('cached'));
+
+          // Events from the invalidated subscription must not update state.
+          controllers.single.add('late event');
+
+          await _flushPendingTasks();
+
+          expect(notifier.state, const DataState<String>('cached'));
+          expect(notifier.buildCount, 1);
+
+          // Release asynchronous cancellation cleanup.
+          cancellationGate.complete();
+          await _flushPendingTasks();
+        },
+      );
+
+      test(
+        'a subsequent refresh waits for invalidated subscription cancellation',
+        () async {
+          final cancellationStarted = Completer<void>();
+          final cancellationGate = Completer<void>();
+
+          final controllers = <StreamController<String>>[];
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (buildNumber) {
+              final controller = StreamController<String>(
+                sync: true,
+                onCancel: buildNumber == 1
+                    ? () {
+                        if (!cancellationStarted.isCompleted) {
+                          cancellationStarted.complete();
+                        }
+                        return cancellationGate.future;
+                      }
+                    : null,
+              );
+
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial subscription',
+            ),
+            'initial subscription',
+          );
+
+          controllers[0].add('cached');
+
+          notifier.invalidateBuildForTest();
+
+          // Wait until invalidation has started cancellation.
+          await _within(
+            cancellationStarted.future,
+            'invalidated subscription cancellation',
+          );
+
+          var refreshCompleted = false;
+
+          final refreshFuture = notifier.refresh().then((_) {
+            refreshCompleted = true;
+          });
+
+          // The previous cancellation is still pending.
+          await _flushPendingTasks();
+
+          expect(notifier.buildCount, 1);
+          expect(refreshCompleted, isFalse);
+          expect(controllers.length, 1);
+
+          // Allow the previous subscription cleanup to finish.
+          cancellationGate.complete();
+
+          await notifier.waitForBuildStart(2);
+
+          await _within(
+            refreshFuture,
+            'refresh after invalidation cancellation',
+          );
+
+          expect(notifier.buildCount, 2);
+          expect(controllers[0].hasListener, isFalse);
+          expect(controllers[1].hasListener, isTrue);
+
+          // Refresh preserves the existing data while establishing
+          // the replacement subscription.
+          expect(notifier.state, const DataState<String>('cached'));
+        },
+      );
+
+      test(
+        'does not subscribe when a refresh is invalidated during cancellation',
+        () async {
+          final cancellationStarted = Completer<void>();
+          final cancellationGate = Completer<void>();
+
+          final controllers = <StreamController<String>>[];
+
+          final notifier = TestStreamNotifier<String>(
+            buildImpl: (buildNumber) {
+              final controller = StreamController<String>(
+                sync: true,
+                onCancel: buildNumber == 1
+                    ? () {
+                        if (!cancellationStarted.isCompleted) {
+                          cancellationStarted.complete();
+                        }
+                        return cancellationGate.future;
+                      }
+                    : null,
+              );
+
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            _waitUntil(
+              () => controllers[0].hasListener,
+              description: 'initial subscription',
+            ),
+            'initial subscription',
+          );
+
+          controllers[0].add('cached');
+          await _waitForState(notifier, (state) => state is DataState<String>);
+
+          // Start a refresh, which begins cancelling the old subscription.
+          final refreshFuture = notifier.refresh();
+
+          await _within(
+            cancellationStarted.future,
+            'previous subscription cancellation',
+          );
+
+          // Invalidate while cancellation is still pending.
+          notifier.invalidateBuildForTest();
+
+          // The refresh waiter should complete normally without waiting
+          // for the underlying cancellation to finish.
+          await _within(refreshFuture, 'invalidated refresh operation');
+
+          expect(notifier.buildCount, 1);
+          expect(controllers.length, 1);
+
+          // Finish the previous subscription's cleanup.
+          cancellationGate.complete();
+          await _flushPendingTasks();
+
+          // The outdated refresh must not establish a replacement subscription.
+          expect(notifier.buildCount, 1);
+          expect(controllers.length, 1);
+          expect(notifier.state, const DataState<String>('cached'));
+        },
+      );
+    });
     group('rebuild and stale operation protection', () {
       test(
         'rebuild clears existing data while replacement stream is idle',
@@ -1359,6 +1581,73 @@ void main() {
           expect(controllers[1].hasListener, isTrue);
         },
       );
+
+      test('rebuild resets staged loading message and progress', () async {
+        final controllers = <StreamController<String>>[];
+
+        final notifier = TestStreamNotifier<String>(
+          loadingMessage: 'default.loading',
+          buildImpl: (_) {
+            final controller = StreamController<String>(sync: true);
+            controllers.add(controller);
+            return controller.stream;
+          },
+        );
+        _addCleanup(notifier, controllers);
+
+        // Establish the initial subscription.
+        await notifier.waitForBuildStart(1);
+        await _within(
+          _waitUntil(
+            () => controllers[0].hasListener,
+            description: 'first subscription',
+          ),
+          'first subscription',
+        );
+
+        controllers[0].add('initial data');
+        await _flushPendingTasks();
+
+        expect(notifier.state, const DataState<String>('initial data'));
+
+        // Start the first rebuild.
+        final firstRebuild = notifier.requestRebuild();
+
+        await notifier.waitForBuildStart(2);
+        await _within(
+          _waitUntil(
+            () => controllers[1].hasListener,
+            description: 'second subscription',
+          ),
+          'second subscription',
+        );
+        await _within(firstRebuild, 'first replacement subscription');
+
+        // Simulate an intermediate loading stage.
+        notifier.writeState(
+          const LoadingState<String>('Connecting to server', 0.65),
+        );
+
+        // Start another rebuild while already in LoadingState.
+        final secondRebuild = notifier.requestRebuild();
+
+        await notifier.waitForBuildStart(3);
+        await _within(
+          _waitUntil(
+            () => controllers[2].hasListener,
+            description: 'third subscription',
+          ),
+          'third subscription',
+        );
+        await _within(secondRebuild, 'second replacement subscription');
+
+        expect(
+          notifier.state,
+          isA<LoadingState<String>>()
+              .having((state) => state.message, 'message', 'default.loading')
+              .having((state) => state.progress, 'progress', isNull),
+        );
+      });
 
       test(
         'a failed rebuild publishes LoadingState before ErrorState',
@@ -1576,11 +1865,12 @@ void main() {
       );
 
       test(
-        'refresh waiter follows rebuild replacement while old cancellation hangs',
+        'refresh waiter follows rebuild replacement while old cancellation is pending',
         () async {
           final cancelStarted = Completer<void>();
           final cancelGate = Completer<void>();
           final controllers = <StreamController<String>>[];
+
           final notifier = TestStreamNotifier<String>(
             buildImpl: (buildNumber) {
               final controller = StreamController<String>(
@@ -1594,12 +1884,16 @@ void main() {
                       }
                     : null,
               );
+
               controllers.add(controller);
               return controller.stream;
             },
           );
+
           _addCleanup(notifier, controllers);
+
           await notifier.waitForBuildStart(1);
+
           await _within(
             _waitUntil(
               () => controllers[0].hasListener,
@@ -1607,30 +1901,49 @@ void main() {
             ),
             'first subscription',
           );
+
           controllers[0].add('initial');
           await _flushPendingTasks();
 
           final refreshFuture = notifier.refresh();
-          await _within(cancelStarted.future, 'old subscription cancellation');
-          final rebuildFuture = notifier.requestRebuild();
-          await notifier.waitForBuildStart(2);
-          await _within(rebuildFuture, 'replacement rebuild setup');
-          controllers[1].add('replacement');
-          await _waitForState(
-            notifier,
-            (state) =>
-                state is DataState<String> && state.data == 'replacement',
-            description: 'replacement event',
-          );
-          await _within(refreshFuture, 'refresh waiter to follow replacement');
-          expect(notifier.buildCount, 2);
 
-          cancelGate.complete();
+          await _within(cancelStarted.future, 'old subscription cancellation');
+
+          final rebuildFuture = notifier.requestRebuild();
+
+          // Both operations must wait for the old subscription's cancellation.
+          var refreshCompleted = false;
+          var rebuildCompleted = false;
+
+          refreshFuture.then((_) => refreshCompleted = true);
+          rebuildFuture.then((_) => rebuildCompleted = true);
+
           await _flushPendingTasks();
+
+          expect(notifier.buildCount, 1);
+          expect(controllers.length, 1);
+          expect(refreshCompleted, isFalse);
+          expect(rebuildCompleted, isFalse);
+
+          // Allow the previous subscription cleanup to finish.
+          cancelGate.complete();
+
+          await notifier.waitForBuildStart(2);
+
+          await _within(rebuildFuture, 'replacement rebuild setup');
+
+          // The original refresh waiter must follow the replacement.
+          await _within(refreshFuture, 'refresh waiter to follow replacement');
+
+          expect(notifier.buildCount, 2);
+          expect(controllers[0].hasListener, isFalse);
+          expect(controllers[1].hasListener, isTrue);
+
+          controllers[1].add('replacement');
+
           expect(notifier.state, const DataState<String>('replacement'));
         },
       );
-
       test(
         'an async* generator retains the current build Zone after await',
         () async {

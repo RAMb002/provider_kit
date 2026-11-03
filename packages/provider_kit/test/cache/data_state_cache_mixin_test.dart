@@ -10,7 +10,7 @@ class TestCachedProvider extends FutureNotifier<String>
     this.dataToReturn = 'Initial Data',
     this.exceptionToThrow,
     super.initialState,
-    super.disableEmptyState,
+    super.enableEmptyState,
   });
 
   @override
