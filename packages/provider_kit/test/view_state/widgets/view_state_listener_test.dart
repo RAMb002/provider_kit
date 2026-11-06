@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -539,6 +540,14 @@ void main() {
       provider.emit(const DataState<String>('test'));
       await tester.pump();
       expect(dataCalled, true);
+    });
+
+    test('of returns ViewStateListener<T>', () {
+      final ViewStateListener<String> listener =
+          ViewStateListener.of<TestViewStateNotifier<String>, String>();
+
+      expect(listener, isA<ViewStateListener<String>>());
+      expect(listener, isA<SingleChildWidget>());
     });
 
     testWidgets('reads listenable from context using ViewStateListener.of', (

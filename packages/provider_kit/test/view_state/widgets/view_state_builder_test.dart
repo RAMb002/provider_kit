@@ -882,6 +882,15 @@ void main() {
       expect(capturedData, 'context');
     });
 
+    test('of returns ViewStateBuilder<T>', () {
+      final ViewStateBuilder<String> builder =
+          ViewStateBuilder.of<TestViewStateNotifier<String>, String>(
+            dataBuilder: (_, __, ___) => const SizedBox(),
+          );
+
+      expect(builder, isA<ViewStateBuilder<String>>());
+    });
+
     // -----------------------------------------------------------------------
     // 7. Provider change at runtime
     // -----------------------------------------------------------------------

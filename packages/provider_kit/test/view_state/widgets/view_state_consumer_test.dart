@@ -1317,6 +1317,14 @@ void main() {
 
       expect(capturedData, 'context');
     });
+    test('of returns ViewStateConsumer<T>', () {
+      final ViewStateConsumer<String> consumer =
+          ViewStateConsumer.of<TestViewStateNotifier<String>, String>(
+            dataBuilder: (_, __, ___) => const SizedBox(),
+          );
+
+      expect(consumer, isA<ViewStateConsumer<String>>());
+    });
 
     testWidgets(
       'switches to new listenable when listenable parameter changes',

@@ -98,6 +98,16 @@ void main() {
       },
     );
 
+    test('of returns StateConsumer<T>', () {
+      final StateConsumer<int> consumer =
+          StateConsumer.of<CounterProvider, int>(
+            builder: (_, __, ___) => const SizedBox(),
+            listener: (_, __) => {},
+          );
+
+      expect(consumer, isA<StateConsumer<int>>());
+    });
+
     testWidgets(
       'passes multiple states to builder and listener when listenable is passed directly',
       (tester) async {
@@ -220,7 +230,9 @@ void main() {
       },
     );
 
-    testWidgets('updates when listenable reference has changed', (tester) async {
+    testWidgets('updates when listenable reference has changed', (
+      tester,
+    ) async {
       const buttonKey = Key('__button__');
       var counterProvider = CounterProvider();
       final listenerStates = <int>[];
@@ -590,7 +602,9 @@ void main() {
       },
     );
 
-    testWidgets('updates when the context listenable is changed', (tester) async {
+    testWidgets('updates when the context listenable is changed', (
+      tester,
+    ) async {
       final firstProvider = CounterProvider();
       final secondProvider = CounterProvider(100);
 

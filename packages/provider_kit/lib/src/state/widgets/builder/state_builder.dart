@@ -170,7 +170,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
-  static Widget of<P extends StateListenable<T>, T>({
+  static of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     RebuildWhen<T>? rebuildWhen,

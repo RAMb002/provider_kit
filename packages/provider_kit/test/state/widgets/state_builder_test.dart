@@ -198,40 +198,51 @@ void main() {
       },
     );
 
-    testWidgets('infers the listenable from the context using StateBuilder.of', (
-      tester,
-    ) async {
-      final themeProvider = ThemeProvider();
-      var numBuilds = 0;
-      await tester.pumpWidget(
-        ChangeNotifierProvider<ThemeProvider>.value(
-          value: themeProvider,
-          child: StateBuilder.of<ThemeProvider, ThemeData>(
-            builder: (context, theme, child) {
-              numBuilds++;
-              return MaterialApp(
-                key: materialAppKey,
-                theme: theme,
-                home: const SizedBox(),
-              );
-            },
+    testWidgets(
+      'infers the listenable from the context using StateBuilder.of',
+      (tester) async {
+        final themeProvider = ThemeProvider();
+        var numBuilds = 0;
+        await tester.pumpWidget(
+          ChangeNotifierProvider<ThemeProvider>.value(
+            value: themeProvider,
+            child: StateBuilder.of<ThemeProvider, ThemeData>(
+              builder: (context, theme, child) {
+                numBuilds++;
+                return MaterialApp(
+                  key: materialAppKey,
+                  theme: theme,
+                  home: const SizedBox(),
+                );
+              },
+            ),
           ),
-        ),
+        );
+
+        themeProvider.setDarkTheme();
+        await tester.pump();
+
+        var materialApp = tester.widget<MaterialApp>(
+          find.byKey(materialAppKey),
+        );
+        expect(materialApp.theme, ThemeData.dark());
+        expect(numBuilds, 2);
+
+        themeProvider.setLightTheme();
+        await tester.pump();
+
+        materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
+        expect(materialApp.theme, ThemeData.light());
+        expect(numBuilds, 3);
+      },
+    );
+
+    test('of returns StateBuilder<T>', () {
+      final StateBuilder<int> builder = StateBuilder.of<CounterProvider, int>(
+        builder: (_, __, ___) => const SizedBox(),
       );
 
-      themeProvider.setDarkTheme();
-      await tester.pump();
-
-      var materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
-      expect(materialApp.theme, ThemeData.dark());
-      expect(numBuilds, 2);
-
-      themeProvider.setLightTheme();
-      await tester.pump();
-
-      materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
-      expect(materialApp.theme, ThemeData.light());
-      expect(numBuilds, 3);
+      expect(builder, isA<StateBuilder<int>>());
     });
 
     testWidgets(

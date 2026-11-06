@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -667,35 +668,47 @@ void main() {
       },
     );
 
-    testWidgets('infers the listenable from the context using StateListener.of', (
-      tester,
-    ) async {
-      final provider = CounterProvider();
-      int? latestPreviousState;
-      int listenWhenCallCount = 0;
-      final states = <int>[];
-      const expectedStates = [1];
+    testWidgets(
+      'infers the listenable from the context using StateListener.of',
+      (tester) async {
+        final provider = CounterProvider();
+        int? latestPreviousState;
+        int listenWhenCallCount = 0;
+        final states = <int>[];
+        const expectedStates = [1];
 
-      await tester.pumpWidget(
-        ChangeNotifierProvider<CounterProvider>.value(
-          value: provider,
-          child: StateListener.of<CounterProvider, int>(
-            listenWhen: (previous, state) {
-              listenWhenCallCount++;
-              latestPreviousState = previous;
-              return true;
-            },
-            listener: (_, state) => states.add(state),
-            child: const SizedBox(),
+        await tester.pumpWidget(
+          ChangeNotifierProvider<CounterProvider>.value(
+            value: provider,
+            child: StateListener.of<CounterProvider, int>(
+              listenWhen: (previous, state) {
+                listenWhenCallCount++;
+                latestPreviousState = previous;
+                return true;
+              },
+              listener: (_, state) => states.add(state),
+              child: const SizedBox(),
+            ),
           ),
-        ),
-      );
+        );
 
-      provider.increment();
-      await tester.pump();
-      expect(states, expectedStates);
-      expect(listenWhenCallCount, 1);
-      expect(latestPreviousState, 0);
+        provider.increment();
+        await tester.pump();
+        expect(states, expectedStates);
+        expect(listenWhenCallCount, 1);
+        expect(latestPreviousState, 0);
+      },
+    );
+
+    test('of returns StateListener<T>', () {
+      final StateListener<int> listener =
+          StateListener.of<CounterProvider, int>(
+            listener: (_, __) {},
+            child: const SizedBox(),
+          );
+
+      expect(listener, isA<StateListener<int>>());
+      expect(listener, isA<SingleChildWidget>());
     });
 
     testWidgets('updates subscription when the context listenable is changed', (

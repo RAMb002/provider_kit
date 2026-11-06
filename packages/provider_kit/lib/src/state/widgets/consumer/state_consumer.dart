@@ -215,7 +215,7 @@ abstract class StateConsumer<T> extends StatefulWidget {
   ///   child: SomeWidget(),
   /// )
   /// ```
-  static Widget of<P extends StateListenable<T>, T>({
+  static of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     required ListenerCallback<T> listener,
