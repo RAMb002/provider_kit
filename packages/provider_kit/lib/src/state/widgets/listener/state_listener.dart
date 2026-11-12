@@ -41,7 +41,8 @@ part 'state_listener_of.dart';
 /// ```
 ///
 /// If the listenable is available in the widget tree (e.g., exposed through
-/// `Provider`), you can use [StateListener.of] to retrieve it:
+/// a provider from the `provider` package), you can use [StateListener.of]
+/// to retrieve and listen to it:
 ///
 /// ```dart
 /// StateListener.of<MyStateListenable, MyState>(
@@ -49,6 +50,20 @@ part 'state_listener_of.dart';
 ///     // Perform side effects in response to state changes.
 ///   },
 ///   child: SomeWidget(),
+/// );
+/// ```
+/// When retrieving a nested listenable from a provider, use
+/// [selectListenable]. The selector is reevaluated when the provider
+/// dependency changes, allowing ProviderKit to subscribe to the nested
+/// listenable belonging to the updated object:
+///
+/// ```dart
+/// StateListener.of<MyStateListenable, MutationState<void>>(
+///   selectListenable: (notifier) => notifier.saveMutation,
+///   listener: (context, state) {
+///     // React to mutation state changes.
+///   },
+///   child: const MyPage(),
 /// );
 /// ```
 ///{@endtemplate}
@@ -155,6 +170,30 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   ///   child: const MyPage(),
   /// );
   /// ```
+  ///
+  /// ### Resolving Listenables from Provider
+  ///
+  /// When listenables are exposed through providers from the `provider`
+  /// package, use `of<T>().watch` inside the `listenables` callback to
+  /// resolve and watch them.
+  ///
+  /// This also tracks the provider dependency, so the collection is
+  /// re-evaluated when the provider dependency changes, such as when
+  /// a provider supplies a different notifier.
+  ///
+  /// ```dart
+  /// StateListener.multi(
+  ///   listenables: () => (
+  ///     user: of<UserNotifier>().watch,
+  ///     settings: of<SettingsNotifier>().watch,
+  ///   ),
+  ///   listener: (context, state) {
+  ///     // state.user
+  ///     // state.settings
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
   /// {@endtemplate}
   const factory StateListener.multi({
     Key? key,
@@ -169,9 +208,16 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// Resolves a [StateListenable] from the current [BuildContext] by its type.
   ///
   /// Use this when a listenable has already been exposed in the widget tree,
-  /// for example through `Provider` from the `provider` package.
+  /// for example through a provider from the `provider` package.
+  ///
+  /// By default, the provided object itself must implement [StateListenable].
+  /// Use [selectListenable] to listen to a nested listenable owned by the
+  /// provided object, such as a [Mutation] or [StateField].
   ///
   /// {@endtemplate}
+  ///
+  /// Listen directly to a provided StateListenable:
+  ///
   /// ```dart
   /// StateListener.of<MyStateListenable, MyState>(
   ///   listener: (context, state) {
@@ -180,9 +226,21 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   ///   child: SomeWidget(),
   /// );
   /// ```
+  ///
+  /// Listen to a nested listenable from a provider:
+  /// ```dart
+  /// StateListener.of(
+  ///   selectListenable: (MyStateListenable notifier) => notifier.saveMutation,
+  ///   listener: (context, state) {
+  ///     // React to mutation state changes.
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
   static of<P extends StateListenable<T>, T>({
     Key? key,
     required ListenerCallback<T> listener,
+    SelectStateListenable<P, T>? selectListenable,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit = false,
     Widget? child,
@@ -190,6 +248,7 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
     return _StateListenerOf<P, T>(
       key: key,
       listener: listener,
+      selectListenable: selectListenable,
       listenWhen: listenWhen,
       callListenerOnInit: callListenerOnInit,
       child: child,

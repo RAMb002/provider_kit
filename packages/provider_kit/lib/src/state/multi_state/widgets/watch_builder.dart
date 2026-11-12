@@ -117,11 +117,16 @@ class _WatchBuilderState extends State<WatchBuilder> {
   Widget build(BuildContext context) {
     final _DependencyCollection<Widget> collection =
         _DependencyTracker.collect<Widget>(
+          context,
           () => widget.builder(context, widget.child),
           widgetName: 'WatchBuilder',
         );
 
     _dependencySubscription.sync(collection.dependencies);
+
+    for (final dependency in collection.providerDependencies.values) {
+      dependency.dependOn(context);
+    }
 
     return collection.value;
   }

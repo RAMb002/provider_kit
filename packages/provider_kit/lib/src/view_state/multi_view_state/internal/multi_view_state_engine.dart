@@ -212,6 +212,7 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
   /// Collects the current combined state and its dependencies.
   _DependencyCollection<T> _collect() {
     return _core.collect(
+      context: context,
       listenables: widget.listenables,
       widgetName: widget.widgetName,
     );

@@ -9,9 +9,21 @@ class _StateConsumerOf<P extends StateListenable<T>, T>
     super.key,
     required super.builder,
     required super.listener,
+    super.selectListenable,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
   }) : super(listenable: null);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<SelectStateListenable<P, T>>.has(
+        'selectListenable',
+        selectListenable,
+      ),
+    );
+  }
 }

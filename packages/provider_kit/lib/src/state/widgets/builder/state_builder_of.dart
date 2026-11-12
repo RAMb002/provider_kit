@@ -8,7 +8,19 @@ class _StateBuilderOf<P extends StateListenable<T>, T>
   const _StateBuilderOf({
     super.key,
     required super.builder,
+    super.selectListenable,
     super.rebuildWhen,
     super.child,
   }) : super(listenable: null);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<SelectStateListenable<P, T>>.has(
+        'selectListenable',
+        selectListenable,
+      ),
+    );
+  }
 }

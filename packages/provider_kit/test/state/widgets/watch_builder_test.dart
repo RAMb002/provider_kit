@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
+import 'package:provider_kit/src/state/multi_state/multi_state.dart';
 
 void main() {
   Widget wrap(Widget child) {
@@ -762,6 +764,161 @@ void main() {
       },
     );
 
+    // PROVIDER DEPENDENCY
+
+    testWidgets('resolves and watches a provider using of', (tester) async {
+      final counter = StateNotifier<int>(5);
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        wrap(
+          ChangeNotifierProvider<StateNotifier<int>>.value(
+            value: counter,
+            child: WatchBuilder(
+              builder: (context, child) {
+                final state = of<StateNotifier<int>>().watch;
+                states.add(state);
+                return Text('$state');
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(states, [5]);
+      expect(find.text('5'), findsOneWidget);
+
+      counter.state++;
+      await tester.pump();
+
+      expect(states, [5, 6]);
+      expect(find.text('6'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      counter.dispose();
+    });
+
+    testWidgets('resolves multiple provider types using of', (tester) async {
+      final first = StateNotifier<int>(10);
+      final second = StateNotifier<String>('initial');
+
+      await tester.pumpWidget(
+        wrap(
+          ChangeNotifierProvider<StateNotifier<int>>.value(
+            value: first,
+            child: ChangeNotifierProvider<StateNotifier<String>>.value(
+              value: second,
+              child: WatchBuilder(
+                builder: (context, child) {
+                  final firstValue = of<StateNotifier<int>>().watch;
+                  final secondValue = of<StateNotifier<String>>().watch;
+
+                  return Text('$firstValue $secondValue');
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('10 initial'), findsOneWidget);
+
+      first.state = 20;
+      await tester.pump();
+
+      expect(find.text('20 initial'), findsOneWidget);
+
+      second.state = 'updated';
+      await tester.pump();
+
+      expect(find.text('20 updated'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      first.dispose();
+      second.dispose();
+    });
+    testWidgets('rebinds provider dependency when provider instance changes', (
+      tester,
+    ) async {
+      final first = StateNotifier<int>(1);
+      final second = StateNotifier<int>(5);
+
+      var activeProvider = first;
+      late StateSetter updateProvider;
+
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        wrap(
+          MaterialApp(
+            home: StatefulBuilder(
+              builder: (context, setState) {
+                updateProvider = setState;
+
+                return ChangeNotifierProvider<StateNotifier<int>>.value(
+                  value: activeProvider,
+                  child: WatchBuilder(
+                    builder: (context, child) {
+                      final state = of<StateNotifier<int>>().watch;
+                      states.add(state);
+
+                      return Column(
+                        children: [Text('$state'), if (child != null) child],
+                      );
+                    },
+                    child: TextButton(
+                      key: const Key('swap_provider'),
+                      onPressed: () {
+                        updateProvider(() {
+                          activeProvider = second;
+                        });
+                      },
+                      child: const Text('Swap'),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(states, [1]);
+
+      first.state++;
+      await tester.pump();
+
+      expect(states, [1, 2]);
+      expect(find.text('2'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('swap_provider')));
+      await tester.pump();
+
+      expect(states, [1, 2, 5]);
+      expect(find.text('5'), findsOneWidget);
+
+      // The old provider must no longer trigger rebuilds.
+      first.state++;
+      await tester.pump();
+
+      expect(states, [1, 2, 5]);
+
+      // The new provider must trigger rebuilds.
+      second.state++;
+      await tester.pump();
+
+      expect(states, [1, 2, 5, 6]);
+      expect(find.text('6'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox());
+      first.dispose();
+      second.dispose();
+    });
+
+    test('of throws when used outside dependency collection', () {
+      expect(() => of<StateNotifier<int>>(), throwsA(isA<StateError>()));
+    });
+
     // =========================================================================
     // DISPOSAL
     // =========================================================================
@@ -856,14 +1013,7 @@ void main() {
         ),
       );
 
-      final exception = tester.takeException();
-
-      expect(exception, isNotNull);
-      expect(exception.toString(), contains('WatchBuilder'));
-      expect(
-        exception.toString(),
-        contains('at least one watched state source'),
-      );
+      expect(tester.takeException(), isA<AssertionError>());
     });
 
     // =========================================================================

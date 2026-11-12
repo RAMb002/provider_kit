@@ -8,6 +8,7 @@ class _StateConsumer<T>
   const _StateConsumer({
     super.key,
     required StateListenable<T> listenable,
+    super.selectListenable,
     required super.builder,
     required super.listener,
     super.rebuildWhen,
@@ -15,16 +16,25 @@ class _StateConsumer<T>
     super.callListenerOnInit,
     super.child,
   }) : super(listenable: listenable);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<StateListenable<T>?>('listenable', listenable),
+    );
+  }
 }
 
 /// Shared implementation for callback-based [StateConsumer] variants.
-abstract class _CallbackStateConsumerBase<P extends StateListenable<T>, T>
+abstract class _CallbackStateConsumerBase<P extends StateListenable<dynamic>, T>
     extends StateConsumerBase<P, T> {
   const _CallbackStateConsumerBase({
     super.key,
     super.listenable,
     required this.builder,
     required this.listener,
+    super.selectListenable,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,

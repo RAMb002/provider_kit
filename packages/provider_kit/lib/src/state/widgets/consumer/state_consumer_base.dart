@@ -7,11 +7,12 @@ part of 'state_consumer.dart';
 ///
 /// The actual listenable resolution, subscriptions, equality checks, rebuild
 /// scheduling, and listener scheduling are handled by this base's state.
-abstract class StateConsumerBase<P extends StateListenable<T>, T>
+abstract class StateConsumerBase<P extends StateListenable<dynamic>, T>
     extends StateConsumer<T> {
   const StateConsumerBase({
     super.key,
     this.listenable,
+    this.selectListenable,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,
@@ -19,7 +20,10 @@ abstract class StateConsumerBase<P extends StateListenable<T>, T>
   }) : super.base();
 
   /// {@macro provider_kit.state_listener.listenable}
-  final P? listenable;
+  final StateListenable<T>? listenable;
+
+  /// {@macro provider_kit.state_listener.selectListenable}
+  final SelectStateListenable<P, T>? selectListenable;
 
   /// Builds the widget tree using the current state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -30,20 +34,15 @@ abstract class StateConsumerBase<P extends StateListenable<T>, T>
   @override
   State<StateConsumerBase<P, T>> createState() =>
       _StateConsumerBaseState<P, T>();
-
-  @override
-  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
-    super.debugFillProperties(properties);
-    properties.add(DiagnosticsProperty<P?>('listenable', listenable));
-  }
 }
 
-class _StateConsumerBaseState<P extends StateListenable<T>, T>
+class _StateConsumerBaseState<P extends StateListenable<dynamic>, T>
     extends State<StateConsumerBase<P, T>> {
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, T>(
       listenable: widget.listenable,
+      selectListenable: widget.selectListenable,
       rebuildWhen: widget.rebuildWhen,
       builder: widget.build,
       listener: widget.onStateChange,

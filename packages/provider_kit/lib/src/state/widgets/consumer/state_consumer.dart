@@ -63,7 +63,23 @@ part 'state_consumer_of.dart';
 /// );
 /// ```
 ///
-/// For multiple listenables, use [StateConsumer.multi].
+/// When retrieving a nested listenable from a provider, use
+/// [selectListenable]. The selector is reevaluated when the provider
+/// dependency changes, allowing ProviderKit to subscribe to the nested
+/// listenable belonging to the updated object:
+///
+/// ```dart
+/// StateConsumer.of<MyStateListenable, MutationState<void>>(
+///   selectListenable: (notifier) => notifier.saveMutation,
+///   listener: (context, state) {
+///     // Handle side effects.
+///   },
+///   builder: (context, state, child) {
+///     return MyWidget(state);
+///   },
+///   child: SomeStaticWidget(), // Preserved across rebuilds
+/// );
+/// ```
 /// {@endtemplate}
 ///
 /// {@macro provider_kit.state_consumer.multi}
@@ -102,15 +118,13 @@ abstract class StateConsumer<T> extends StatefulWidget {
   }) = _StateConsumer<T>;
 
   /// {@template provider_kit.state_consumer.multi}
-  /// ### Listening to Multiple Providers
+  /// ### Listening to Multiple Listenables
   ///
-  /// Use [listenables.multi] when the builder and listener depend on
-  /// multiple listenables.
-  ///
-  /// The [listenables] callback builds a single combined state by reading
-  /// listenables state through `.watch`. ProviderKit automatically tracks every
-  /// watched listenable and re-evaluates the combined state whenever any of
-  /// those listenables change.
+  /// Use [StateConsumer.multi] when the builder and listener depend on
+  /// multiple listenables. The [listenables] callback builds a single
+  /// combined state by reading listenables through `.watch`. ProviderKit
+  /// automatically tracks every watched listenable and re-evaluates the
+  /// combined state whenever any of those listenables change.
   ///
   /// The combined state returned by [listenables] is passed to [builder],
   /// [listener], [rebuildWhen], and [listenWhen].
@@ -190,6 +204,32 @@ abstract class StateConsumer<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
+  /// ### Resolving Listenables from Provider
+  ///
+  /// When listenables are exposed through providers from the `provider`
+  /// package, use `of<T>().watch` inside the `listenables` callback to
+  /// resolve and watch them.
+  ///
+  /// This also tracks the provider dependency, so the collection is
+  /// re-evaluated when the provider dependency changes, such as when
+  /// a provider supplies a different notifier.
+  ///
+  /// ```dart
+  /// StateConsumer.multi(
+  ///   listenables: () => (
+  ///     user: of<UserNotifier>().watch,
+  ///     settings: of<SettingsNotifier>().watch,
+  ///   ),
+  ///   builder: (context, state, child) {
+  ///     return Text(state.user.name);
+  ///   },
+  ///   listener: (context, state) {
+  ///     // state.user
+  ///     // state.settings
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
   /// {@endtemplate}
   const factory StateConsumer.multi({
     Key? key,
@@ -204,8 +244,9 @@ abstract class StateConsumer<T> extends StatefulWidget {
 
   /// {@macro provider_kit.state_widget.of}
   ///
+  /// Listen directly to a provided StateListenable:
   /// ```dart
-  /// StateConsumer.of<MyProvider, MyState>(
+  /// StateConsumer.of<MyStateListenable, MyState>(
   ///   listener: (context, state) {
   ///     // React to state changes.
   ///   },
@@ -215,10 +256,26 @@ abstract class StateConsumer<T> extends StatefulWidget {
   ///   child: SomeWidget(),
   /// )
   /// ```
+  ///
+  /// Listen to a nested listenable from a provider:
+  //
+  /// ```dart
+  /// StateConsumer.of(
+  ///   selectListenable: (MyStateListenable notifier) => notifier.saveMutation,
+  ///   listener: (context, state) {
+  ///     // React to state changes.
+  ///   },
+  ///   builder: (context, state, child) {
+  ///     return MyWidget(state);
+  ///   },
+  ///   child: SomeWidget(),
+  /// );
+  /// ```
   static of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     required ListenerCallback<T> listener,
+    SelectStateListenable<P, T>? selectListenable,
     RebuildWhen<T>? rebuildWhen,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit = false,
@@ -228,6 +285,7 @@ abstract class StateConsumer<T> extends StatefulWidget {
       key: key,
       builder: builder,
       listener: listener,
+      selectListenable: selectListenable,
       rebuildWhen: rebuildWhen,
       listenWhen: listenWhen,
       callListenerOnInit: callListenerOnInit,

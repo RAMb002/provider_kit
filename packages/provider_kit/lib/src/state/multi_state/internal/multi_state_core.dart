@@ -20,7 +20,8 @@ final class _MultiStateCore<T> {
   /// comparisons.
   late T state;
 
-  /// Manages subscriptions to the dependencies discovered from [listenables].
+  /// Manages subscriptions to the state dependencies discovered through
+  /// `.watch`
   final _DependencySubscription _dependencySubscription;
 
   /// Manages deferred listener delivery.
@@ -31,14 +32,24 @@ final class _MultiStateCore<T> {
 
   /// Collects the current combined state and its dependencies.
   ///
-  /// The dependency tracker executes [listenables] inside a temporary
-  /// collection scope. Every `.watch` encountered during that execution is
-  /// recorded and returned together with the resulting state value.
+  /// Evaluates [listenables] inside a temporary dependency collection scope.
+  ///
+  /// State dependencies accessed through `.watch` and Provider identity
+  /// dependencies accessed through `of<P>()` are collected separately.
+  ///
+  /// [context] is used to resolve Provider-managed listenables. Provider
+  /// identity dependencies are registered with the owning widget during
+  /// its build.
   _DependencyCollection<T> collect({
+    required BuildContext context,
     required MultiStateListenables<T> listenables,
     required String widgetName,
   }) {
-    return _DependencyTracker.collect(listenables, widgetName: widgetName);
+    return _DependencyTracker.collect(
+      context,
+      listenables,
+      widgetName: widgetName,
+    );
   }
 
   /// Synchronizes active subscriptions with [nextDependencies].
