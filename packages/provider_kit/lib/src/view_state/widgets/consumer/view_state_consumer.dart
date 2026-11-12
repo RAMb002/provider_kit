@@ -304,6 +304,32 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
+  /// ### Resolving Listenables from Provider
+  ///
+  /// When listenables are exposed through providers from the `provider`
+  /// package, use `of<T>().watch` inside the `listenables` callback to
+  /// resolve and watch them.
+  ///
+  /// This also tracks the provider dependency, so the collection is
+  /// re-evaluated when the provider dependency changes, such as when
+  /// a provider supplies a different notifier.
+  ///
+  /// ```dart
+  /// ViewStateListener.multi(
+  ///   listenables: () => (
+  ///     user: of<UserNotifier>().watch,
+  ///     profile: of<ProfilesNotifier>().watch,
+  ///   ),
+  ///   dataBuilder: (context, state, child) {
+  ///     return Text(state.user.data.toString());
+  ///   },
+  ///   dataStateListener: (context, state) {
+  ///     // state.user.data
+  ///     // state.profile.data
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
   /// {@endtemplate}
   const factory ViewStateConsumer.multi({
     Key? key,

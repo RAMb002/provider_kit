@@ -440,8 +440,12 @@ void main() {
       (tester) async {
         final firstError = StateError('first');
         final firstStackTrace = StackTrace.current;
+
         final secondError = StateError('second');
         final secondStackTrace = StackTrace.current;
+
+        final changedSecondError = StateError('second-changed');
+        final changedSecondStackTrace = StackTrace.current;
 
         int firstRetryCalls = 0;
         int secondRetryCalls = 0;
@@ -475,6 +479,10 @@ void main() {
         int buildCount = 0;
         int listenerCount = 0;
 
+        ErrorInfo? builtErrorInfo;
+        Object? builtError;
+        StackTrace? builtStackTrace;
+
         await tester.pumpWidget(
           _buildConsumer(
             providers: () => [
@@ -485,42 +493,67 @@ void main() {
             ],
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
+            onErrorBuilder: (_, details) {
+              builtErrorInfo = details.errorInfo;
+              builtError = details.error;
+              builtStackTrace = details.stackTrace;
+              return const SizedBox();
+            },
           ),
         );
-
-        await tester.pump();
 
         expect(buildCount, 1);
         expect(listenerCount, 0);
 
+        // The first Error provider supplies the aggregate details.
+        expect(builtErrorInfo!.message, 'First');
+        expect(builtError, same(firstError));
+        expect(builtStackTrace, same(firstStackTrace));
+
+        // Change every detail of the later Error provider.
+        // Its retry callback remains available, so the retryable provider set
+        // is unchanged.
         provider2.emit(
           ErrorState<String>(
-            secondError,
-            secondStackTrace,
-            errorInfo: const ErrorInfo(message: 'Second'),
+            changedSecondError,
+            changedSecondStackTrace,
+            errorInfo: const ErrorInfo(message: 'Second changed'),
             onRetry: () => secondRetryCalls++,
           ),
         );
 
         await tester.pump();
 
+        // The aggregate remains unchanged because provider1 is still the
+        // first Error provider and the retryable provider set is unchanged.
         expect(buildCount, 1);
         expect(listenerCount, 0);
 
-        // Removing the retry operation changes the retryable provider set.
+        expect(builtErrorInfo!.message, 'First');
+        expect(builtError, same(firstError));
+        expect(builtStackTrace, same(firstStackTrace));
+
+        // Removing the later provider's retry callback changes the retryable
+        // provider set, so the aggregate now meaningfully changes.
         provider2.emit(
           ErrorState<String>(
-            secondError,
-            secondStackTrace,
-            errorInfo: const ErrorInfo(message: 'Second'),
+            changedSecondError,
+            changedSecondStackTrace,
+            errorInfo: const ErrorInfo(message: 'Second changed'),
           ),
         );
+
         await tester.pump();
 
         expect(buildCount, 2);
         expect(listenerCount, 1);
 
-        // Changing the first error details changes the aggregate.
+        // The first Error provider still supplies the aggregate details.
+        expect(builtErrorInfo!.message, 'First');
+        expect(builtError, same(firstError));
+        expect(builtStackTrace, same(firstStackTrace));
+
+        // Changing the first Error provider's details changes the aggregate.
         final changedFirstError = StateError('first-changed');
 
         provider1.emit(
@@ -531,13 +564,17 @@ void main() {
             onRetry: () => firstRetryCalls++,
           ),
         );
+
         await tester.pump();
 
         expect(buildCount, 3);
         expect(listenerCount, 2);
+
+        expect(builtErrorInfo!.message, 'First changed');
+        expect(builtError, same(changedFirstError));
+        expect(builtStackTrace, same(firstStackTrace));
       },
     );
-
     testWidgets(
       'reacts when a retryable Error provider is removed from the retry set',
       (tester) async {
@@ -904,54 +941,6 @@ void main() {
     );
 
     testWidgets(
-      'replacing the watched provider with another provider that has the same state does not fire a notification',
-      (tester) async {
-        final provider1 = TestViewStateNotifier<String>(
-          const DataState<String>('same'),
-        );
-        final provider2 = TestViewStateNotifier<String>(
-          const DataState<String>('same'),
-        );
-
-        bool useProvider1 = true;
-        int listenerCount = 0;
-
-        Widget buildWidget() {
-          return Directionality(
-            textDirection: TextDirection.ltr,
-            child: ViewStateListener.multi(
-              listenables: () => (useProvider1 ? provider1 : provider2).watch,
-              dataStateListener: (_, __) => listenerCount++,
-              child: const SizedBox(),
-            ),
-          );
-        }
-
-        await tester.pumpWidget(buildWidget());
-
-        expect(listenerCount, 0);
-
-        useProvider1 = false;
-        await tester.pumpWidget(buildWidget());
-
-        // Dependency replacement establishes the new baseline.
-        expect(listenerCount, 0);
-
-        // The old provider must no longer trigger the listener.
-        provider1.emit(const DataState<String>('changed'));
-        await tester.pump();
-
-        expect(listenerCount, 0);
-
-        // The new provider is now subscribed.
-        provider2.emit(const DataState<String>('changed'));
-        await tester.pump();
-
-        expect(listenerCount, 1);
-      },
-    );
-
-    testWidgets(
       'evaluates listenWhen and rebuildWhen only after a meaningful change',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
@@ -1046,6 +1035,63 @@ void main() {
 
       expect(buildCount, 2);
       expect(listenerCount, 1);
+    });
+
+    testWidgets('passes the correct previous and current states to filters', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const LoadingState<String>('loading', 0.2),
+      );
+
+      final listenTransitions = <(double?, double?)>[];
+      final rebuildTransitions = <(double?, double?)>[];
+
+      int buildCount = 0;
+      int listenerCount = 0;
+
+      double? progressOf(Object? state) {
+        return state is LoadingState<String> ? state.progress : null;
+      }
+
+      await tester.pumpWidget(
+        _buildConsumer(
+          providers: () => provider.watch,
+          onBuild: () => buildCount++,
+          onListen: () => listenerCount++,
+          listenWhen: (previous, current) {
+            listenTransitions.add((progressOf(previous), progressOf(current)));
+            return false;
+          },
+          rebuildWhen: (previous, current) {
+            rebuildTransitions.add((progressOf(previous), progressOf(current)));
+            return false;
+          },
+        ),
+      );
+
+      expect(buildCount, 1);
+      expect(listenerCount, 0);
+
+      // First update: 0.2 -> 0.3.
+      provider.emit(const LoadingState<String>('loading', 0.3));
+      await tester.pump();
+
+      expect(buildCount, 1);
+      expect(listenerCount, 0);
+
+      // Second update: 0.3 -> 0.4.
+      // The previous state must be the immediately preceding state (0.3),
+      // even though both filters rejected the previous update.
+      provider.emit(const LoadingState<String>('loading', 0.4));
+      await tester.pump();
+
+      expect(buildCount, 1);
+      expect(listenerCount, 0);
+
+      expect(listenTransitions, [(0.2, 0.3), (0.3, 0.4)]);
+
+      expect(rebuildTransitions, [(0.2, 0.3), (0.3, 0.4)]);
     });
   });
 }

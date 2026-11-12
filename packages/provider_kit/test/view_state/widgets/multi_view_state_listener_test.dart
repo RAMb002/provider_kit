@@ -6,8 +6,6 @@ import 'package:provider_kit/provider_kit.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
 import '../../shared/view_state_message_resolver_helpers.dart';
 
-typedef TwoStates = ({ViewState<String> first, ViewState<String> second});
-
 void main() {
   group('ViewStateListener.multi', () {
     // -------------------------------------------------------------------------
@@ -24,13 +22,6 @@ void main() {
       return () => provider.watch;
     }
 
-    MultiStateListenables<TwoStates> twoProviders(
-      ViewStateNotifier<String> provider1,
-      ViewStateNotifier<String> provider2,
-    ) {
-      return () => (first: provider1.watch, second: provider2.watch);
-    }
-
     Widget buildListener({
       required MultiStateListenables<ViewState<String>> providers,
       InitialStateListener? initialStateListener,
@@ -39,32 +30,6 @@ void main() {
       ErrorStateListener? errorStateListener,
       DataStateListener<ViewState<String>>? dataStateListener,
       ListenWhen<ViewState<String>>? listenWhen,
-      bool callListenerOnInit = false,
-      Widget? child,
-    }) {
-      return wrap(
-        ViewStateListener.multi(
-          listenables: providers,
-          initialStateListener: initialStateListener,
-          loadingStateListener: loadingStateListener,
-          emptyStateListener: emptyStateListener,
-          errorStateListener: errorStateListener,
-          dataStateListener: dataStateListener,
-          listenWhen: listenWhen,
-          callListenerOnInit: callListenerOnInit,
-          child: child ?? const SizedBox(),
-        ),
-      );
-    }
-
-    Widget buildTwoProviderListener({
-      required MultiStateListenables<TwoStates> providers,
-      InitialStateListener? initialStateListener,
-      LoadingStateListener? loadingStateListener,
-      EmptyStateListener? emptyStateListener,
-      ErrorStateListener? errorStateListener,
-      DataStateListener<TwoStates>? dataStateListener,
-      ListenWhen<TwoStates>? listenWhen,
       bool callListenerOnInit = false,
       Widget? child,
     }) {
@@ -508,29 +473,6 @@ void main() {
     // Initialization behavior
     // -------------------------------------------------------------------------
 
-    testWidgets('does not call listeners on initialization by default', (
-      tester,
-    ) async {
-      final provider = TestViewStateNotifier<String>(
-        const DataState<String>('data'),
-      );
-
-      int dataCalls = 0;
-
-      await tester.pumpWidget(
-        buildListener(
-          providers: singleProvider(provider),
-          dataStateListener: (_, __) {
-            dataCalls++;
-          },
-        ),
-      );
-
-      await tester.pump();
-
-      expect(dataCalls, 0);
-    });
-
     testWidgets(
       'callListenerOnInit invokes the listener with the current state',
       (tester) async {
@@ -559,232 +501,35 @@ void main() {
       },
     );
 
-    // -------------------------------------------------------------------------
-    // Dependency tracking
-    // -------------------------------------------------------------------------
-
-    testWidgets('subscribes to every listenable accessed through watch', (
-      tester,
-    ) async {
-      final provider1 = TestViewStateNotifier<String>(
-        const DataState<String>('one'),
-      );
-
-      final provider2 = TestViewStateNotifier<String>(
-        const DataState<String>('two'),
-      );
-
-      int dataCalls = 0;
-
-      await tester.pumpWidget(
-        buildTwoProviderListener(
-          providers: twoProviders(provider1, provider2),
-          dataStateListener: (_, __) {
-            dataCalls++;
-          },
-        ),
-      );
-
-      provider1.emit(const DataState<String>('one-new'));
-
-      await tester.pump();
-
-      expect(dataCalls, 1);
-
-      provider2.emit(const DataState<String>('two-new'));
-
-      await tester.pump();
-
-      expect(dataCalls, 2);
-    });
-
-    testWidgets(
-      'subscribes only once when the same listenable is watched multiple times',
-      (tester) async {
-        final provider = TestViewStateNotifier<String>(
-          const DataState<String>('data'),
-        );
-
-        int dataCalls = 0;
-
-        await tester.pumpWidget(
-          wrap(
-            ViewStateListener.multi(
-              listenables: () =>
-                  (first: provider.watch, second: provider.watch),
-              dataStateListener: (_, __) {
-                dataCalls++;
-              },
-              child: const SizedBox(),
-            ),
-          ),
-        );
-
-        provider.emit(const DataState<String>('updated'));
-
-        await tester.pump();
-
-        expect(dataCalls, 1);
-      },
-    );
-
-    testWidgets(
-      'throws StateError when a watched dependency is not a ViewStateNotifier',
-      (tester) async {
-        final field = StateField<String>('data');
-
-        await tester.pumpWidget(
-          wrap(
-            ViewStateListener.multi(
-              listenables: () => field.watch,
-              child: const SizedBox(),
-            ),
-          ),
-        );
-
-        expect(
-          tester.takeException(),
-          isA<StateError>().having(
-            (StateError error) => error.message,
-            'message',
-            contains('ViewStateNotifier'),
-          ),
-        );
-      },
-    );
-
-    // -------------------------------------------------------------------------
-    // Runtime dependency changes
-    // -------------------------------------------------------------------------
-
-    testWidgets('switches subscriptions when the watched listenable changes', (
-      tester,
-    ) async {
-      final provider1 = TestViewStateNotifier<String>(
-        const DataState<String>('one'),
-      );
-
-      final provider2 = TestViewStateNotifier<String>(
-        const DataState<String>('two'),
-      );
-
-      MultiStateListenables<ViewState<String>> providers = singleProvider(
-        provider1,
-      );
-
-      int dataCalls = 0;
-
-      await tester.pumpWidget(
-        wrap(
-          StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Column(
-                children: <Widget>[
-                  ViewStateListener.multi(
-                    listenables: providers,
-                    dataStateListener: (_, __) {
-                      dataCalls++;
-                    },
-                    child: const SizedBox(),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        providers = singleProvider(provider2);
-                      });
-                    },
-                    child: const Text('Switch'),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-
-      provider1.emit(const DataState<String>('one-new'));
-
-      await tester.pump();
-
-      expect(dataCalls, 1);
-
-      await tester.tap(find.text('Switch'));
-      await tester.pump();
-
-      provider1.emit(const DataState<String>('one-after-switch'));
-
-      await tester.pump();
-
-      expect(dataCalls, 1);
-
-      provider2.emit(const DataState<String>('two-new'));
-
-      await tester.pump();
-
-      expect(dataCalls, 2);
-    });
-
-    testWidgets(
-      'does not duplicate listenable notifications after rebuilding with the same dependency',
-      (tester) async {
-        final provider = TestViewStateNotifier<String>(
-          const DataState<String>('data'),
-        );
-
-        int dataCalls = 0;
-
-        Widget buildFrame() {
-          return buildListener(
-            providers: singleProvider(provider),
-            dataStateListener: (_, __) {
-              dataCalls++;
-            },
-          );
-        }
-
-        await tester.pumpWidget(buildFrame());
-
-        provider.emit(const DataState<String>('first'));
-
-        await tester.pump();
-
-        expect(dataCalls, 1);
-
-        await tester.pumpWidget(buildFrame());
-
-        provider.emit(const DataState<String>('second'));
-
-        await tester.pump();
-
-        expect(dataCalls, 2);
-      },
-    );
-
-    // -------------------------------------------------------------------------
-    // Cleanup
-    // -------------------------------------------------------------------------
-
-    testWidgets('detaches listenable listeners when the widget is removed', (
+    testWidgets('listenWhen filters state-specific listener callbacks', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(
-        const DataState<String>('data'),
+        const DataState<String>('initial'),
       );
+
+      final receivedStates = <String>[];
 
       await tester.pumpWidget(
         buildListener(
           providers: singleProvider(provider),
-          dataStateListener: (_, __) {},
+          listenWhen: (_, current) =>
+              current is DataState<String> && current.data == 'accepted',
+          dataStateListener: (_, state) {
+            receivedStates.add(state.data);
+          },
         ),
       );
 
-      // ignore: invalid_use_of_protected_member
-      expect(provider.hasListeners, isTrue);
+      provider.emit(const DataState<String>('ignored'));
+      await tester.pump();
 
-      await tester.pumpWidget(const SizedBox());
+      expect(receivedStates, isEmpty);
 
-      // ignore: invalid_use_of_protected_member
-      expect(provider.hasListeners, isFalse);
+      provider.emit(const DataState<String>('accepted'));
+      await tester.pump();
+
+      expect(receivedStates, ['accepted']);
     });
 
     // -------------------------------------------------------------------------

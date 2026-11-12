@@ -7,10 +7,10 @@ part of '../multi_state.dart';
 /// behavior required by each multi-state widget, such as listening,
 /// rebuilding, or both.
 ///
-/// The shared core owns state dependency tracking, subscriptions, state
-/// collection, listener scheduling, and rebuild scheduling. This engine
-/// handles Provider identity dependencies and applies the widget-specific
-/// callback and state-change behavior.
+/// The shared core owns state and Provider dependency tracking, state
+/// collection, subscriptions, listener scheduling, and rebuild scheduling.
+/// This engine applies the widget-specific state-comparison and callback
+/// behavior.
 ///
 /// The important invariant is that [listenables] is collected exactly once
 /// for each dependency notification handled by this widget. The returned
@@ -79,30 +79,13 @@ final class MultiStateEngine<T> extends StatefulWidget {
 
 /// State implementation for [MultiStateEngine].
 ///
-/// The shared state dependencies, subscriptions, listener scheduling, and
-/// rebuild scheduling are owned by [_MultiStateCore].
+/// The shared state and Provider dependency tracking, subscriptions, listener
+/// scheduling, and rebuild scheduling are owned by [_MultiStateCore].
 ///
-/// This state additionally manages Provider identity dependencies discovered
-/// through `of<P>()`.
-///
-/// Provider identity dependencies are established during [build], while
-/// state dependencies are synchronized through [_MultiStateCore].
+/// This state handles the widget lifecycle, state collection, and
+/// widget-specific state-change and callback behavior.
 class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
   late final _MultiStateCore<T> _core;
-
-  /// Provider identity dependencies discovered during the latest collection.
-  ///
-  /// These dependencies are used to detect when a provided listenable
-  /// instance is replaced.
-  ///
-  /// The map is keyed by the concrete Provider type. Multiple resolutions
-  /// of the same Provider type within one collection share one identity
-  /// dependency.
-  Map<Type, _ProviderDependency> _providerDependencies =
-      const <Type, _ProviderDependency>{};
-
-  /// Whether the initial build has established Provider dependencies.
-  bool _hasBuilt = false;
 
   @override
   void initState() {
@@ -116,9 +99,9 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
     final _DependencyCollection<T> collection = _collect();
 
     _core.state = collection.value;
-    _providerDependencies = collection.providerDependencies;
+    _core.syncProviderDependencies(collection.providerDependencies);
 
-    _syncDependencies(collection.dependencies);
+    _core.syncDependencies(collection.dependencies);
     if (widget.callListenerOnInit && widget.listener != null) {
       _scheduleInitialListener();
     }
@@ -148,8 +131,8 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
     final _DependencyCollection<T> collection = _collect();
 
     _core.state = collection.value;
-    _replaceProviderDependencies(collection.providerDependencies);
-    _syncDependencies(collection.dependencies);
+    _core.syncProviderDependencies(collection.providerDependencies);
+    _core.syncDependencies(collection.dependencies);
   }
 
   @override
@@ -158,7 +141,7 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
     // The first didChangeDependencies occurs before the initial build.
     // Provider identity dependencies have not been established yet.
-    if (!_hasBuilt || _providerDependencies.isEmpty) {
+    if (!_core.hasBuilt || !_core.hasProviderDependencies) {
       return;
     }
 
@@ -168,51 +151,8 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
     _core.state = collection.value;
 
-    _replaceProviderDependencies(collection.providerDependencies);
-    _syncDependencies(collection.dependencies);
-  }
-
-  /// Replaces the currently tracked Provider dependencies.
-  ///
-  /// Returns true when a Provider dependency was added, removed,
-  /// or resolved to a different notifier instance.
-  bool _replaceProviderDependencies(
-    Map<Type, _ProviderDependency> nextDependencies,
-  ) {
-    final Map<Type, _ProviderDependency> previousDependencies =
-        _providerDependencies;
-
-    bool changed = previousDependencies.length != nextDependencies.length;
-
-    if (!changed) {
-      for (final entry in previousDependencies.entries) {
-        final _ProviderDependency? next = nextDependencies[entry.key];
-
-        if (next == null || !identical(entry.value.identity, next.identity)) {
-          changed = true;
-          break;
-        }
-      }
-    }
-
-    _providerDependencies = nextDependencies;
-
-    return changed;
-  }
-
-  /// Establishes Provider identity dependencies during build.
-  ///
-  /// Provider's `context.select` tracks whether each resolved instance
-  /// is still the currently provided instance.
-  ///
-  /// Provider notifications that do not replace the instance do not
-  /// trigger a rebuild through these identity dependencies.
-  void _trackProviderDependencies(BuildContext context) {
-    for (final _ProviderDependency dependency in _providerDependencies.values) {
-      dependency.dependOn(context);
-    }
-
-    _hasBuilt = true;
+    _core.syncProviderDependencies(collection.providerDependencies);
+    _core.syncDependencies(collection.dependencies);
   }
 
   /// Handles notifications from any currently subscribed state dependency.
@@ -235,12 +175,12 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
     final _DependencyCollection<T> collection = _collect();
     final T current = collection.value;
 
-    final bool providerDependenciesChanged = _replaceProviderDependencies(
+    final bool providerDependenciesChanged = _core.syncProviderDependencies(
       collection.providerDependencies,
     );
 
     // The new collection may contain a different set of dependencies.
-    _syncDependencies(collection.dependencies);
+    _core.syncDependencies(collection.dependencies);
 
     _core.state = current;
 
@@ -286,17 +226,6 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
     );
   }
 
-  /// Synchronizes active state subscriptions with the newly collected
-  /// dependencies.
-  ///
-  /// Only changed dependencies are touched:
-  /// - dependencies missing from the new set are unsubscribed,
-  /// - newly discovered dependencies are subscribed,
-  /// - unchanged dependencies remain subscribed.
-  void _syncDependencies(Set<StateListenable> nextDependencies) {
-    _core.syncDependencies(nextDependencies);
-  }
-
   @override
   void dispose() {
     _core.dispose();
@@ -306,7 +235,7 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
   @override
   Widget build(BuildContext context) {
     // Provider.select must be registered during build.
-    _trackProviderDependencies(context);
+    _core.trackProviderDependencies(context);
 
     final StateWidgetBuilder<T>? builder = widget.builder;
 

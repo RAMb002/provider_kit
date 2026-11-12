@@ -661,6 +661,111 @@ void main() {
     );
 
     testWidgets(
+      'uses the next Error provider details when the first Error provider is removed',
+      (tester) async {
+        final firstError = StateError('first');
+        final firstStackTrace = StackTrace.current;
+        final secondError = StateError('second');
+        final secondStackTrace = StackTrace.current;
+
+        int firstRetryCalls = 0;
+        int secondRetryCalls = 0;
+
+        final provider1 = TestViewStateNotifier<String>(
+          ErrorState<String>(
+            firstError,
+            firstStackTrace,
+            errorInfo: const ErrorInfo(message: 'First error'),
+            onRetry: () => firstRetryCalls++,
+          ),
+        );
+
+        final provider2 = TestViewStateNotifier<String>(
+          ErrorState<String>(
+            secondError,
+            secondStackTrace,
+            errorInfo: const ErrorInfo(message: 'Second error'),
+            onRetry: () => secondRetryCalls++,
+          ),
+        );
+
+        ErrorInfo? builtErrorInfo;
+        Object? builtError;
+        StackTrace? builtStackTrace;
+        VoidCallback? builtOnRetry;
+
+        ErrorInfo? listenedErrorInfo;
+        Object? listenedError;
+        StackTrace? listenedStackTrace;
+        VoidCallback? listenedOnRetry;
+
+        int buildCount = 0;
+        int listenerCount = 0;
+
+        await tester.pumpWidget(
+          _buildConsumer(
+            providers: () => [provider1.watch, provider2.watch],
+            callListenerOnInit: true,
+            onBuild: () => buildCount++,
+            onListen: () => listenerCount++,
+            onErrorBuilder: (_, details) {
+              builtErrorInfo = details.errorInfo;
+              builtError = details.error;
+              builtStackTrace = details.stackTrace;
+              builtOnRetry = details.onRetry;
+              return const SizedBox();
+            },
+            onErrorListener: (_, details) {
+              listenedErrorInfo = details.errorInfo;
+              listenedError = details.error;
+              listenedStackTrace = details.stackTrace;
+              listenedOnRetry = details.onRetry;
+            },
+          ),
+        );
+
+        await tester.pump();
+
+        expect(buildCount, 1);
+        expect(listenerCount, 1);
+        expect(builtErrorInfo!.message, 'First error');
+        expect(builtError, same(firstError));
+        expect(builtStackTrace, same(firstStackTrace));
+        expect(builtOnRetry, isNotNull);
+
+        expect(listenedErrorInfo!.message, 'First error');
+        expect(listenedError, same(firstError));
+        expect(listenedStackTrace, same(firstStackTrace));
+        expect(listenedOnRetry, isNotNull);
+
+        // The first Error provider becomes Data, so the second Error provider
+        // becomes the source of the aggregate Error details.
+        provider1.emit(const DataState<String>('one'));
+        await tester.pump();
+
+        expect(buildCount, 2);
+        expect(listenerCount, 2);
+        expect(builtErrorInfo!.message, 'Second error');
+        expect(builtError, same(secondError));
+        expect(builtStackTrace, same(secondStackTrace));
+        expect(builtOnRetry, isNotNull);
+
+        expect(listenedErrorInfo!.message, 'Second error');
+        expect(listenedError, same(secondError));
+        expect(listenedStackTrace, same(secondStackTrace));
+        expect(listenedOnRetry, isNotNull);
+
+        builtOnRetry!();
+        expect(firstRetryCalls, 0);
+        expect(secondRetryCalls, 1);
+
+        listenedOnRetry!();
+        expect(firstRetryCalls, 0);
+        expect(secondRetryCalls, 2);
+      },
+    );
+
+    testWidgets(
       'reports custom retry callback errors and continues retrying other providers',
       (tester) async {
         final reportedErrors = <FlutterErrorDetails>[];
@@ -930,6 +1035,62 @@ void main() {
         listenerRetry!();
 
         expect(asyncProvider.refreshCalls, 2);
+      },
+    );
+
+    testWidgets(
+      'prefers the explicit ErrorState retry callback over FutureNotifier refresh',
+      (tester) async {
+        final asyncProvider = MockFutureNotifier<String>(
+          buildImpl: () => 'data',
+        );
+
+        await tester.pumpAndSettle();
+
+        int customRetryCalls = 0;
+
+        asyncProvider.state = ErrorState<String>(
+          StateError('async error'),
+          StackTrace.current,
+          errorInfo: const ErrorInfo(message: 'Async error'),
+          onRetry: () => customRetryCalls++,
+        );
+
+        final initialRefreshCalls = asyncProvider.refreshCalls;
+
+        VoidCallback? builderRetry;
+        VoidCallback? listenerRetry;
+
+        await tester.pumpWidget(
+          _buildConsumer(
+            providers: () => asyncProvider.watch,
+            callListenerOnInit: true,
+            onBuild: () {},
+            onListen: () {},
+            onErrorBuilder: (_, details) {
+              builderRetry = details.onRetry;
+              return const SizedBox();
+            },
+            onErrorListener: (_, details) {
+              listenerRetry = details.onRetry;
+            },
+          ),
+        );
+
+        await tester.pump();
+
+        expect(builderRetry, isNotNull);
+        expect(listenerRetry, isNotNull);
+
+        builderRetry!();
+
+        expect(customRetryCalls, 1);
+        expect(asyncProvider.refreshCalls, initialRefreshCalls);
+
+        listenerRetry!();
+
+        expect(customRetryCalls, 2);
+        expect(asyncProvider.refreshCalls, initialRefreshCalls);
       },
     );
     testWidgets(
