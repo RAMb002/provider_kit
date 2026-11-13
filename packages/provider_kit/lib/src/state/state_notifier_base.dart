@@ -16,6 +16,7 @@ abstract class StateNotifierBase<State> extends NotifierBase<State>
 
   State _state;
 
+  @protected
   set state(State newState) {
     assert(NotifierBase.debugAssertNotDisposed(this, 'set state ($State)'));
 
