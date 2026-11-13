@@ -30,5 +30,5 @@ part 'internal/dependency_tracker.dart';
 part 'internal/multi_state_engine.dart';
 part 'internal/multi_state_core.dart';
 part 'internal/provider_dependency.dart';
-part 'internal/provider_reference.dart';
+part 'internal/provider_lookup.dart';
 part 'widgets/watch_builder.dart';
