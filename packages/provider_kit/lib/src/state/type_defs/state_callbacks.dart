@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
 
 /// A callback that determines whether a listener should be called based on
 /// the previous and current state.
@@ -33,3 +34,6 @@ typedef StateWidgetBuilder<T> =
 /// [context] provides the build context.
 /// [state] provides the current state.
 typedef ListenerCallback<T> = void Function(BuildContext context, T state);
+
+/// Selects a StateListenable from a provider.
+typedef SelectStateListenable<P, T> = StateListenable<T> Function(P provider);

@@ -7,15 +7,15 @@ part of '../multi_state.dart';
 /// behavior required by each multi-state widget, such as listening,
 /// rebuilding, or both.
 ///
-/// The shared core owns dependency tracking, subscriptions, state collection,
-/// listener scheduling, and rebuild scheduling. This base is responsible for
-/// applying the widget-specific callback and state-change behavior around that
-/// shared functionality.
+/// The shared core owns state and Provider dependency tracking, state
+/// collection, subscriptions, listener scheduling, and rebuild scheduling.
+/// This engine applies the widget-specific state-comparison and callback
+/// behavior.
 ///
 /// The important invariant is that [listenables] is collected exactly once
 /// for each dependency notification handled by this widget. The returned
-/// value becomes the combined state, while every `.watch` accessed during
-/// the collection becomes a dependency.
+/// value becomes the combined state, while every `.watch` and `of<P>()`
+/// accessed during collection contributes its corresponding dependency.
 @internal
 final class MultiStateEngine<T> extends StatefulWidget {
   const MultiStateEngine({
@@ -30,11 +30,13 @@ final class MultiStateEngine<T> extends StatefulWidget {
     required this.widgetName,
   });
 
-  /// Produces the combined state for the widget and declares its
-  /// dependencies through `.watch`.
+  /// Produces the combined state for the widget and declares its dependencies.
   ///
-  /// The callback is evaluated inside ProviderKit's dependency collector.
-  /// Every watched [StateListenable] is recorded automatically.
+  /// Access [StateListenable] values through `.watch` and resolve
+  /// Provider-owned listenables through `of<P>()`.
+  ///
+  /// Provider identity dependencies and state dependencies are tracked
+  /// separately.
   final MultiStateListenables<T> listenables;
 
   /// Called when the combined state changes and [listenWhen] allows it.
@@ -77,35 +79,35 @@ final class MultiStateEngine<T> extends StatefulWidget {
 
 /// State implementation for [MultiStateEngine].
 ///
-/// The shared dependency, state, listener, and rebuild mechanics are owned
-/// by [_MultiStateCore]. This state coordinates those mechanics with the
-/// widget-specific callback behavior.
+/// The shared state and Provider dependency tracking, subscriptions, listener
+/// scheduling, and rebuild scheduling are owned by [_MultiStateCore].
 ///
-/// Dependency subscriptions are updated incrementally so that sources which
-/// are no longer used are unsubscribed and newly used sources are subscribed.
+/// This state handles the widget lifecycle, state collection, and
+/// widget-specific state-change and callback behavior.
 class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
   late final _MultiStateCore<T> _core;
+
   @override
   void initState() {
     super.initState();
 
     _core = _MultiStateCore<T>(onDependencyChange: _handleChange);
 
-    // Collect the initial state and dependencies together. Keeping these
-    // operations in one collection ensures the state value and subscriptions
-    // always correspond to the same listenables() evaluation.
-    final _DependencyCollection<T> collection = _core.collect(
-      listenables: widget.listenables,
-      widgetName: widget.widgetName,
-    );
+    // Collect the initial state and dependencies together.
+    // This ensures the state value and subscriptions correspond to the
+    // same listenables evaluation.
+    final _DependencyCollection<T> collection = _collect();
 
     _core.state = collection.value;
-    _syncDependencies(collection.dependencies);
+    _core.syncProviderDependencies(collection.providerDependencies);
+
+    _core.syncDependencies(collection.dependencies);
     if (widget.callListenerOnInit && widget.listener != null) {
       _scheduleInitialListener();
     }
   }
 
+  /// Schedules the initial listener callback.
   void _scheduleInitialListener() {
     final T initialState = _core.state;
     final ListenerCallback<T> initialListener = widget.listener!;
@@ -120,27 +122,48 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
   void didUpdateWidget(MultiStateEngine<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Re-collect when the widget configuration changes. This is important
-    // because the set of dependencies may itself depend on widget values.
+    // Re-collect when the widget configuration changes.
+    // This is important because the dependency set may depend on
+    // widget configuration.
     //
-    // The new value becomes the new baseline without invoking listener or
-    // rebuild callbacks.
+    // The newly collected value becomes the baseline without invoking
+    // listener or rebuild callbacks.
+    final _DependencyCollection<T> collection = _collect();
+
+    _core.state = collection.value;
+    _core.syncProviderDependencies(collection.providerDependencies);
+    _core.syncDependencies(collection.dependencies);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // The first didChangeDependencies occurs before the initial build.
+    // Provider identity dependencies have not been established yet.
+    if (!_core.hasBuilt || !_core.hasProviderDependencies) {
+      return;
+    }
+
+    // A Provider identity dependency changed. Resolve the current
+    // instances again and establish a new state baseline.
     final _DependencyCollection<T> collection = _collect();
 
     _core.state = collection.value;
 
-    _syncDependencies(collection.dependencies);
+    _core.syncProviderDependencies(collection.providerDependencies);
+    _core.syncDependencies(collection.dependencies);
   }
 
-  /// Handles notifications from any currently subscribed dependency.
+  /// Handles notifications from any currently subscribed state dependency.
   ///
   /// A dependency notification does not necessarily mean the combined state
-  /// changed. We therefore:
+  /// changed. Therefore, this method:
   ///
-  /// 1. collect the combined state again,
-  /// 2. update dependency subscriptions,
-  /// 3. compare the previous and current values,
-  /// 4. independently trigger rebuilding and listening.
+  /// 1. Collects the combined state again.
+  /// 2. Updates state and Provider dependencies.
+  /// 3. Compares the previous and current combined values.
+  /// 4. Independently triggers rebuilding and listening.
   void _handleChange() {
     if (!mounted) {
       return;
@@ -152,8 +175,12 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
     final _DependencyCollection<T> collection = _collect();
     final T current = collection.value;
 
+    final bool providerDependenciesChanged = _core.syncProviderDependencies(
+      collection.providerDependencies,
+    );
+
     // The new collection may contain a different set of dependencies.
-    _syncDependencies(collection.dependencies);
+    _core.syncDependencies(collection.dependencies);
 
     _core.state = current;
 
@@ -165,7 +192,9 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
         widget.listener != null &&
         ObjectKit.shouldNotify(previous, current, widget.listenWhen);
 
-    if (shouldRebuild) {
+    // A changed Provider dependency must also trigger a build so that
+    // context.select can establish the new inherited dependencies.
+    if (shouldRebuild || providerDependenciesChanged) {
       _core.rebuildScheduler.request(
         isMounted: () => mounted,
         rebuild: () => setState(() {}),
@@ -183,25 +212,18 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
   /// Collects the current combined state and its dependencies.
   ///
-  /// The dependency tracker executes [widget.listenables] inside a temporary
-  /// collection scope. Every `.watch` encountered during that execution is
-  /// recorded and returned together with the resulting state value.
+  /// The dependency tracker evaluates [widget.listenables] inside a
+  /// temporary collection scope using this state's [BuildContext] for
+  /// Provider resolution.
+  ///
+  /// State dependencies accessed through `.watch` and Provider identity
+  /// dependencies accessed through `of<P>()` are collected separately.
   _DependencyCollection<T> _collect() {
     return _core.collect(
+      context: context,
       listenables: widget.listenables,
       widgetName: widget.widgetName,
     );
-  }
-
-  /// Synchronizes the active subscriptions with the newly collected
-  /// dependencies.
-  ///
-  /// Only changed dependencies are touched:
-  /// - dependencies missing from the new set are unsubscribed,
-  /// - newly discovered dependencies are subscribed,
-  /// - unchanged dependencies remain subscribed.
-  void _syncDependencies(Set<StateListenable> nextDependencies) {
-    _core.syncDependencies(nextDependencies);
   }
 
   @override
@@ -212,7 +234,10 @@ class _MultiStateEngineState<T> extends State<MultiStateEngine<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final builder = widget.builder;
+    // Provider.select must be registered during build.
+    _core.trackProviderDependencies(context);
+
+    final StateWidgetBuilder<T>? builder = widget.builder;
 
     if (builder != null) {
       return builder(context, _core.state, widget.child);

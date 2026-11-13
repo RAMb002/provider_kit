@@ -208,7 +208,7 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///   combined state changes.
   /// - **[callListenerOnInit]** — Determines whether the listener is called
   ///   after initialization.
-  /// - **[child]** — The child widget displayed by this listener.
+  /// - **[child]** — The required child widget displayed by this listener.
   ///
   /// ### Usage
   ///
@@ -255,6 +255,29 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///   dataStateListener: (context, state) {
   ///     // Handle the combined state.
   ///   },
+  /// );
+  /// ```
+  /// ### Resolving Listenables from Provider
+  ///
+  /// When listenables are exposed through providers from the `provider`
+  /// package, use `of<T>().watch` inside the `listenables` callback to
+  /// resolve and watch them.
+  ///
+  /// This also tracks the provider dependency, so the collection is
+  /// re-evaluated when the provider dependency changes, such as when
+  /// a provider supplies a different notifier.
+  ///
+  /// ```dart
+  /// ViewStateListener.multi(
+  ///   listenables: () => (
+  ///     user: of<UserNotifier>().watch,
+  ///     profile: of<ProfilesNotifier>().watch,
+  ///   ),
+  ///   dataStateListener: (context, state) {
+  ///     // state.user.data
+  ///     // state.profile.data
+  ///   },
+  ///   child: const MyPage(),
   /// );
   /// ```
   /// {@endtemplate}

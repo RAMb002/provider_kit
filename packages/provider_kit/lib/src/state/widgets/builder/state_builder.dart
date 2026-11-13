@@ -38,7 +38,8 @@ part 'state_builder_of.dart';
 /// ```
 ///
 /// If the listenable is available in the widget tree (e.g., exposed through
-/// `Provider`), you can use [StateBuilder.of] to retrieve it:
+/// a provider from the `provider` package), you can use [StateBuilder.of]
+/// to retrieve and listen to it:
 ///
 /// ```dart
 /// StateBuilder.of<MyStateListenable, MyState>(
@@ -49,8 +50,21 @@ part 'state_builder_of.dart';
 ///   child: SomeStaticWidget(), // Preserved across rebuilds
 /// );
 /// ```
-/// This ensures optimal performance by rebuilding only when necessary and
-/// preserving static UI elements passed as `child`.
+///
+/// When retrieving a nested listenable from a provider, use
+/// [selectListenable]. The selector is reevaluated when the provider
+/// dependency changes, allowing ProviderKit to subscribe to the nested
+/// listenable belonging to the updated object:
+///
+/// ```dart
+/// StateBuilder.of<MyStateListenable, MutationState<void>>(
+///   selectListenable: (notifier) => notifier.saveMutation,
+///   builder: (context, state, child) {
+///     // React to mutation state changes.
+///   },
+///   child: const MyPage(),
+/// );
+/// ```
 /// {@endtemplate}
 ///
 /// {@macro provider_kit.state_builder.multi}
@@ -87,7 +101,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   }) = _StateBuilder<T>;
 
   /// {@template provider_kit.state_builder.multi}
-  /// ### Listening to Multiple Providers
+  /// ### Listening to Multiple Listenables
   ///
   /// Use [StateBuilder.multi] when a builder depends on the state of multiple
   /// listenables. The [listenables] callback builds a single combined state by
@@ -152,6 +166,29 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
+  ///
+  /// ### Resolving Listenables from Provider
+  ///
+  /// When listenables are exposed through providers from the `provider`
+  /// package, use `of<T>().watch` inside the `listenables` callback to
+  /// resolve and watch them.
+  ///
+  /// This also tracks the provider dependency, so the collection is
+  /// re-evaluated when the provider dependency changes, such as when
+  /// a provider supplies a different notifier.
+  ///
+  /// ```dart
+  /// StateBuilder.multi(
+  ///   listenables: () => (
+  ///     user: of<UserNotifier>().watch,
+  ///     settings: of<SettingsNotifier>().watch,
+  ///   ),
+  ///   builder: (context, state, child) {
+  ///     return Text(state.user.name);
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
   /// {@endtemplate}
   const factory StateBuilder.multi({
     Key? key,
@@ -163,6 +200,8 @@ abstract class StateBuilder<T> extends StatefulWidget {
 
   /// {@macro provider_kit.state_widget.of}
   ///
+  /// Listen directly to a provided StateListenable:
+  ///
   /// ```dart
   /// StateBuilder.of<MyStateListenable, MyState>(
   ///   builder: (context, state, child) {
@@ -170,14 +209,27 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
+  /// Listen to a nested listenable from a provider:
+  ///
+  /// ```dart
+  /// StateBuilder.of(
+  ///   selectListenable: (MyStateListenable notifier) => notifier.saveMutation,
+  ///   builder: (context, state, child) {
+  ///     return MyWidget(state);
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
   static of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
+    SelectStateListenable<P, T>? selectListenable,
     RebuildWhen<T>? rebuildWhen,
     Widget? child,
   }) {
     return _StateBuilderOf<P, T>(
       key: key,
+      selectListenable: selectListenable,
       builder: builder,
       rebuildWhen: rebuildWhen,
       child: child,

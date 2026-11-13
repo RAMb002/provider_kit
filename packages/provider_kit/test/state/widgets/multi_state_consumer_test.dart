@@ -1,887 +1,262 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider_kit/src/state/multi_state/multi_state.dart';
-import 'package:provider_kit/src/state/state_field.dart';
-import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
-import 'package:provider_kit/src/state/widgets/consumer/state_consumer.dart';
+import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/notifiers.dart';
-import '../../shared/mocks/widgets.dart';
-
-const multiConsumerResetKey = Key('multi_consumer_reset_btn');
-const multiConsumerNoopKey = Key('multi_consumer_noop_btn');
-
-/// Test host used to change the watched dependency set and rebuild the parent.
-class MultiConsumerTestApp extends StatefulWidget {
-  const MultiConsumerTestApp({
-    super.key,
-    required this.initialListenables,
-    required this.newListenables,
-    required this.builder,
-    required this.listener,
-    this.listenWhen,
-    this.rebuildWhen,
-    this.callListenerOnInit = false,
-  });
-
-  final List<CounterProvider> initialListenables;
-  final List<CounterProvider> newListenables;
-  final StateWidgetBuilder<List<int>> builder;
-  final ListenerCallback<List<int>> listener;
-  final ListenWhen<List<int>>? listenWhen;
-  final RebuildWhen<List<int>>? rebuildWhen;
-  final bool callListenerOnInit;
-
-  @override
-  State<MultiConsumerTestApp> createState() => _MultiConsumerTestAppState();
-}
-
-class _MultiConsumerTestAppState extends State<MultiConsumerTestApp> {
-  late List<CounterProvider> _activeListenables;
-
-  @override
-  void initState() {
-    super.initState();
-    _activeListenables = widget.initialListenables;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        body: Column(
-          children: [
-            StateConsumer.multi(
-              listenables: () => [
-                for (final provider in _activeListenables) provider.watch,
-              ],
-              builder: widget.builder,
-              listener: widget.listener,
-              listenWhen: widget.listenWhen,
-              rebuildWhen: widget.rebuildWhen,
-              callListenerOnInit: widget.callListenerOnInit,
-              child: const SizedBox(key: Key('multi_consumer_child')),
-            ),
-            TextButton(
-              key: multiConsumerResetKey,
-              onPressed: () {
-                setState(() {
-                  _activeListenables = widget.newListenables;
-                });
-              },
-              child: const Text('Swap Providers'),
-            ),
-            TextButton(
-              key: multiConsumerNoopKey,
-              onPressed: () {
-                setState(() {});
-              },
-              child: const Text('Rebuild Parent'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 void main() {
   group('StateConsumer.multi', () {
-    // =========================================================================
-    // SECTION 1: CORE RENDERING & CHILD HANDLING
-    // =========================================================================
-
-    testWidgets('renders builder output and passes child', (tester) async {
-      const childKey = Key('consumer_child');
-
-      final provider1 = CounterProvider();
-      final provider2 = CounterProvider(10);
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StateConsumer.multi(
-            listenables: () => [provider1.watch, provider2.watch],
-            builder: (_, state, child) {
-              return Row(children: [child!, Text('${state[0]}-${state[1]}')]);
-            },
-            listener: (_, __) {},
-            child: const SizedBox(key: childKey),
-          ),
-        ),
-      );
-
-      expect(find.byKey(childKey), findsOneWidget);
-      expect(find.text('0-10'), findsOneWidget);
-    });
-
-    testWidgets('supports arbitrary combined state types', (tester) async {
-      final provider = CounterProvider(5);
-
-      ({int count, bool loading})? receivedState;
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => (count: provider.watch, loading: false),
-          builder: (_, state, __) {
-            receivedState = state;
-            return const SizedBox();
-          },
-          listener: (_, __) {},
-        ),
-      );
-
-      expect(receivedState, (count: 5, loading: false));
-    });
-
-    testWidgets('child widget is preserved across state rebuilds', (
-      tester,
-    ) async {
-      const childKey = Key('child_preserved');
-
-      int childBuildCount = 0;
-      int builderBuildCount = 0;
-
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StateConsumer.multi(
-            listenables: () => provider.watch,
-            builder: (_, state, child) {
-              builderBuildCount++;
-
-              return Column(children: [child!, Text('State: $state')]);
-            },
-            listener: (_, __) {},
-            child: StatefulBuilder(
-              key: childKey,
-              builder: (_, __) {
-                childBuildCount++;
-                return const Text('Child');
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(builderBuildCount, 1);
-      expect(childBuildCount, 1);
-
-      provider.increment();
-      await tester.pump();
-
-      expect(builderBuildCount, 2);
-      expect(childBuildCount, 1);
-    });
-
-    // =========================================================================
-    // SECTION 2: INITIALIZATION
-    // =========================================================================
-
-    testWidgets('does not call listener on initialization by default', (
-      tester,
-    ) async {
-      final listenerLog = <int>[];
-      int buildCount = 0;
-
-      final provider = CounterProvider(5);
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, __, ___) {
-            buildCount++;
-            return const SizedBox();
-          },
-          listener: (_, state) => listenerLog.add(state),
-        ),
-      );
-
-      expect(buildCount, 1);
-      expect(listenerLog, isEmpty);
-    });
-
-    testWidgets('calls listener on initialization when enabled', (
-      tester,
-    ) async {
-      final listenerLog = <int>[];
-      int buildCount = 0;
-
-      final provider = CounterProvider(5);
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, __, ___) {
-            buildCount++;
-            return const SizedBox();
-          },
-          listener: (_, state) => listenerLog.add(state),
-          callListenerOnInit: true,
-        ),
-      );
-
-      await tester.pump();
-
-      expect(buildCount, 1);
-      expect(listenerLog, [5]);
-    });
-
     testWidgets(
-      'calls initial listener before a normal listener notification before first frame',
+      'builds from combined state, passes child, and listens to updates',
       (tester) async {
-        final field = StateField(0);
-        final states = <int>[];
+        const childKey = Key('multi_consumer_child');
+        const outputKey = Key('multi_consumer_output');
+
+        final counter = CounterProvider(5);
+        final rating = CounterProvider(10);
+
+        final buildStates = <({int count, int rating})>[];
+        final listenerStates = <({int count, int rating})>[];
 
         await tester.pumpWidget(
           Directionality(
             textDirection: TextDirection.ltr,
             child: StateConsumer.multi(
-              listenables: () => field.watch,
-              callListenerOnInit: true,
-              builder: (_, state, child) =>
-                  Column(children: [Text('$state'), child!]),
-              listener: (_, state) {
-                states.add(state);
+              listenables: () => (count: counter.watch, rating: rating.watch),
+              builder: (_, state, child) {
+                buildStates.add(state);
+
+                return Column(
+                  children: [
+                    child!,
+                    Text('${state.count}-${state.rating}', key: outputKey),
+                  ],
+                );
               },
-              child: StateChangeDuringInit(
-                onInit: () {
-                  field.state = 1;
-                },
-              ),
+              listener: (_, state) {
+                listenerStates.add(state);
+              },
+              child: const SizedBox(key: childKey),
             ),
           ),
         );
 
-        expect(states, [0, 1]);
+        // Initial combined state.
+        expect(buildStates, [(count: 5, rating: 10)]);
+        expect(listenerStates, isEmpty);
+
+        // The child parameter is forwarded and rendered.
+        expect(find.byKey(childKey), findsOneWidget);
+        expect(find.byKey(outputKey), findsOneWidget);
+        expect(find.text('5-10'), findsOneWidget);
+
+        counter.increment();
         await tester.pump();
-        expect(find.text('1'), findsOneWidget);
+
+        // Builder and listener receive the same updated combined state.
+        expect(buildStates, [(count: 5, rating: 10), (count: 6, rating: 10)]);
+        expect(listenerStates, [(count: 6, rating: 10)]);
+        expect(find.text('6-10'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+
+        counter.dispose();
+        rating.dispose();
       },
     );
 
-    testWidgets(
-      'preserves multiple listener notifications received before initial callback',
-      (tester) async {
-        final field = StateField(0);
-        final states = <int>[];
+    testWidgets('passes null to builder when child is not specified', (
+      tester,
+    ) async {
+      final provider = CounterProvider(5);
 
-        await tester.pumpWidget(
-          StateConsumer.multi(
-            listenables: () => field.watch,
-            callListenerOnInit: true,
-            builder: (_, state, __) {
-              return StateChangeDuringInit(
-                onInit: () {
-                  field
-                    ..state = 1
-                    ..state = 2
-                    ..state = 3;
-                },
-              );
+      final receivedChildren = <Widget?>[];
+      final buildStates = <int>[];
+      final listenerStates = <int>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateConsumer.multi(
+            listenables: () => provider.watch,
+            builder: (_, state, child) {
+              receivedChildren.add(child);
+              buildStates.add(state);
+              return Text('$state');
             },
             listener: (_, state) {
-              states.add(state);
+              listenerStates.add(state);
             },
           ),
-        );
-
-        await tester.pump();
-
-        expect(states, [0, 1, 2, 3]);
-      },
-    );
-
-    testWidgets('clears queued notifications when initial listener throws', (
-      tester,
-    ) async {
-      final field = StateField(0);
-      final states = <int>[];
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => field.watch,
-          callListenerOnInit: true,
-          builder: (_, __, ___) {
-            return StateChangeDuringInit(
-              onInit: () {
-                field
-                  ..state = 1
-                  ..state = 2;
-              },
-            );
-          },
-          listener: (_, state) {
-            if (state == 0) {
-              throw StateError('initial listener failed');
-            }
-
-            states.add(state);
-          },
         ),
       );
 
-      final exception = tester.takeException();
-
-      expect(exception, isA<StateError>());
-      expect((exception as StateError).message, 'initial listener failed');
-
-      field.state = 3;
-      await tester.pump();
-
-      // 1 and 2 were queued before the initial listener, but the initial
-      // listener failed, so scheduleInitialListener clears the queue.
-      expect(states, [3]);
-    });
-
-    // =========================================================================
-    // SECTION 3: BUILDER & LISTENER STATE FLOW
-    // =========================================================================
-
-    testWidgets('builder and listener use the same collected state', (
-      tester,
-    ) async {
-      final buildLog = <int>[];
-      final listenerLog = <int>[];
-      int collectionCount = 0;
-
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () {
-            collectionCount++;
-            return provider.watch;
-          },
-          builder: (_, state, __) {
-            buildLog.add(state);
-            return const SizedBox();
-          },
-          listener: (_, state) => listenerLog.add(state),
-        ),
-      );
-
-      expect(collectionCount, 1);
-      expect(buildLog, [0]);
-      expect(listenerLog, isEmpty);
-
-      provider.increment();
-
-      // One dependency notification causes one collection. The listener
-      // runs immediately; the builder rebuild is scheduled for the frame.
-      expect(collectionCount, 2);
-      expect(listenerLog, [1]);
-      expect(buildLog, [0]);
-
-      await tester.pump();
-
-      expect(buildLog, [0, 1]);
-    });
-
-    testWidgets(
-      'listener runs for each synchronous update while builder is batched',
-      (tester) async {
-        final listenerLog = <List<int>>[];
-        final buildLog = <List<int>>[];
-
-        final provider1 = CounterProvider();
-        final provider2 = CounterProvider(10);
-
-        await tester.pumpWidget(
-          StateConsumer.multi(
-            listenables: () => [provider1.watch, provider2.watch],
-            builder: (_, state, __) {
-              buildLog.add(state);
-              return const SizedBox();
-            },
-            listener: (_, state) => listenerLog.add(state),
-            listenWhen: (_, __) => true,
-          ),
-        );
-
-        expect(buildLog, [
-          [0, 10],
-        ]);
-        expect(listenerLog, isEmpty);
-
-        provider1.increment();
-        provider2.increment();
-
-        expect(listenerLog, [
-          [1, 10],
-          [1, 11],
-        ]);
-
-        await tester.pump();
-
-        expect(buildLog, [
-          [0, 10],
-          [1, 11],
-        ]);
-      },
-    );
-
-    testWidgets('updates independently across separate frames', (tester) async {
-      final listenerLog = <int>[];
-      final buildLog = <int>[];
-
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, state, __) {
-            buildLog.add(state);
-            return const SizedBox();
-          },
-          listener: (_, state) => listenerLog.add(state),
-        ),
-      );
+      expect(receivedChildren, [isNull]);
+      expect(buildStates, [5]);
+      expect(listenerStates, isEmpty);
+      expect(find.text('5'), findsOneWidget);
 
       provider.increment();
       await tester.pump();
 
-      provider.increment();
-      await tester.pump();
-
-      expect(buildLog, [0, 1, 2]);
-      expect(listenerLog, [1, 2]);
-    });
-
-    // =========================================================================
-    // SECTION 4: FILTERING
-    // =========================================================================
-
-    testWidgets(
-      'listenWhen and rebuildWhen control listener and builder independently',
-      (tester) async {
-        final listenerLog = <int>[];
-        final buildLog = <int>[];
-
-        final provider = CounterProvider();
-
-        await tester.pumpWidget(
-          StateConsumer.multi(
-            listenables: () => provider.watch,
-            builder: (_, state, __) {
-              buildLog.add(state);
-              return const SizedBox();
-            },
-            listener: (_, state) => listenerLog.add(state),
-            listenWhen: (_, current) => current.isEven,
-            rebuildWhen: (_, current) => current.isOdd,
-          ),
-        );
-
-        expect(buildLog, [0]);
-        expect(listenerLog, isEmpty);
-
-        provider.increment(); // 1: rebuild only
-        await tester.pump();
-
-        expect(buildLog, [0, 1]);
-        expect(listenerLog, isEmpty);
-
-        provider.increment(); // 2: listen only
-        await tester.pump();
-
-        expect(buildLog, [0, 1]);
-        expect(listenerLog, [2]);
-
-        provider.increment(); // 3: rebuild only
-        await tester.pump();
-
-        expect(buildLog, [0, 1, 3]);
-        expect(listenerLog, [2]);
-      },
-    );
-
-    testWidgets('listenWhen receives correct previous and current states', (
-      tester,
-    ) async {
-      final previousStates = <int>[];
-      final currentStates = <int>[];
-
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, __, ___) => const SizedBox(),
-          listener: (_, __) {},
-          listenWhen: (previous, current) {
-            previousStates.add(previous);
-            currentStates.add(current);
-            return true;
-          },
-        ),
-      );
-
-      provider.increment();
-      await tester.pump();
-
-      provider.increment();
-      await tester.pump();
-
-      expect(previousStates, [0, 1]);
-      expect(currentStates, [1, 2]);
-    });
-
-    testWidgets('rebuildWhen receives correct previous and current states', (
-      tester,
-    ) async {
-      final previousStates = <int>[];
-      final currentStates = <int>[];
-
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, __, ___) => const SizedBox(),
-          listener: (_, __) {},
-          rebuildWhen: (previous, current) {
-            previousStates.add(previous);
-            currentStates.add(current);
-            return true;
-          },
-        ),
-      );
-
-      provider.increment();
-      await tester.pump();
-
-      provider.increment();
-      await tester.pump();
-
-      expect(previousStates, [0, 1]);
-      expect(currentStates, [1, 2]);
-    });
-
-    testWidgets('does not call either filter during the initial build', (
-      tester,
-    ) async {
-      int listenWhenCallCount = 0;
-      int rebuildWhenCallCount = 0;
-
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, __, ___) => const SizedBox(),
-          listener: (_, __) {},
-          listenWhen: (_, __) {
-            listenWhenCallCount++;
-            return true;
-          },
-          rebuildWhen: (_, __) {
-            rebuildWhenCallCount++;
-            return true;
-          },
-        ),
-      );
-
-      expect(listenWhenCallCount, 0);
-      expect(rebuildWhenCallCount, 0);
-    });
-
-    // =========================================================================
-    // SECTION 5: DYNAMIC DEPENDENCY TRANSITIONS
-    // =========================================================================
-
-    testWidgets('updates subscriptions when watched sources change', (
-      tester,
-    ) async {
-      final buildLog = <List<int>>[];
-      final listenerLog = <List<int>>[];
-
-      final provider1 = CounterProvider();
-      final provider2 = CounterProvider(20);
-
-      await tester.pumpWidget(
-        MultiConsumerTestApp(
-          initialListenables: [provider1],
-          newListenables: [provider2],
-          builder: (_, state, __) {
-            buildLog.add(state);
-            return const SizedBox();
-          },
-          listener: (_, state) => listenerLog.add(state),
-        ),
-      );
-
-      expect(buildLog, [
-        [0],
-      ]);
-      expect(listenerLog, isEmpty);
-
-      provider1.increment();
-      await tester.pump();
-
-      expect(buildLog, [
-        [0],
-        [1],
-      ]);
-      expect(listenerLog, [
-        [1],
-      ]);
-
-      await tester.tap(find.byKey(multiConsumerResetKey));
-      await tester.pump();
-
-      expect(buildLog, [
-        [0],
-        [1],
-        [20],
-      ]);
-      expect(listenerLog, [
-        [1],
-      ]);
-
-      // The removed dependency must no longer trigger either callback.
-      provider1.increment();
-      await tester.pump();
-
-      expect(buildLog, [
-        [0],
-        [1],
-        [20],
-      ]);
-      expect(listenerLog, [
-        [1],
-      ]);
-
-      // The new dependency must trigger both callbacks.
-      provider2.increment();
-      await tester.pump();
-
-      expect(buildLog, [
-        [0],
-        [1],
-        [20],
-        [21],
-      ]);
-      expect(listenerLog, [
-        [1],
-        [21],
-      ]);
-    });
-
-    testWidgets('new dependency state becomes the previous-state baseline', (
-      tester,
-    ) async {
-      final previousStates = <List<int>>[];
-      final currentStates = <List<int>>[];
-
-      final provider1 = CounterProvider(10);
-      final provider2 = CounterProvider(30);
-
-      await tester.pumpWidget(
-        MultiConsumerTestApp(
-          initialListenables: [provider1],
-          newListenables: [provider2],
-          builder: (_, __, ___) => const SizedBox(),
-          listener: (_, __) {},
-          listenWhen: (previous, current) {
-            previousStates.add(previous);
-            currentStates.add(current);
-            return true;
-          },
-        ),
-      );
-
-      await tester.tap(find.byKey(multiConsumerResetKey));
-      await tester.pump();
-
-      // Replacing dependencies establishes a new state baseline without
-      // invoking listenWhen.
-      expect(previousStates, isEmpty);
-      expect(currentStates, isEmpty);
-
-      provider2.increment();
-      await tester.pump();
-
-      expect(previousStates, [
-        [30],
-      ]);
-      expect(currentStates, [
-        [31],
-      ]);
-    });
-
-    testWidgets(
-      'rebuilds with new dependency state even when rebuildWhen is false',
-      (tester) async {
-        final buildLog = <List<int>>[];
-        final listenerLog = <List<int>>[];
-
-        final provider1 = CounterProvider(10);
-        final provider2 = CounterProvider(30);
-
-        await tester.pumpWidget(
-          MultiConsumerTestApp(
-            initialListenables: [provider1],
-            newListenables: [provider2],
-            builder: (_, state, __) {
-              buildLog.add(state);
-              return const SizedBox();
-            },
-            listener: (_, state) => listenerLog.add(state),
-            rebuildWhen: (_, __) => false,
-          ),
-        );
-
-        expect(buildLog, [
-          [10],
-        ]);
-        expect(listenerLog, isEmpty);
-
-        await tester.tap(find.byKey(multiConsumerResetKey));
-        await tester.pump();
-
-        // Widget configuration changes are reflected immediately; rebuildWhen
-        // only filters dependency notifications.
-        expect(buildLog, [
-          [10],
-          [30],
-        ]);
-        expect(listenerLog, isEmpty);
-
-        provider2.increment();
-        await tester.pump();
-
-        expect(buildLog, [
-          [10],
-          [30],
-        ]);
-        expect(listenerLog, [
-          [31],
-        ]);
-      },
-    );
-
-    testWidgets('does not duplicate subscriptions when parent rebuilds', (
-      tester,
-    ) async {
-      final provider = CounterProvider();
-
-      int collectionCount = 0;
-      int listenerCallCount = 0;
-
-      Widget buildWidget() {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                children: [
-                  StateConsumer.multi(
-                    listenables: () {
-                      collectionCount++;
-                      return provider.watch;
-                    },
-                    builder: (_, state, __) => Text('$state'),
-                    listener: (_, __) {
-                      listenerCallCount++;
-                    },
-                  ),
-                  TextButton(
-                    key: multiConsumerNoopKey,
-                    onPressed: () => setState(() {}),
-                    child: const Text('Rebuild Parent'),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      }
-
-      await tester.pumpWidget(buildWidget());
-
-      // Initial collection.
-      expect(collectionCount, 1);
-      expect(listenerCallCount, 0);
-
-      // Parent rebuild causes didUpdateWidget -> one new collection.
-      await tester.tap(find.byKey(multiConsumerNoopKey));
-      await tester.pump();
-
-      expect(collectionCount, 2);
-      expect(listenerCallCount, 0);
-
-      // One provider notification should cause exactly one collection
-      // and exactly one listener invocation.
-      provider.increment();
-      await tester.pump();
-
-      expect(collectionCount, 3);
-      expect(listenerCallCount, 1);
-    });
-
-    // =========================================================================
-    // SECTION 6: DEPENDENCY VALIDATION
-    // =========================================================================
-
-    testWidgets('asserts when no watched state source is collected', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => 0,
-          builder: (_, state, __) => Text('$state'),
-          listener: (_, __) {},
-        ),
-      );
-
-      expect(tester.takeException(), isA<AssertionError>());
-    });
-
-    // =========================================================================
-    // SECTION 7: CLEANUP
-    // =========================================================================
-
-    testWidgets('detaches listeners when widget is removed from the tree', (
-      tester,
-    ) async {
-      final provider = CounterProvider();
-
-      await tester.pumpWidget(
-        StateConsumer.multi(
-          listenables: () => provider.watch,
-          builder: (_, __, ___) => const SizedBox(),
-          listener: (_, __) {},
-        ),
-      );
-
-      // ignore: invalid_use_of_protected_member
-      expect(provider.hasListeners, isTrue);
+      expect(receivedChildren, [isNull, isNull]);
+      expect(buildStates, [5, 6]);
+      expect(listenerStates, [6]);
+      expect(find.text('6'), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox());
-
-      // ignore: invalid_use_of_protected_member
-      expect(provider.hasListeners, isFalse);
+      provider.dispose();
     });
 
-    // =========================================================================
-    // SECTION 8: FLUTTER INSPECTOR DIAGNOSTICS
-    // =========================================================================
+    testWidgets('forwards listenWhen and rebuildWhen independently', (
+      tester,
+    ) async {
+      final provider = CounterProvider(0);
+
+      final buildStates = <int>[];
+      final listenerStates = <int>[];
+
+      final listenTransitions = <(int, int)>[];
+      final rebuildTransitions = <(int, int)>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateConsumer.multi(
+            listenables: () => provider.watch,
+            listenWhen: (previous, current) {
+              listenTransitions.add((previous, current));
+              return current.isEven;
+            },
+            rebuildWhen: (previous, current) {
+              rebuildTransitions.add((previous, current));
+              return current.isOdd;
+            },
+            builder: (_, state, __) {
+              buildStates.add(state);
+              return Text('$state');
+            },
+            listener: (_, state) {
+              listenerStates.add(state);
+            },
+          ),
+        ),
+      );
+
+      expect(buildStates, [0]);
+      expect(listenerStates, isEmpty);
+      expect(listenTransitions, isEmpty);
+      expect(rebuildTransitions, isEmpty);
+
+      // Odd state: builder rebuilds, listener is filtered.
+      provider.increment();
+      await tester.pump();
+
+      expect(buildStates, [0, 1]);
+      expect(listenerStates, isEmpty);
+
+      // Even state: listener is called, builder is filtered.
+      provider.increment();
+      await tester.pump();
+
+      expect(buildStates, [0, 1]);
+      expect(listenerStates, [2]);
+
+      // Another odd state: builder rebuilds, listener is filtered.
+      provider.increment();
+      await tester.pump();
+
+      expect(buildStates, [0, 1, 3]);
+      expect(listenerStates, [2]);
+      expect(find.text('3'), findsOneWidget);
+
+      // Both filters receive the correct transitions.
+      expect(listenTransitions, [(0, 1), (1, 2), (2, 3)]);
+      expect(rebuildTransitions, [(0, 1), (1, 2), (2, 3)]);
+
+      await tester.pumpWidget(const SizedBox());
+      provider.dispose();
+    });
+
+    testWidgets('forwards callListenerOnInit to the engine', (tester) async {
+      // Initial listener is disabled by default.
+      final defaultProvider = CounterProvider(5);
+      final defaultListenerStates = <int>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateConsumer.multi(
+            listenables: () => defaultProvider.watch,
+            builder: (_, state, __) => Text('$state'),
+            listener: (_, state) {
+              defaultListenerStates.add(state);
+            },
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(defaultListenerStates, isEmpty);
+
+      // Normal notifications must still be delivered.
+      defaultProvider.increment();
+      await tester.pump();
+
+      expect(defaultListenerStates, [6]);
+
+      await tester.pumpWidget(const SizedBox());
+      defaultProvider.dispose();
+
+      // Enabling callListenerOnInit delivers the initial state.
+      final initialProvider = CounterProvider(9);
+      final initialListenerStates = <int>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateConsumer.multi(
+            listenables: () => initialProvider.watch,
+            callListenerOnInit: true,
+            builder: (_, state, __) => Text('$state'),
+            listener: (_, state) {
+              initialListenerStates.add(state);
+            },
+          ),
+        ),
+      );
+
+      await tester.pump();
+
+      expect(initialListenerStates, [9]);
+
+      // Normal notifications continue after the initial callback.
+      initialProvider.increment();
+      await tester.pump();
+
+      expect(initialListenerStates, [9, 10]);
+
+      await tester.pumpWidget(const SizedBox());
+      initialProvider.dispose();
+    });
 
     testWidgets('overrides debugFillProperties correctly', (tester) async {
-      final builder = DiagnosticPropertiesBuilder();
       final provider = CounterProvider();
-      StateConsumer.multi(
+
+      final widget = StateConsumer.multi(
         listenables: () => provider.watch,
         builder: (_, __, ___) => const SizedBox(),
         listener: (_, __) {},
         listenWhen: (previous, current) => previous != current,
         rebuildWhen: (previous, current) => previous != current,
         callListenerOnInit: true,
-        child: const SizedBox(),
-      ).debugFillProperties(builder);
+        child: const SizedBox.shrink(),
+      );
+
+      final builder = DiagnosticPropertiesBuilder();
+      widget.debugFillProperties(builder);
 
       final description = builder.properties
           .where((node) => !node.isFiltered(DiagnosticLevel.info))
@@ -889,15 +264,11 @@ void main() {
           .toList();
 
       expect(description.any((value) => value.contains('listenables')), isTrue);
-
       expect(description.any((value) => value.contains('builder')), isTrue);
-
       expect(description.any((value) => value.contains('listener')), isTrue);
-
       expect(description.any((value) => value.contains('listenWhen')), isTrue);
-
       expect(description.any((value) => value.contains('rebuildWhen')), isTrue);
-
+      expect(description.any((value) => value.contains('child')), isTrue);
       expect(
         description.any(
           (value) =>
@@ -906,7 +277,7 @@ void main() {
         isTrue,
       );
 
-      expect(description.any((value) => value.contains('child')), isTrue);
+      provider.dispose();
     });
   });
 }

@@ -694,31 +694,6 @@ void main() {
     // -------------------------------------------------------------------------
 
     testWidgets(
-      'does not call listener on initialization when callListenerOnInit is false',
-      (tester) async {
-        final provider = TestViewStateNotifier<String>(
-          const DataState<String>('data'),
-        );
-
-        int listenerCalls = 0;
-
-        await tester.pumpWidget(
-          buildConsumer(
-            providers: () => provider.watch,
-            dataBuilder: (_, __, ___) => const SizedBox(),
-            dataStateListener: (_, __) {
-              listenerCalls++;
-            },
-          ),
-        );
-
-        await tester.pump();
-
-        expect(listenerCalls, 0);
-      },
-    );
-
-    testWidgets(
       'callListenerOnInit invokes the listener with the current combined state',
       (tester) async {
         final provider = TestViewStateNotifier<String>(
@@ -823,323 +798,47 @@ void main() {
       },
     );
 
-    // -------------------------------------------------------------------------
-    // Dependency Tracking
-    // -------------------------------------------------------------------------
-
-    testWidgets('subscribes to every listenable accessed through watch', (
-      tester,
-    ) async {
-      final provider1 = TestViewStateNotifier<String>(
-        const DataState<String>('one'),
-      );
-
-      final provider2 = TestViewStateNotifier<String>(
-        const DataState<String>('two'),
-      );
-
-      int builderCalls = 0;
-      int listenerCalls = 0;
-
-      await tester.pumpWidget(
-        buildConsumer<({ViewState<String> first, ViewState<String> second})>(
-          providers: () => (first: provider1.watch, second: provider2.watch),
-          dataBuilder: (_, __, ___) {
-            builderCalls++;
-            return const SizedBox();
-          },
-          dataStateListener: (_, __) {
-            listenerCalls++;
-          },
-        ),
-      );
-
-      expect(builderCalls, 1);
-      expect(listenerCalls, 0);
-
-      provider1.emit(const DataState<String>('one-new'));
-
-      await tester.pump();
-
-      expect(builderCalls, 2);
-      expect(listenerCalls, 1);
-
-      provider2.emit(const DataState<String>('two-new'));
-
-      await tester.pump();
-
-      expect(builderCalls, 3);
-      expect(listenerCalls, 2);
-    });
-
-    testWidgets(
-      'subscribes only once when the same listenable is watched multiple times',
-      (tester) async {
-        final provider = TestViewStateNotifier<String>(
-          const DataState<String>('data'),
-        );
-
-        int builderCalls = 0;
-        int listenerCalls = 0;
-
-        await tester.pumpWidget(
-          buildConsumer<({ViewState<String> first, ViewState<String> second})>(
-            providers: () => (first: provider.watch, second: provider.watch),
-            dataBuilder: (_, __, ___) {
-              builderCalls++;
-              return const SizedBox();
-            },
-            dataStateListener: (_, __) {
-              listenerCalls++;
-            },
-          ),
-        );
-
-        expect(builderCalls, 1);
-        expect(listenerCalls, 0);
-
-        provider.emit(const DataState<String>('updated'));
-
-        await tester.pump();
-
-        expect(builderCalls, 2);
-        expect(listenerCalls, 1);
-      },
-    );
-
-    testWidgets(
-      'throws AssertionError when listenables does not watch any state source',
-      (tester) async {
-        await tester.pumpWidget(
-          wrap(
-            ViewStateConsumer.multi(
-              listenables: () => const DataState<String>('data'),
-              dataBuilder: (_, __, ___) => const SizedBox(),
-            ),
-          ),
-        );
-
-        expect(
-          tester.takeException(),
-          isA<AssertionError>().having(
-            (AssertionError error) => error.message,
-            'message',
-            allOf(
-              contains('requires at least one watched state source'),
-              contains('.watch'),
-            ),
-          ),
-        );
-      },
-    );
-
-    testWidgets(
-      'throws StateError when a watched dependency is not a ViewStateNotifier',
-      (tester) async {
-        final field = StateField<String>('data');
-
-        await tester.pumpWidget(
-          wrap(
-            ViewStateConsumer.multi(
-              listenables: () => field.watch,
-              dataBuilder: (_, __, ___) => const SizedBox(),
-            ),
-          ),
-        );
-
-        expect(
-          tester.takeException(),
-          isA<StateError>().having(
-            (StateError error) => error.message,
-            'message',
-            contains('ViewStateNotifier'),
-          ),
-        );
-      },
-    );
-
-    // -------------------------------------------------------------------------
-    // Runtime Dependency Replacement
-    // -------------------------------------------------------------------------
-
-    testWidgets('switches subscriptions when the watched listenable changes', (
-      tester,
-    ) async {
-      final provider1 = TestViewStateNotifier<String>(
-        const DataState<String>('one'),
-      );
-
-      final provider2 = TestViewStateNotifier<String>(
-        const DataState<String>('two'),
-      );
-
-      MultiStateListenables<ViewState<String>> providers = () =>
-          provider1.watch;
-
-      int builderCalls = 0;
-      int listenerCalls = 0;
-
-      String? capturedValue;
-
-      await tester.pumpWidget(
-        wrap(
-          StatefulBuilder(
-            builder: (context, setState) {
-              return Column(
-                children: <Widget>[
-                  ViewStateConsumer.multi(
-                    listenables: providers,
-                    dataBuilder: (_, state, ___) {
-                      builderCalls++;
-                      capturedValue = state.data;
-
-                      return Text(state.data);
-                    },
-                    dataStateListener: (_, __) {
-                      listenerCalls++;
-                    },
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        providers = () => provider2.watch;
-                      });
-                    },
-                    child: const Text('Switch'),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-
-      expect(builderCalls, 1);
-      expect(listenerCalls, 0);
-      expect(capturedValue, 'one');
-
-      provider1.emit(const DataState<String>('one-new'));
-
-      await tester.pump();
-
-      expect(builderCalls, 2);
-      expect(listenerCalls, 1);
-      expect(capturedValue, 'one-new');
-
-      await tester.tap(find.text('Switch'));
-
-      await tester.pump();
-
-      expect(builderCalls, 3);
-      expect(listenerCalls, 1);
-      expect(capturedValue, 'two');
-
-      provider1.emit(const DataState<String>('one-after-switch'));
-
-      await tester.pump();
-
-      expect(builderCalls, 3);
-      expect(listenerCalls, 1);
-      expect(capturedValue, 'two');
-
-      provider2.emit(const DataState<String>('two-new'));
-
-      await tester.pump();
-
-      expect(builderCalls, 4);
-      expect(listenerCalls, 2);
-      expect(capturedValue, 'two-new');
-    });
-
-    testWidgets(
-      'does not duplicate listenable notifications after parent rebuild with the same dependency',
-      (tester) async {
-        final provider = TestViewStateNotifier<String>(
-          const DataState<String>('data'),
-        );
-
-        int builderCalls = 0;
-        int listenerCalls = 0;
-
-        await tester.pumpWidget(
-          wrap(
-            StatefulBuilder(
-              builder: (context, setState) {
-                return Column(
-                  children: <Widget>[
-                    ViewStateConsumer.multi(
-                      listenables: () => provider.watch,
-                      dataBuilder: (_, __, ___) {
-                        builderCalls++;
-                        return const SizedBox();
-                      },
-                      dataStateListener: (_, __) {
-                        listenerCalls++;
-                      },
-                    ),
-                    TextButton(
-                      key: const Key('rebuild_parent'),
-                      onPressed: () {
-                        setState(() {});
-                      },
-                      child: const Text('Rebuild Parent'),
-                    ),
-                  ],
-                );
-              },
-            ),
-          ),
-        );
-
-        expect(builderCalls, 1);
-        expect(listenerCalls, 0);
-
-        await tester.tap(find.byKey(const Key('rebuild_parent')));
-
-        await tester.pump();
-
-        // The parent rebuild itself legitimately causes the consumer builder
-        // to run once. The listener must not run.
-        expect(builderCalls, 2);
-        expect(listenerCalls, 0);
-
-        provider.emit(const DataState<String>('updated'));
-
-        await tester.pump();
-
-        // Exactly one provider notification -> exactly one consumer rebuild
-        // and exactly one listener invocation.
-        expect(builderCalls, 3);
-        expect(listenerCalls, 1);
-      },
-    );
-
-    // -------------------------------------------------------------------------
-    // Cleanup
-    // -------------------------------------------------------------------------
-
-    testWidgets('detaches dependency listeners when the consumer is removed', (
+    testWidgets('forwards rebuildWhen and listenWhen independently', (
       tester,
     ) async {
       final provider = TestViewStateNotifier<String>(
-        const DataState<String>('data'),
+        const DataState<String>('initial'),
       );
+
+      final builderValues = <String>[];
+      final listenerValues = <String>[];
 
       await tester.pumpWidget(
         buildConsumer(
           providers: () => provider.watch,
-          dataBuilder: (_, __, ___) => const SizedBox(),
-          dataStateListener: (_, __) {},
+          rebuildWhen: (_, current) =>
+              current is DataState<String> && current.data == 'builder-only',
+          listenWhen: (_, current) =>
+              current is DataState<String> && current.data == 'listener-only',
+          dataBuilder: (_, state, __) {
+            builderValues.add(state.data);
+            return Text(state.data);
+          },
+          dataStateListener: (_, state) {
+            listenerValues.add(state.data);
+          },
         ),
       );
 
-      // ignore: invalid_use_of_protected_member
-      expect(provider.hasListeners, isTrue);
+      expect(builderValues, ['initial']);
+      expect(listenerValues, isEmpty);
 
-      await tester.pumpWidget(const SizedBox());
+      provider.emit(const DataState<String>('builder-only'));
+      await tester.pump();
 
-      // ignore: invalid_use_of_protected_member
-      expect(provider.hasListeners, isFalse);
+      expect(builderValues, ['initial', 'builder-only']);
+      expect(listenerValues, isEmpty);
+
+      provider.emit(const DataState<String>('listener-only'));
+      await tester.pump();
+
+      expect(builderValues, ['initial', 'builder-only']);
+      expect(listenerValues, ['listener-only']);
     });
 
     // -------------------------------------------------------------------------

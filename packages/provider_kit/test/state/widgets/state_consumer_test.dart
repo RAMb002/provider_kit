@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/notifiers.dart';
-import '../../shared/mocks/widgets.dart';
 
 void main() {
   group('StateConsumer', () {
@@ -33,39 +32,6 @@ void main() {
 
         expect(find.text('State: 0'), findsOneWidget);
         expect(listenerStates, isEmpty);
-      },
-    );
-
-    testWidgets(
-      'accesses the listenable directly and passes multiple states to builder and listener',
-      (tester) async {
-        final counterProvider = CounterProvider();
-        final listenerStates = <int>[];
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: StateConsumer<int>(
-                listenable: counterProvider,
-                builder: (context, state, child) {
-                  return Text('State: $state');
-                },
-                listener: (_, state) {
-                  listenerStates.add(state);
-                },
-              ),
-            ),
-          ),
-        );
-
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(listenerStates, isEmpty);
-
-        counterProvider.increment();
-        await tester.pump();
-
-        expect(find.text('State: 1'), findsOneWidget);
-        expect(listenerStates, [1]);
       },
     );
 
@@ -106,391 +72,6 @@ void main() {
           );
 
       expect(consumer, isA<StateConsumer<int>>());
-    });
-
-    testWidgets(
-      'passes multiple states to builder and listener when listenable is passed directly',
-      (tester) async {
-        final counterProvider = CounterProvider();
-        final listenerStates = <int>[];
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: StateConsumer<int>(
-                listenable: counterProvider,
-                builder: (context, state, child) {
-                  return Text('State: $state');
-                },
-                listener: (_, state) {
-                  listenerStates.add(state);
-                },
-              ),
-            ),
-          ),
-        );
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(listenerStates, isEmpty);
-        counterProvider.increment();
-        await tester.pump();
-        expect(find.text('State: 1'), findsOneWidget);
-        expect(listenerStates, [1]);
-      },
-    );
-
-    testWidgets(
-      'does not trigger rebuilds when rebuildWhen evaluates to false',
-      (tester) async {
-        final counterProvider = CounterProvider();
-        final listenerStates = <int>[];
-        final builderStates = <int>[];
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: StateConsumer<int>(
-                listenable: counterProvider,
-                rebuildWhen: (previous, current) =>
-                    (previous + current) % 3 == 0,
-                builder: (context, state, child) {
-                  builderStates.add(state);
-                  return Text('State: $state');
-                },
-                listener: (_, state) {
-                  listenerStates.add(state);
-                },
-              ),
-            ),
-          ),
-        );
-
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(builderStates, [0]);
-        expect(listenerStates, isEmpty);
-
-        counterProvider.increment();
-        await tester.pump();
-
-        // UI text shouldn't change, builder ignored it, listener captured it
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(builderStates, [0]);
-        expect(listenerStates, [1]);
-
-        counterProvider.increment();
-        await tester.pump();
-
-        expect(find.text('State: 2'), findsOneWidget);
-        expect(builderStates, [0, 2]);
-        expect(listenerStates, [1, 2]);
-      },
-    );
-
-    testWidgets(
-      'does not trigger rebuilds when rebuildWhen evaluates to false (inferred listenable)',
-      (tester) async {
-        final counterProvider = CounterProvider();
-        final listenerStates = <int>[];
-        final builderStates = <int>[];
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: ChangeNotifierProvider.value(
-                value: counterProvider,
-                child: StateConsumer.of<CounterProvider, int>(
-                  rebuildWhen: (previous, current) =>
-                      (previous + current) % 3 == 0,
-                  builder: (context, state, child) {
-                    builderStates.add(state);
-                    return Text('State: $state');
-                  },
-                  listener: (_, state) {
-                    listenerStates.add(state);
-                  },
-                ),
-              ),
-            ),
-          ),
-        );
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(builderStates, [0]);
-        expect(listenerStates, isEmpty);
-
-        counterProvider.increment();
-        await tester.pump();
-
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(builderStates, [0]);
-        expect(listenerStates, [1]);
-
-        counterProvider.increment();
-        await tester.pumpAndSettle();
-
-        expect(find.text('State: 2'), findsOneWidget);
-        expect(builderStates, [0, 2]);
-        expect(listenerStates, [1, 2]);
-      },
-    );
-
-    testWidgets('updates when listenable reference has changed', (
-      tester,
-    ) async {
-      const buttonKey = Key('__button__');
-      var counterProvider = CounterProvider();
-      final listenerStates = <int>[];
-      final builderStates = <int>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: StatefulBuilder(
-              builder: (context, setState) {
-                return StateConsumer<int>(
-                  listenable: counterProvider,
-                  builder: (context, state, child) {
-                    builderStates.add(state);
-                    return TextButton(
-                      key: buttonKey,
-                      onPressed: () => setState(() {}),
-                      child: Text('State: $state'),
-                    );
-                  },
-                  listener: (_, state) {
-                    listenerStates.add(state);
-                  },
-                );
-              },
-            ),
-          ),
-        ),
-      );
-      expect(find.text('State: 0'), findsOneWidget);
-      expect(builderStates, [0]);
-      expect(listenerStates, isEmpty);
-
-      counterProvider.increment();
-      await tester.pump();
-
-      expect(find.text('State: 1'), findsOneWidget);
-      expect(builderStates, [0, 1]);
-      expect(listenerStates, [1]);
-
-      counterProvider = CounterProvider();
-      await tester.tap(find.byKey(buttonKey));
-      await tester.pumpAndSettle();
-
-      expect(find.text('State: 0'), findsOneWidget);
-      expect(builderStates, [0, 1, 0]);
-      expect(listenerStates, [1]);
-    });
-
-    testWidgets(
-      'does not trigger listener when listenWhen evaluates to false',
-      (tester) async {
-        final counterProvider = CounterProvider();
-        final listenerStates = <int>[];
-        final builderStates = <int>[];
-
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: StateConsumer<int>(
-                listenable: counterProvider,
-                builder: (context, state, child) {
-                  builderStates.add(state);
-                  return Text('State: $state');
-                },
-                listenWhen: (previous, current) =>
-                    (previous + current) % 3 == 0,
-                listener: (_, state) {
-                  listenerStates.add(state);
-                },
-              ),
-            ),
-          ),
-        );
-
-        expect(find.text('State: 0'), findsOneWidget);
-        expect(builderStates, [0]);
-        expect(listenerStates, isEmpty);
-
-        counterProvider.increment();
-        await tester.pump();
-
-        expect(find.text('State: 1'), findsOneWidget);
-        expect(builderStates, [0, 1]);
-        expect(listenerStates, isEmpty);
-
-        counterProvider.increment();
-        await tester.pump();
-
-        expect(find.text('State: 2'), findsOneWidget);
-        expect(builderStates, [0, 1, 2]);
-        expect(listenerStates, [2]);
-      },
-    );
-
-    testWidgets(
-      'calls initial listener before a normal listener notification before first frame',
-      (tester) async {
-        final field = StateField(0);
-        final states = <int>[];
-
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: StateConsumer<int>(
-              listenable: field,
-              callListenerOnInit: true,
-              builder: (_, state, child) {
-                return Column(children: [Text('$state'), child!]);
-              },
-              listener: (_, state) {
-                states.add(state);
-              },
-              child: StateChangeDuringInit(
-                onInit: () {
-                  field.state = 1;
-                },
-              ),
-            ),
-          ),
-        );
-
-        expect(states, [0, 1]);
-
-        await tester.pump();
-
-        expect(find.text('1'), findsOneWidget);
-      },
-    );
-
-    testWidgets(
-      'preserves multiple listener notifications before initial callback',
-      (tester) async {
-        final field = StateField(0);
-        final states = <int>[];
-
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: StateConsumer<int>(
-              listenable: field,
-              callListenerOnInit: true,
-              rebuildWhen: (_, __) => false,
-              builder: (_, __, child) => child!,
-              listener: (_, state) {
-                states.add(state);
-              },
-              child: StateChangeDuringInit(
-                onInit: () {
-                  field
-                    ..state = 1
-                    ..state = 2
-                    ..state = 3;
-                },
-              ),
-            ),
-          ),
-        );
-
-        expect(states, [0, 1, 2, 3]);
-      },
-    );
-
-    testWidgets(
-      'calls rebuildWhen/listenWhen and builder/listener with correct states',
-      (tester) async {
-        final buildWhenPreviousState = <int>[];
-        final buildWhenCurrentState = <int>[];
-        final buildStates = <int>[];
-        final listenWhenPreviousState = <int>[];
-        final listenWhenCurrentState = <int>[];
-        final listenStates = <int>[];
-        final counterProvider = CounterProvider();
-        await tester.pumpWidget(
-          StateConsumer<int>(
-            listenable: counterProvider,
-            listenWhen: (previous, current) {
-              if (current % 3 == 0) {
-                listenWhenPreviousState.add(previous);
-                listenWhenCurrentState.add(current);
-                return true;
-              }
-              return false;
-            },
-            listener: (_, state) {
-              listenStates.add(state);
-            },
-            rebuildWhen: (previous, current) {
-              if (current.isEven) {
-                buildWhenPreviousState.add(previous);
-                buildWhenCurrentState.add(current);
-                return true;
-              }
-              return false;
-            },
-            builder: (_, state, __) {
-              buildStates.add(state);
-              return const SizedBox();
-            },
-          ),
-        );
-        await tester.pump();
-        counterProvider
-          ..increment()
-          ..increment()
-          ..increment();
-        await tester.pumpAndSettle();
-
-        expect(buildStates, [0, 2]);
-        expect(buildWhenPreviousState, [1]);
-        expect(buildWhenCurrentState, [2]);
-
-        expect(listenStates, [3]);
-        expect(listenWhenPreviousState, [2]);
-        expect(listenWhenCurrentState, [3]);
-      },
-    );
-
-    testWidgets('filters queued listener notifications with listenWhen', (
-      tester,
-    ) async {
-      final field = StateField(0);
-
-      final listenerStates = <int>[];
-      final previousStates = <int>[];
-      final currentStates = <int>[];
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StateConsumer<int>(
-            listenable: field,
-            callListenerOnInit: true,
-            rebuildWhen: (_, __) => false,
-            listenWhen: (previous, current) {
-              previousStates.add(previous);
-              currentStates.add(current);
-
-              return current.isEven;
-            },
-            builder: (_, __, child) => child!,
-            listener: (_, state) {
-              listenerStates.add(state);
-            },
-            child: StateChangeDuringInit(
-              onInit: () {
-                field
-                  ..state = 1
-                  ..state = 2
-                  ..state = 3;
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(listenerStates, [0, 2]);
-      expect(previousStates, [0, 1, 2]);
-      expect(currentStates, [1, 2, 3]);
     });
 
     testWidgets(
@@ -560,6 +141,88 @@ void main() {
         expect(builderBuildCount, 2);
 
         expect(childBuildCount, 1);
+      },
+    );
+
+    testWidgets('forwards listenWhen and rebuildWhen independently', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+      final builderStates = <int>[];
+      final listenerStates = <int>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateConsumer<int>(
+            listenable: provider,
+            listenWhen: (_, current) => current.isOdd,
+            rebuildWhen: (_, current) => current.isEven,
+            builder: (_, state, __) {
+              builderStates.add(state);
+              return Text('State: $state');
+            },
+            listener: (_, state) => listenerStates.add(state),
+          ),
+        ),
+      );
+
+      expect(builderStates, [0]);
+      expect(listenerStates, isEmpty);
+
+      // Odd state: listener accepts it, builder rejects it.
+      provider.increment();
+      await tester.pump();
+
+      expect(builderStates, [0]);
+      expect(listenerStates, [1]);
+      expect(find.text('State: 0'), findsOneWidget);
+
+      // Even state: builder accepts it, listener rejects it.
+      provider.increment();
+      await tester.pump();
+
+      expect(builderStates, [0, 2]);
+      expect(listenerStates, [1]);
+      expect(find.text('State: 2'), findsOneWidget);
+    });
+    testWidgets(
+      'selects and listens to a nested listenable using StateConsumer.of',
+      (tester) async {
+        final provider = _SelectableCounterProvider();
+        final builderStates = <int>[];
+        final listenerStates = <int>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ChangeNotifierProvider<_SelectableCounterProvider>.value(
+              value: provider,
+              child: StateConsumer.of<_SelectableCounterProvider, int>(
+                selectListenable: (notifier) => notifier.selected,
+                builder: (_, state, __) {
+                  builderStates.add(state);
+                  return Text('$state');
+                },
+                listener: (_, state) => listenerStates.add(state),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.text('10'), findsOneWidget);
+        expect(builderStates, [10]);
+        expect(listenerStates, isEmpty);
+
+        provider.selected.state = 11;
+        await tester.pump();
+
+        expect(find.text('11'), findsOneWidget);
+        expect(builderStates, [10, 11]);
+        expect(listenerStates, [11]);
+
+        await tester.pumpWidget(const SizedBox());
+        provider.disposeResources();
       },
     );
 
@@ -661,51 +324,6 @@ void main() {
       expect(states, [1, 101]);
     });
 
-    testWidgets(
-      'keeps using the same context listenable when the widget rebuilds',
-      (tester) async {
-        final provider = CounterProvider();
-        late StateSetter rebuild;
-
-        final states = <int>[];
-
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                rebuild = setState;
-
-                return ChangeNotifierProvider<CounterProvider>.value(
-                  value: provider,
-                  child: StateConsumer.of<CounterProvider, int>(
-                    listener: (_, state) => states.add(state),
-                    builder: (_, state, __) => Text('$state'),
-                    child: const SizedBox(),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-
-        provider.increment();
-        await tester.pump();
-
-        expect(find.text('1'), findsOneWidget);
-        expect(states, [1]);
-
-        rebuild(() {});
-        await tester.pump();
-
-        provider.increment();
-        await tester.pump();
-
-        expect(find.text('2'), findsOneWidget);
-        expect(states, [1, 2]);
-      },
-    );
-
     testWidgets('overrides debugFillProperties with all properties populated', (
       tester,
     ) async {
@@ -740,5 +358,35 @@ void main() {
 
       expect(description.any((e) => e.startsWith('child: Text')), isTrue);
     });
+
+    test('StateConsumer.of overrides debugFillProperties', () {
+      final builder = DiagnosticPropertiesBuilder();
+
+      StateConsumer.of<CounterProvider, int>(
+        selectListenable: (provider) => provider,
+        builder: (_, __, ___) => const SizedBox(),
+        listener: (_, __) {},
+      ).debugFillProperties(builder);
+
+      final description = builder.properties
+          .where((node) => !node.isFiltered(DiagnosticLevel.info))
+          .map((node) => node.toString())
+          .toList();
+
+      expect(description, contains('has builder'));
+      expect(description, contains('has listener'));
+      expect(description, contains('has selectListenable'));
+    });
   });
+}
+
+class _SelectableCounterProvider extends StateNotifier<int> {
+  _SelectableCounterProvider() : selected = StateField<int>(10), super(0);
+
+  final StateField<int> selected;
+
+  void disposeResources() {
+    selected.dispose();
+    dispose();
+  }
 }

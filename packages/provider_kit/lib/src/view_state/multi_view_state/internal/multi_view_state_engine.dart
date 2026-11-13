@@ -27,6 +27,7 @@ final class MultiViewStateEngine<T> extends StatefulWidget {
   });
 
   /// Produces the combined state and declares dependencies through `.watch`.
+  /// Provider-owned listenables can also be resolved through `of<P>()`.
   final MultiStateListenables<T> listenables;
 
   /// Receives the current combined state and aggregated View State when a
@@ -90,10 +91,36 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
     _updateAndSync();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // The first didChangeDependencies occurs before the initial build.
+    // Provider identity dependencies have not been established yet.
+    if (!_core.hasBuilt || !_core.hasProviderDependencies) {
+      return;
+    }
+
+    // A Provider identity dependency changed. Resolve the current
+    // instances again and establish a new state and aggregate baseline.
+    final _DependencyCollection<T> collection = _collect();
+
+    _core.state = collection.value;
+
+    _core.syncProviderDependencies(collection.providerDependencies);
+
+    _listenables = _resolveListenables(collection.dependencies);
+    _currentAggregate = MultiViewStateUtils._aggregate(_listenables);
+
+    _core.syncDependencies(collection.dependencies);
+  }
+
   void _updateAndSync() {
     final _DependencyCollection<T> collection = _collect();
 
     _core.state = collection.value;
+    _core.syncProviderDependencies(collection.providerDependencies);
+
     _listenables = _resolveListenables(collection.dependencies);
     _currentAggregate = MultiViewStateUtils._aggregate(_listenables);
 
@@ -131,13 +158,12 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
     final _DependencyCollection<T> collection = _collect();
     final T currentState = collection.value;
 
-    final bool dependenciesChanged = _core.syncDependencies(
-      collection.dependencies,
+    final bool providerDependenciesChanged = _core.syncProviderDependencies(
+      collection.providerDependencies,
     );
 
-    if (dependenciesChanged) {
-      _listenables = _resolveListenables(collection.dependencies);
-    }
+    _core.syncDependencies(collection.dependencies);
+    _listenables = _resolveListenables(collection.dependencies);
 
     final MultiViewStateAggregate currentAggregate =
         MultiViewStateUtils._aggregate(_listenables);
@@ -151,10 +177,20 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
       previousAggregate,
       currentAggregate,
     )) {
+      // Provider identity dependencies must still be registered during build,
+      // even when the combined View State has not meaningfully changed.
+      if (providerDependenciesChanged) {
+        _scheduleRebuild();
+      }
+
       return;
     }
 
-    _notify(previousState, currentState);
+    _notify(
+      previousState,
+      currentState,
+      providerDependenciesChanged: providerDependenciesChanged,
+    );
   }
 
   /// Determines whether the aggregated Multi View State meaningfully changed.
@@ -181,7 +217,11 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
 
   /// Applies the user-level listener and rebuild filters after the framework
   /// has determined that a meaningful change occurred.
-  void _notify(T previousState, T currentState) {
+  void _notify(
+    T previousState,
+    T currentState, {
+    required bool providerDependenciesChanged,
+  }) {
     final bool shouldRebuild =
         widget.builder != null &&
         (widget.rebuildWhen?.call(previousState, currentState) ?? true);
@@ -190,11 +230,8 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
         widget.listener != null &&
         (widget.listenWhen?.call(previousState, currentState) ?? true);
 
-    if (shouldRebuild) {
-      _core.rebuildScheduler.request(
-        isMounted: () => mounted,
-        rebuild: () => setState(() {}),
-      );
+    if (shouldRebuild || providerDependenciesChanged) {
+      _scheduleRebuild();
     }
 
     if (shouldListen) {
@@ -209,9 +246,17 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
     }
   }
 
+  void _scheduleRebuild() {
+    _core.rebuildScheduler.request(
+      isMounted: () => mounted,
+      rebuild: () => setState(() {}),
+    );
+  }
+
   /// Collects the current combined state and its dependencies.
   _DependencyCollection<T> _collect() {
     return _core.collect(
+      context: context,
       listenables: widget.listenables,
       widgetName: widget.widgetName,
     );
@@ -248,6 +293,9 @@ class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
 
   @override
   Widget build(BuildContext context) {
+    // Provider.select must be registered during build.
+    _core.trackProviderDependencies(context);
+
     final MultiViewStateBuilderCallback<T>? builder = widget.builder;
 
     if (builder != null) {

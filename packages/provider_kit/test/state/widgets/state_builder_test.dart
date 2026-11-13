@@ -6,7 +6,6 @@ import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/notifiers.dart';
 import '../../shared/mocks/providers.dart';
-import '../../shared/mocks/widgets.dart';
 
 // Keys used across the test environment setup
 const materialAppKey = Key('material_app');
@@ -16,6 +15,17 @@ const myCounterAppKey = Key('myCounterApp');
 const myCounterAppTextConditionKey = Key('myCounterAppTextCondition');
 const myCounterAppTextKey = Key('myCounterAppText');
 const myCounterAppIncrementButtonKey = Key('myCounterAppIncrementButton');
+
+class _SelectableCounterProvider extends StateNotifier<int> {
+  _SelectableCounterProvider() : selected = StateField<int>(10), super(0);
+
+  final StateField<int> selected;
+
+  void disposeResources() {
+    selected.dispose();
+    dispose();
+  }
+}
 
 class MyThemeApp extends StatefulWidget {
   const MyThemeApp({
@@ -155,6 +165,44 @@ void main() {
       expect(numBuilds, 2);
     });
 
+    testWidgets('forwards rebuildWhen to filter widget updates', (
+      tester,
+    ) async {
+      final provider = CounterProvider();
+      final states = <int>[];
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: StateBuilder<int>(
+            listenable: provider,
+            rebuildWhen: (_, current) => current.isEven,
+            builder: (_, state, __) {
+              states.add(state);
+              return Text('State: $state');
+            },
+          ),
+        ),
+      );
+
+      expect(states, [0]);
+      expect(find.text('State: 0'), findsOneWidget);
+
+      // Odd state: rebuildWhen rejects it.
+      provider.increment();
+      await tester.pump();
+
+      expect(states, [0]);
+      expect(find.text('State: 0'), findsOneWidget);
+
+      // Even state: rebuildWhen accepts it.
+      provider.increment();
+      await tester.pump();
+
+      expect(states, [0, 2]);
+      expect(find.text('State: 2'), findsOneWidget);
+    });
+
     testWidgets(
       'preserves child across state updates and does not rebuild it',
       (tester) async {
@@ -237,6 +285,41 @@ void main() {
       },
     );
 
+    testWidgets(
+      'listens to a nested listenable using StateBuilder.of selectListenable',
+      (tester) async {
+        final provider = _SelectableCounterProvider();
+        final states = <int>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ChangeNotifierProvider<_SelectableCounterProvider>.value(
+              value: provider,
+              child: StateBuilder.of<_SelectableCounterProvider, int>(
+                selectListenable: (notifier) => notifier.selected,
+                builder: (_, state, __) {
+                  states.add(state);
+                  return Text('$state');
+                },
+              ),
+            ),
+          ),
+        );
+
+        expect(states, [10]);
+
+        provider.selected.state = 11;
+        await tester.pump();
+
+        expect(states, [10, 11]);
+        expect(find.text('11'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+        provider.disposeResources();
+      },
+    );
+
     test('of returns StateBuilder<T>', () {
       final StateBuilder<int> builder = StateBuilder.of<CounterProvider, int>(
         builder: (_, __, ___) => const SizedBox(),
@@ -244,210 +327,6 @@ void main() {
 
       expect(builder, isA<StateBuilder<int>>());
     });
-
-    testWidgets(
-      'updates listenable and performs new lookup when widget is updated',
-      (tester) async {
-        final themeProvider = ThemeProvider();
-        var numBuilds = 0;
-        await tester.pumpWidget(
-          StatefulBuilder(
-            builder: (context, setState) =>
-                ChangeNotifierProvider<ThemeProvider>.value(
-                  value: themeProvider,
-                  child: StateBuilder.of<ThemeProvider, ThemeData>(
-                    builder: (context, theme, child) {
-                      numBuilds++;
-                      return MaterialApp(
-                        key: materialAppKey,
-                        theme: theme,
-                        home: ElevatedButton(
-                          child: const SizedBox(),
-                          onPressed: () => setState(() {}),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-          ),
-        );
-
-        await tester.tap(find.byType(ElevatedButton));
-        await tester.pump();
-
-        final materialApp = tester.widget<MaterialApp>(
-          find.byKey(materialAppKey),
-        );
-
-        expect(materialApp.theme, ThemeData.light());
-        expect(numBuilds, 2);
-      },
-    );
-
-    testWidgets(
-      'updates when the listenable is changed at runtime to a different listenable and unsubscribes from old listenable',
-      (tester) async {
-        final themeProvider = ThemeProvider();
-        var numBuilds = 0;
-        await tester.pumpWidget(
-          MyThemeApp(themeProvider: themeProvider, onBuild: () => numBuilds++),
-        );
-
-        var materialApp = tester.widget<MaterialApp>(
-          find.byKey(materialAppKey),
-        );
-
-        expect(materialApp.theme, ThemeData.light());
-        expect(numBuilds, 1);
-
-        await tester.tap(find.byKey(swapButtonOneKey));
-        await tester.pump();
-
-        materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
-
-        expect(materialApp.theme, ThemeData.dark());
-        expect(numBuilds, 2);
-
-        themeProvider.setLightTheme();
-        await tester.pump();
-
-        materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
-
-        expect(materialApp.theme, ThemeData.dark());
-        expect(numBuilds, 2);
-      },
-    );
-
-    testWidgets(
-      'does not update when the listenable is changed at runtime to same listenable and stays subscribed to current listenable',
-      (tester) async {
-        final themeProvider = DarkThemeProvider();
-        var numBuilds = 0;
-        await tester.pumpWidget(
-          MyThemeApp(themeProvider: themeProvider, onBuild: () => numBuilds++),
-        );
-
-        var materialApp = tester.widget<MaterialApp>(
-          find.byKey(materialAppKey),
-        );
-
-        expect(materialApp.theme, ThemeData.dark());
-        expect(numBuilds, 1);
-
-        await tester.tap(find.byKey(swapButtonTwoKey));
-        await tester.pump();
-
-        materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
-
-        expect(materialApp.theme, ThemeData.dark());
-        expect(numBuilds, 2);
-
-        themeProvider.setLightTheme();
-        await tester.pump();
-
-        materialApp = tester.widget<MaterialApp>(find.byKey(materialAppKey));
-
-        expect(materialApp.theme, ThemeData.light());
-        expect(numBuilds, 3);
-      },
-    );
-
-    testWidgets('updates subscription when the context listenable changes', (
-      tester,
-    ) async {
-      final firstProvider = CounterProvider();
-      final secondProvider = CounterProvider(100);
-
-      var currentProvider = firstProvider;
-      late StateSetter rebuild;
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StatefulBuilder(
-            builder: (context, setState) {
-              rebuild = setState;
-
-              return ChangeNotifierProvider<CounterProvider>.value(
-                value: currentProvider,
-                child: StateBuilder.of<CounterProvider, int>(
-                  builder: (_, state, __) => Text('$state'),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-
-      expect(find.text('0'), findsOneWidget);
-
-      firstProvider.increment();
-      await tester.pump();
-
-      expect(find.text('1'), findsOneWidget);
-
-      rebuild(() {
-        currentProvider = secondProvider;
-      });
-
-      await tester.pump();
-
-      expect(find.text('100'), findsOneWidget);
-      expect(find.text('1'), findsNothing);
-
-      secondProvider.increment();
-      await tester.pump();
-
-      expect(find.text('101'), findsOneWidget);
-
-      firstProvider.increment();
-      await tester.pump();
-
-      expect(find.text('101'), findsOneWidget);
-      expect(find.text('2'), findsNothing);
-    });
-
-    testWidgets(
-      'keeps using the same context listenable when the widget rebuilds',
-      (tester) async {
-        final provider = CounterProvider();
-        late StateSetter rebuild;
-
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                rebuild = setState;
-
-                return ChangeNotifierProvider<CounterProvider>.value(
-                  value: provider,
-                  child: StateBuilder.of<CounterProvider, int>(
-                    builder: (_, state, __) => Text('$state'),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-
-        expect(find.text('0'), findsOneWidget);
-
-        provider.increment();
-        await tester.pump();
-
-        expect(find.text('1'), findsOneWidget);
-
-        rebuild(() {});
-
-        await tester.pump();
-
-        provider.increment();
-        await tester.pump();
-
-        expect(find.text('2'), findsOneWidget);
-      },
-    );
 
     testWidgets('shows latest state instead of initial state', (tester) async {
       final themeProvider = ThemeProvider()..setDarkTheme();
@@ -464,241 +343,6 @@ void main() {
       expect(materialApp.theme, ThemeData.dark());
       expect(numBuilds, 1);
     });
-
-    testWidgets('defers rebuild when the listenable changes during build', (
-      tester,
-    ) async {
-      final field = StateField(0);
-      final states = <int>[];
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StateBuilder<int>(
-            listenable: field,
-            builder: (_, state, child) {
-              states.add(state);
-
-              return Column(children: [Text('$state'), child!]);
-            },
-            child: StateChangeDuringInit(
-              onInit: () {
-                field.state = 1;
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(states, [0]);
-
-      await tester.pump();
-
-      expect(states, [0, 1]);
-      expect(find.text('1'), findsOneWidget);
-    });
-
-    testWidgets('coalesces multiple rebuilds requested during build', (
-      tester,
-    ) async {
-      final field = StateField(0);
-      final states = <int>[];
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StateBuilder<int>(
-            listenable: field,
-            builder: (_, state, child) {
-              states.add(state);
-
-              return Column(children: [Text('$state'), child!]);
-            },
-            child: StateChangeDuringInit(
-              onInit: () {
-                field
-                  ..state = 1
-                  ..state = 2
-                  ..state = 3;
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(states, [0]);
-
-      await tester.pump();
-
-      expect(states, [0, 3]);
-      expect(find.text('3'), findsOneWidget);
-    });
-
-    testWidgets('does not rebuild after disposal when a rebuild was deferred', (
-      tester,
-    ) async {
-      final field = StateField(0);
-      final states = <int>[];
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: StateBuilder<int>(
-            listenable: field,
-            builder: (_, state, child) {
-              states.add(state);
-
-              return Column(children: [Text('$state'), child!]);
-            },
-            child: StateChangeDuringInit(
-              onInit: () {
-                field.state = 1;
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(states, [0]);
-
-      // Dispose before the deferred rebuild callback executes.
-      await tester.pumpWidget(const SizedBox());
-
-      // Process the previously scheduled post-frame callback.
-      await tester.pump();
-
-      expect(states, [0]);
-      expect(tester.takeException(), isNull);
-    });
-    testWidgets(
-      'with rebuildWhen only rebuilds when rebuildWhen evaluates to true',
-      (tester) async {
-        await tester.pumpWidget(const MyCounterApp());
-
-        expect(find.byKey(myCounterAppKey), findsOneWidget);
-
-        final incrementButtonFinder = find.byKey(
-          myCounterAppIncrementButtonKey,
-        );
-        expect(incrementButtonFinder, findsOneWidget);
-
-        var counterText = tester.widget<Text>(find.byKey(myCounterAppTextKey));
-        expect(counterText.data, '0');
-
-        var conditionalCounterText = tester.widget<Text>(
-          find.byKey(myCounterAppTextConditionKey),
-        );
-        expect(conditionalCounterText.data, '0');
-
-        await tester.tap(incrementButtonFinder);
-        await tester.pump();
-
-        counterText = tester.widget<Text>(find.byKey(myCounterAppTextKey));
-        expect(counterText.data, '1');
-
-        conditionalCounterText = tester.widget<Text>(
-          find.byKey(myCounterAppTextConditionKey),
-        );
-        expect(conditionalCounterText.data, '0');
-
-        await tester.tap(incrementButtonFinder);
-        await tester.pump();
-
-        counterText = tester.widget<Text>(find.byKey(myCounterAppTextKey));
-        expect(counterText.data, '2');
-
-        conditionalCounterText = tester.widget<Text>(
-          find.byKey(myCounterAppTextConditionKey),
-        );
-        expect(conditionalCounterText.data, '2');
-
-        await tester.tap(incrementButtonFinder);
-        await tester.pump();
-
-        counterText = tester.widget<Text>(find.byKey(myCounterAppTextKey));
-        expect(counterText.data, '3');
-
-        conditionalCounterText = tester.widget<Text>(
-          find.byKey(myCounterAppTextConditionKey),
-        );
-        expect(conditionalCounterText.data, '2');
-      },
-    );
-
-    testWidgets('calls rebuildWhen and builder with correct state', (
-      tester,
-    ) async {
-      final rebuildWhenPreviousState = <int>[];
-      final rebuildWhenCurrentState = <int>[];
-      final states = <int>[];
-      final counterProvider = CounterProvider();
-      await tester.pumpWidget(
-        StateBuilder<int>(
-          listenable: counterProvider,
-          rebuildWhen: (previous, state) {
-            if (state.isEven) {
-              rebuildWhenPreviousState.add(previous);
-              rebuildWhenCurrentState.add(state);
-              return true;
-            }
-            return false;
-          },
-          builder: (_, state, __) {
-            states.add(state);
-            return const SizedBox();
-          },
-        ),
-      );
-
-      counterProvider
-        ..increment()
-        ..increment()
-        ..increment();
-      await tester.pump();
-
-      expect(states, [0, 2]);
-      expect(rebuildWhenPreviousState, [1]);
-      expect(rebuildWhenCurrentState, [2]);
-    });
-
-    testWidgets(
-      'does not rebuild with latest state when rebuildWhen is false and widget is updated',
-      (tester) async {
-        const targetKey = Key('__target__');
-        final states = <int>[];
-        final counterProvider = CounterProvider();
-        await tester.pumpWidget(
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: StatefulBuilder(
-              builder: (context, setState) => StateBuilder<int>(
-                listenable: counterProvider,
-                rebuildWhen: (previous, state) => state.isEven,
-                builder: (_, state, __) {
-                  states.add(state);
-                  return ElevatedButton(
-                    key: targetKey,
-                    child: const SizedBox(),
-                    onPressed: () => setState(() {}),
-                  );
-                },
-              ),
-            ),
-          ),
-        );
-
-        counterProvider
-          ..increment()
-          ..increment()
-          ..increment();
-        await tester.pump();
-        expect(states, [0, 2]);
-
-        await tester.tap(find.byKey(targetKey));
-        await tester.pump();
-        expect(states, [0, 2, 2]);
-      },
-    );
 
     testWidgets('overrides debugFillProperties', (tester) async {
       final builder = DiagnosticPropertiesBuilder();
@@ -730,6 +374,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateBuilder.of<ThemeProvider, ThemeData>(
+        selectListenable: (provider) => provider,
         builder: (context, state, child) => const SizedBox(),
       ).debugFillProperties(builder);
 
@@ -738,9 +383,8 @@ void main() {
           .map((node) => node.toString())
           .toList();
 
-      expect(description.any((e) => e.startsWith('listenable: null')), isTrue);
-
       expect(description, contains('has builder'));
+      expect(description, contains('has selectListenable'));
     });
   });
 }

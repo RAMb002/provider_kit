@@ -8,10 +8,19 @@ class _StateBuilder<T>
   const _StateBuilder({
     super.key,
     required StateListenable<T> listenable,
+    super.selectListenable,
     required super.builder,
     super.rebuildWhen,
     super.child,
   }) : super(listenable: listenable);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<StateListenable<T>?>('listenable', listenable),
+    );
+  }
 }
 
 /// Shared implementation for callback-based [StateBuilder] variants.
@@ -21,6 +30,7 @@ abstract class _CallbackStateBuilderBase<P extends StateListenable<T>, T>
     super.key,
     required this.builder,
     super.listenable,
+    super.selectListenable,
     super.rebuildWhen,
     super.child,
   });
