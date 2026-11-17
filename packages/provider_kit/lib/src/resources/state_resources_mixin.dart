@@ -48,9 +48,12 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
   /// Creates a [Mutation] managed by this mixin.
   ///
   /// The mutation is automatically disposed when the state is disposed.
-  Mutation<TValue> mutation<TValue>() {
+  ///
+  /// Uses the application-wide [MutationConcurrency] policy by default.
+  /// Set [concurrency] to override it for this mutation.
+  Mutation<TValue> mutation<TValue>({MutationConcurrency? concurrency}) {
     return _resourceOwner.own(
-      Mutation<TValue>(),
+      Mutation<TValue>(concurrency: concurrency),
       onDispose: (resource) => resource.dispose(),
     );
   }
@@ -58,11 +61,19 @@ mixin StateResourcesMixin<T extends StatefulWidget> on State<T> {
   /// Creates a [MutationGroup] managed by this mixin.
   ///
   /// The mutation group is automatically disposed when the state is disposed.
+  ///
+  /// Uses the application-wide [MutationConcurrency] policy by default.
+  /// Set [concurrency] to override it for this group. The selected policy
+  /// applies independently to each keyed mutation.
   MutationGroup<TValue> mutationGroup<TValue>({
     Set<KeepAliveState> keepAliveStates = const {},
+    MutationConcurrency? concurrency,
   }) {
     return _resourceOwner.own(
-      MutationGroup<TValue>(keepAliveStates: keepAliveStates),
+      MutationGroup<TValue>(
+        keepAliveStates: keepAliveStates,
+        concurrency: concurrency,
+      ),
       onDispose: (resource) => resource.dispose(),
     );
   }
