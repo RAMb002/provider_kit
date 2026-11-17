@@ -328,9 +328,8 @@ final class MutationSuccess<T> extends MutationState<T> {
 /// The mapped error information is available through [errorInfo].
 /// {@endtemplate}
 final class MutationError<T> extends MutationState<T> {
-  MutationError._(this.error, this.stackTrace, {ErrorInfo? errorInfo})
-    : errorInfo = errorInfo ?? ProviderKit.resolveErrorInfo(error, stackTrace),
-      super._();
+  const MutationError._(this.error, this.stackTrace, this.errorInfo)
+    : super._();
 
   /// {@macro provider_kit.error_info_field}
   final ErrorInfo errorInfo;

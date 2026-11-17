@@ -102,9 +102,13 @@ class TodoNotifier extends StateNotifier<List<Todo>> {
 
   Mutation<int> get addMutation => _addMutation;
 
-  Future<void> addTodo(String title) async {
-    final newId = await _addMutation.run(() => Api.addTodo(title));
-    state = [...state, Todo(newId, title)];
+  void addTodo(String title) async {
+    addMutation.run(
+      () => Api.addTodo(title),
+      onSuccess: (newId) {
+        state = [...state, Todo(newId, title)];
+      },
+    );
   }
 
   @override

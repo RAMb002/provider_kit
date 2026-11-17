@@ -87,9 +87,12 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   /// Creates a [Mutation] managed by this mixin.
   ///
   /// The mutation is automatically disposed when the notifier is disposed.
-  Mutation<T> mutation<T>() {
+  ///
+  /// Uses the application-wide [MutationConcurrency] policy by default.
+  /// Set [concurrency] to override it for this mutation.
+  Mutation<T> mutation<T>({MutationConcurrency? concurrency}) {
     return _resourceOwner.own(
-      Mutation<T>(),
+      Mutation<T>(concurrency: concurrency),
       onDispose: (resource) => resource.dispose(),
     );
   }
@@ -98,11 +101,19 @@ mixin NotifierResourcesMixin on ChangeNotifier {
   ///
   /// The mutation group is automatically disposed when the notifier is
   /// disposed.
+  ///
+  /// Uses the application-wide [MutationConcurrency] policy by default.
+  /// Set [concurrency] to override it for this group. The selected policy
+  /// applies independently to each keyed mutation.
   MutationGroup<T> mutationGroup<T>({
     Set<KeepAliveState> keepAliveStates = const {},
+    MutationConcurrency? concurrency,
   }) {
     return _resourceOwner.own(
-      MutationGroup<T>(keepAliveStates: keepAliveStates),
+      MutationGroup<T>(
+        keepAliveStates: keepAliveStates,
+        concurrency: concurrency,
+      ),
       onDispose: (resource) => resource.dispose(),
     );
   }

@@ -11,6 +11,9 @@ import 'package:provider_kit/src/observer/notifier_observer.dart';
 
 void main() {
   group('MutationGroup', () {
+    setUp(() {
+      ProviderKit.resetForTesting();
+    });
     group('construction', () {
       test('creates with no keep-alive states by default', () {
         final group = MutationGroup<int>();
@@ -23,40 +26,24 @@ void main() {
       });
 
       test('copies the keepAliveStates set', () async {
-        final keepAliveStates = <KeepAliveState>{KeepAliveState.success};
+        final keepAliveStates = <KeepAliveState>{};
 
         final group = MutationGroup<int>(keepAliveStates: keepAliveStates);
+        addTearDown(group.dispose);
 
-        keepAliveStates.add(KeepAliveState.error);
+        // Modify the original set after group construction.
+        keepAliveStates.add(KeepAliveState.success);
 
         final mutation = group('key');
 
         final result = await mutation.run(() async => 42);
 
-        expect(result, 42);
-
-        void listener() {}
-
-        mutation.addListener(listener);
-        mutation.removeListener(listener);
+        expect(result, isA<MutationSucceeded<int>>());
 
         await Future<void>.delayed(Duration.zero);
 
-        expect(group('key'), same(mutation));
-
-        group.dispose();
-      });
-
-      test('exposes an unmodifiable keepAlive policy internally', () {
-        final group = MutationGroup<int>(
-          keepAliveStates: {KeepAliveState.success},
-        );
-
-        final mutation = group('key');
-
-        expect(mutation.isIdle, isTrue);
-
-        group.dispose();
+        // The group copied the initially empty set, so success isn't retained.
+        expect(mutation.mounted, isFalse);
       });
     });
 
@@ -175,7 +162,10 @@ void main() {
 
         completer.complete(42);
 
-        expect(await future, 42);
+        final result = await future;
+
+        expect(result, isA<MutationSucceeded<int>>());
+        expect((result as MutationSucceeded<int>).data, 42);
 
         await Future<void>.delayed(Duration.zero);
 
@@ -204,11 +194,9 @@ void main() {
         final group = MutationGroup<int>();
         final mutation = group('key');
 
-        try {
-          await mutation.run(() async {
-            throw StateError('failure');
-          });
-        } catch (_) {}
+        await mutation.run(() async {
+          throw StateError('failure');
+        });
 
         expect(mutation.isError, isTrue);
         expect(mutation.mounted, isTrue);
@@ -367,11 +355,9 @@ void main() {
 
         final mutation = group('key');
 
-        try {
-          await mutation.run(() async {
-            throw StateError('failure');
-          });
-        } catch (_) {}
+        await mutation.run(() async {
+          throw StateError('failure');
+        });
 
         await Future<void>.delayed(Duration.zero);
 
@@ -388,11 +374,9 @@ void main() {
 
         final mutation = group('key');
 
-        try {
-          await mutation.run(() async {
-            throw StateError('failure');
-          });
-        } catch (_) {}
+        await mutation.run(() async {
+          throw StateError('failure');
+        });
 
         await Future<void>.delayed(Duration.zero);
 
@@ -429,11 +413,9 @@ void main() {
 
           final errorMutation = group('error');
 
-          try {
-            await errorMutation.run(() async {
-              throw StateError('failure');
-            });
-          } catch (_) {}
+          await errorMutation.run(() async {
+            throw StateError('failure');
+          });
 
           await Future<void>.delayed(Duration.zero);
 
@@ -505,11 +487,9 @@ void main() {
 
           final mutation = group('key');
 
-          try {
-            await mutation.run(() async {
-              throw StateError('failure');
-            });
-          } catch (_) {}
+          await mutation.run(() async {
+            throw StateError('failure');
+          });
 
           expect(mutation.mounted, isTrue);
 
@@ -537,7 +517,13 @@ void main() {
 
         completer.complete(42);
 
-        expect(await future, 42);
+        final result = await future;
+
+        expect(result, isA<MutationIgnored<int>>());
+        expect(
+          (result as MutationIgnored<int>).reason,
+          MutationIgnoreReason.disposed,
+        );
 
         expect(mutation.mounted, isFalse);
 
@@ -635,7 +621,14 @@ void main() {
 
         completer.complete(42);
 
-        expect(await future, 42);
+        final result = await future;
+
+        expect(result, isA<MutationIgnored<int>>());
+        expect(
+          (result as MutationIgnored<int>).reason,
+          MutationIgnoreReason.disposed,
+        );
+
         expect(mutation.mounted, isFalse);
       });
 
@@ -681,11 +674,9 @@ void main() {
 
         final secondFuture = second.run(() => secondCompleter.future);
 
-        try {
-          await third.run(() async {
-            throw StateError('third failed');
-          });
-        } catch (_) {}
+        await third.run(() async {
+          throw StateError('third failed');
+        });
 
         expect(first.isSuccess, isTrue);
         expect(first.data, 1);
@@ -724,6 +715,183 @@ void main() {
       });
     });
 
+    group('concurrency configuration', () {
+      test('uses parallel by default', () async {
+        final group = MutationGroup<int>();
+        addTearDown(group.dispose);
+
+        final mutation = group('key');
+
+        final firstCompleter = Completer<int>();
+        final secondCompleter = Completer<int>();
+
+        final firstFuture = mutation.run(() => firstCompleter.future);
+        final secondFuture = mutation.run(() => secondCompleter.future);
+
+        secondCompleter.complete(2);
+
+        final secondResult = await secondFuture;
+        expect(secondResult, isA<MutationSucceeded<int>>());
+
+        firstCompleter.complete(1);
+
+        final firstResult = await firstFuture;
+        expect(firstResult, isA<MutationSucceeded<int>>());
+
+        // The last execution to complete publishes the final state.
+        expect(mutation.data, 1);
+      });
+
+      test('inherits ProviderKit default concurrency', () async {
+        ProviderKit.configure(
+          mutationConcurrency: MutationConcurrency.ignoreIfBusy,
+        );
+
+        final group = MutationGroup<int>();
+        addTearDown(group.dispose);
+
+        final mutation = group('key');
+        final completer = Completer<int>();
+
+        final firstFuture = mutation.run(() => completer.future);
+
+        var secondExecutionStarted = false;
+
+        final secondResult = await mutation.run(() {
+          secondExecutionStarted = true;
+          return Future<int>.value(2);
+        });
+
+        expect(secondExecutionStarted, isFalse);
+        expect(secondResult, isA<MutationIgnored<int>>());
+        expect(
+          (secondResult as MutationIgnored<int>).reason,
+          MutationIgnoreReason.busy,
+        );
+
+        completer.complete(1);
+
+        expect(await firstFuture, isA<MutationSucceeded<int>>());
+      });
+
+      test(
+        'explicit group concurrency overrides ProviderKit default',
+        () async {
+          ProviderKit.configure(
+            mutationConcurrency: MutationConcurrency.ignoreIfBusy,
+          );
+
+          final group = MutationGroup<int>(
+            concurrency: MutationConcurrency.queue,
+          );
+          addTearDown(group.dispose);
+
+          final mutation = group('key');
+
+          final firstCompleter = Completer<int>();
+          final secondCompleter = Completer<int>();
+
+          final started = <int>[];
+
+          final firstFuture = mutation.run(() {
+            started.add(1);
+            return firstCompleter.future;
+          });
+
+          final secondFuture = mutation.run(() {
+            started.add(2);
+            return secondCompleter.future;
+          });
+
+          expect(started, [1]);
+
+          firstCompleter.complete(1);
+
+          expect(await firstFuture, isA<MutationSucceeded<int>>());
+          expect(started, [1, 2]);
+
+          secondCompleter.complete(2);
+
+          final secondResult = await secondFuture;
+          expect(secondResult, isA<MutationSucceeded<int>>());
+          expect((secondResult as MutationSucceeded<int>).data, 2);
+        },
+      );
+
+      test('concurrency policies are independent for different keys', () async {
+        final group = MutationGroup<int>(
+          concurrency: MutationConcurrency.ignoreIfBusy,
+        );
+        addTearDown(group.dispose);
+
+        final firstMutation = group('first');
+        final secondMutation = group('second');
+
+        final firstCompleter = Completer<int>();
+
+        final firstFuture = firstMutation.run(() => firstCompleter.future);
+
+        var secondExecutionStarted = false;
+
+        final secondResult = await secondMutation.run(() {
+          secondExecutionStarted = true;
+          return Future<int>.value(2);
+        });
+
+        expect(secondExecutionStarted, isTrue);
+        expect(secondResult, isA<MutationSucceeded<int>>());
+        expect((secondResult as MutationSucceeded<int>).data, 2);
+
+        firstCompleter.complete(1);
+
+        expect(await firstFuture, isA<MutationSucceeded<int>>());
+      });
+
+      test(
+        'keeps queued executions alive until the queue is completed',
+        () async {
+          final group = MutationGroup<int>(
+            concurrency: MutationConcurrency.queue,
+          );
+          addTearDown(group.dispose);
+
+          final mutation = group('key');
+
+          final firstCompleter = Completer<int>();
+          final secondCompleter = Completer<int>();
+
+          final started = <int>[];
+
+          final firstFuture = mutation.run(() {
+            started.add(1);
+            return firstCompleter.future;
+          });
+
+          final secondFuture = mutation.run(() {
+            started.add(2);
+            return secondCompleter.future;
+          });
+
+          expect(started, [1]);
+          expect(mutation.mounted, isTrue);
+
+          firstCompleter.complete(1);
+
+          expect(await firstFuture, isA<MutationSucceeded<int>>());
+          expect(started, [1, 2]);
+          expect(mutation.mounted, isTrue);
+
+          secondCompleter.complete(2);
+
+          expect(await secondFuture, isA<MutationSucceeded<int>>());
+
+          await Future<void>.delayed(Duration.zero);
+
+          expect(mutation.mounted, isFalse);
+        },
+      );
+    });
+
     group('concurrency and disposal', () {
       test(
         'loading mutation remains alive while another execution is active',
@@ -743,12 +911,24 @@ void main() {
           expect(mutation.isLoading, isTrue);
 
           second.complete(2);
-          expect(await secondFuture, 2);
+
+          final secondResult = await secondFuture;
+
+          expect(secondResult, isA<MutationSucceeded<int>>());
+          expect((secondResult as MutationSucceeded<int>).data, 2);
 
           await Future<void>.delayed(Duration.zero);
+
+          // The first execution is still active, so the group must retain
+          // the mutation even though the second execution has completed.
+          expect(mutation.mounted, isTrue);
+
           first.complete(1);
 
-          expect(await firstFuture, 1);
+          final firstResult = await firstFuture;
+
+          expect(firstResult, isA<MutationSucceeded<int>>());
+          expect((firstResult as MutationSucceeded<int>).data, 1);
 
           group.dispose();
         },
@@ -756,8 +936,11 @@ void main() {
       test(
         'stale concurrent group execution cannot overwrite latest state',
         () async {
-          final group = MutationGroup<int>();
+          final group = MutationGroup<int>(
+            concurrency: MutationConcurrency.latestOnly,
+          );
           final mutation = group('key');
+          addTearDown(group.dispose);
 
           final first = Completer<int>();
           final second = Completer<int>();
@@ -767,18 +950,24 @@ void main() {
 
           second.complete(2);
 
-          expect(await secondFuture, 2);
+          final secondResult = await secondFuture;
+
+          expect(secondResult, isA<MutationSucceeded<int>>());
           expect(mutation.isSuccess, isTrue);
           expect(mutation.data, 2);
 
           first.complete(1);
 
-          expect(await firstFuture, 1);
+          final firstResult = await firstFuture;
+
+          expect(firstResult, isA<MutationIgnored<int>>());
+          expect(
+            (firstResult as MutationIgnored<int>).reason,
+            MutationIgnoreReason.replaced,
+          );
 
           expect(mutation.isSuccess, isTrue);
           expect(mutation.data, 2);
-
-          group.dispose();
         },
       );
       test(
@@ -790,13 +979,24 @@ void main() {
           final mutation = group('key');
           final future = mutation.run(() => completer.future);
 
+          expect(mutation.isLoading, isTrue);
+
           group.dispose();
 
           expect(mutation.mounted, isFalse);
 
+          // The underlying action can still complete after disposal.
           completer.complete(100);
 
-          expect(await future, 100);
+          final result = await future;
+
+          expect(result, isA<MutationIgnored<int>>());
+          expect(
+            (result as MutationIgnored<int>).reason,
+            MutationIgnoreReason.disposed,
+          );
+
+          expect(mutation.mounted, isFalse);
         },
       );
     });
@@ -879,7 +1079,9 @@ void main() {
 
           final result = await mutation.run(() async => 42);
 
-          expect(result, 42);
+          expect(result, isA<MutationSucceeded<int>>());
+          expect((result as MutationSucceeded<int>).data, 42);
+
           expect(mutation.isSuccess, isTrue);
           expect(mutation.data, 42);
 

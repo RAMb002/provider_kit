@@ -72,6 +72,31 @@ part of 'mutation.dart';
 /// print(identical(mutationA, mutationB)); // true
 /// ```
 ///
+/// ### Execution results
+///
+/// Each keyed [Mutation] supports the same execution callbacks and
+/// [MutationResult] outcomes as a regular mutation. See [Mutation.run]
+/// for details about execution, callbacks, and returned results.
+///
+/// ### Concurrency
+///
+/// The group uses the application-wide concurrency policy configured
+/// through [ProviderKit.configure], or [MutationConcurrency.parallel]
+/// when no custom policy is configured.
+///
+/// You can override the policy for all mutations created by the group:
+///
+/// ```dart
+/// final deleteTodo = MutationGroup<void>(
+///   concurrency: MutationConcurrency.ignoreIfBusy,
+/// );
+/// ```
+///
+/// The concurrency policy applies independently to each key. Executions
+/// for one key do not affect executions for another key.
+///
+/// See [MutationConcurrency] for details about the available policies.
+///
 /// ### Automatic disposal
 ///
 /// Keyed mutations are automatically removed from the cache when they have
@@ -175,6 +200,9 @@ class MutationGroup<T> {
   final Map<Object, _AutoDisposeController<T, Object>> _controllers = {};
   final Set<KeepAliveState> _keepAliveStates;
 
+  /// Determines how concurrent executions are handled by each keyed mutation.
+  final MutationConcurrency concurrency;
+
   /// Creates a group that manages keyed mutations with automatic disposal.
   ///
   /// By default, unobserved [MutationIdle], [MutationSuccess], and
@@ -208,8 +236,11 @@ class MutationGroup<T> {
   ///
   /// The provided set is copied and cannot be modified after the group is
   /// created.
-  MutationGroup({Set<KeepAliveState> keepAliveStates = const {}})
-    : _keepAliveStates = Set.unmodifiable(keepAliveStates);
+  MutationGroup({
+    MutationConcurrency? concurrency,
+    Set<KeepAliveState> keepAliveStates = const {},
+  }) : concurrency = concurrency ?? ProviderKit.defaultMutationConcurrency,
+       _keepAliveStates = Set.unmodifiable(keepAliveStates);
 
   /// Returns the [Mutation] associated with [key].
   ///
@@ -224,7 +255,7 @@ class MutationGroup<T> {
       return existing;
     }
 
-    final mutation = Mutation<T>();
+    final mutation = Mutation<T>(concurrency: concurrency);
     _setupMutation(key, mutation);
     _cache[key] = mutation;
     return mutation;
@@ -254,7 +285,7 @@ class MutationGroup<T> {
 
   bool _shouldDispose(Mutation<T> mutation) {
     // Must have no listeners
-    if (mutation.hasListeners) return false;
+    if (mutation.hasListeners || mutation._hasPendingExecutions) return false;
 
     final state = mutation.state;
 
@@ -321,6 +352,7 @@ class _AutoDisposeController<T, K> {
     mutation._setOnFirstListenerAdded(_onFirstListener);
     mutation._setOnLastListenerRemoved(_onLastListener);
     mutation._setOnStateChanged(_onStateChanged);
+    mutation._setOnExecutionCompleted(_onExecutionCompleted);
   }
 
   bool _queued = false;
@@ -342,6 +374,14 @@ class _AutoDisposeController<T, K> {
     }
   }
 
+  void _onExecutionCompleted() {
+    if (!mutation.mounted) return;
+
+    if (shouldDispose(mutation)) {
+      _scheduleDispose();
+    }
+  }
+
   void _scheduleDispose() {
     if (_queued) return;
     _queued = true;
@@ -358,6 +398,7 @@ class _AutoDisposeController<T, K> {
     mutation._setOnLastListenerRemoved(null);
     mutation._setOnStateChanged(null);
     mutation._setOnDisposed(null);
+    mutation._setOnExecutionCompleted(null);
   }
 }
 
