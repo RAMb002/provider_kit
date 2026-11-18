@@ -36,6 +36,7 @@ its API names for caching and restoring `DataState`.
 **Mutations**
 
 - Added `Mutation.data` and `Mutation.dataOrNull` for accessing mutation results.
+- Added `MutationConcurrency` and `MutationResult`.
 - Updated `MutationGroup.dispose()` to optionally accept a key for disposing a
 specific keyed mutation.
 - Removed the separate `disposeKey()` API.

@@ -13,53 +13,24 @@
 
 ---
 
-**ProviderKit** is a Flutter toolkit built on top of `ChangeNotifier` and
-`Listenable`, designed to work alongside the
-[`provider`](https://pub.dev/packages/provider) package for dependency
-injection and widget-tree integration.
-
-ProviderKit extends the `ChangeNotifier` pattern with reusable building blocks
-for state management, asynchronous UI states, mutations, caching, lifecycle
-management, and observation.
-
----
-
-### Why ProviderKit?
-
-Building applications with `ChangeNotifier` often means repeatedly writing
-boilerplate for state handling, async states, listeners, mutations, and state
-caching.
-
-ProviderKit provides reusable components for these common patterns while
-remaining compatible with the `provider` ecosystem, so you can keep the
-architecture you already know while writing less boilerplate.
+**ProviderKit** is a Flutter toolkit built on Flutter's `ChangeNotifier` and `Listenable` APIs, providing reusable notifiers, reactive widgets, and lifecycle utilities to help you write less code while keeping your application architecture simple, predictable, and maintainable. It works alongside the [`provider`](https://pub.dev/packages/provider) package for dependency injection and accessing notifiers from the widget tree.
 
 ## Features
 
-- **Enhanced Notifiers** — Specialized notifiers for managing structured state
-  and asynchronous operations.
-- **Reactive Fields** — Independent reactive state fields for `ChangeNotifier`-
-  style state management.
-- **State Widgets** — Builders and listeners for reacting to state changes and
-  handling side effects.
-- **View State** — Built-in initial, loading, empty, error, and data states for
-  asynchronous UI flows.
-- **Reusable ViewState Widgets** — Configure default widgets for loading, error,
-  empty, and other view states once and reuse them across your app.
-- **Multi-State Support** — Combine multiple state sources and use their values
-  together in one widget.
-- **Mutations** — Dedicated handling for user-triggered operations with loading,
-  success, and error states.
-- **State Caching** — Save and restore view state data when needed.
-- **Notifier Observation** — Observe notifier lifecycle events and state changes.
-- **Error Mapping** — Map application errors into consistent error messages and
-  codes.
-- **Automatic Resource Disposal** — Automatically dispose owned resources with their lifecycle.
+- **Specialized Notifiers** — Manage simple state, structured view state, futures, and streams with dedicated notifier types.
+- **Async Safety** — `FutureNotifier` and `StreamNotifier` protect against outdated asynchronous operations.
+- **Reactive Widgets** — Builders, listeners, and consumers for responding to state changes and handling side effects.
+- **Multi-State Composition** — Combine multiple independent notifiers into a single typed state without creating additional aggregate notifiers or state classes.
+- **Structured View States** — Built-in initial, loading, data, empty, and error states with reusable, customizable UI.
+- **Mutations** — Handle user-triggered operations with observable states, execution results, and configurable concurrency.
+- **Reactive Fields** — Manage supporting values independently from a notifier's primary state.
+- **Error Mapping & Observation** — Centralize error information and monitor notifier lifecycle events and state changes.
+- **Automatic Resource Disposal** — Automatically dispose owned resources when their owner is disposed.
+
 
 ## Contents
 
 - [Getting started](#getting-started)
-- [ProviderKit configuration](#providerkit-configuration)
 - [State](#state)
   - [State Notifier](#statenotifier)
   - [State Widgets](#state-widgets)
@@ -67,14 +38,15 @@ architecture you already know while writing less boilerplate.
 - [View State](#viewstate)
   - [View State Notifier](#viewstatenotifier)
   - [Future Notifier](#futurenotifier)
-  - [View State Widgets Provider](#viewstatewidgetsprovider)
+  - [Stream Notifier](#streamnotifier)
+  - [Shared Async Notifier Features](#shared-async-notifier-features)
   - [View State Widgets](#view-state-widgets)
+  - [View State Widgets Provider](#viewstatewidgetsprovider)
   - [Multi View State Widgets](#multi-view-state-widgets)
   - [Cache Mixins](#cache-mixins)
-- [Mutations](#mutations)
-  - [MutationState](#mutationstate)
+- [Mutation](#mutation)
   - [MutationGroup](#mutationgroup)
-- [State Field](#state-field)
+- [State Field](#statefield)
 - [Automatic Resource Disposal](#automatic-resource-disposal)
 - [Nested State Listener](#nestedstatelistener)
 - [Notifier Observer](#notifierobserver)
@@ -92,7 +64,7 @@ dependencies:
   ```
 ### Provider integration
 
-ProviderKit works with the [`provider`](https://pub.dev/packages/provider)
+ProviderKit works with the [provider](https://pub.dev/packages/provider)
 package and is designed to integrate naturally with its dependency injection
 and widget-tree provider system.
 
@@ -106,40 +78,7 @@ ChangeNotifierProvider(
 ProviderKit widgets can then resolve the provider from the widget tree when
 using their `.of` constructors.
 For complete documentation on dependency injection and provider registration,
-see the [`provider`](https://pub.dev/packages/provider) package documentation.
-
-## ProviderKit configuration
-
-ProviderKit configuration is optional. Configure it once at application
-startup to set global error mapping and notifier observation.
-
-```dart
-void main() {
-  ProviderKit.configure(
-    observer: MyNotifierObserver(),
-    errorInfoMapper: (error, stackTrace) {
-      if (error is AuthException) {
-        return ErrorInfo(
-          message: error.message ?? 'Authentication failed.',
-          code: error.code,
-        );
-      }
-
-      return ErrorInfo(
-        message: error.toString(),
-      );
-    },
-  );
-
-  runApp(const MyApp());
-}
-```
-
-- `errorInfoMapper` converts application errors into `ErrorInfo`.
-- `observer` receives notifier lifecycle and state-change notifications.
-
-For detailed usage, see [Notifier Observer](#notifierobserver) and the
-error-handling examples in [View State](#viewstate).
+see the [provider](https://pub.dev/packages/provider) package documentation.
 
 ## State
 
@@ -177,33 +116,47 @@ UI in response to updates from a ProviderKit notifier.
   />
 </p>
 
-The following widgets are available:
+ProviderKit provides three state widgets:
 
-- [`StateListener`](#statelistener) — listens for state changes and performs side effects.
 - [`StateBuilder`](#statebuilder) — rebuilds the UI when the state changes.
+- [`StateListener`](#statelistener) — listens for state changes and performs side effects.
 - [`StateConsumer`](#stateconsumer) — combines listening and rebuilding in one widget.
 
-Each widget supports two ways to access the provider:
+Each widget supports direct listenable access, context-based resolution
+through `.of`, and multiple listenables through `.multi`.
 
-1. **Explicitly** — pass the provider instance through the `provider` parameter.
-2. **From context** — use the `.of` constructor to resolve the provider from
-   the widget tree.
+For context-based resolution, expose listenables in the widget tree using
+a compatible provider, such as `ChangeNotifierProvider`,
+from the [`provider`](https://pub.dev/packages/provider) package.
 
+## StateBuilder
 
-When using the `.of` constructor, the provider must be available in the widget
-tree through `Provider`, `ChangeNotifierProvider`, or another compatible
-provider widget from the [`provider`](https://pub.dev/packages/provider)
-package.
+A widget that rebuilds the UI when the notifier's state changes.
 
+**Resolve a listenable from the widget tree using the [provider](https://pub.dev/packages/provider) package:**
+```dart
+StateBuilder.of<CounterNotifier, int>(
+  builder: (context, state, child) => Text('$state'),
+);
+```
+
+**Pass a listenable directly:**
+```dart
+StateBuilder(
+  listenable: counterNotifier,
+  rebuildWhen: (previous, current) => previous != current, // Default, optional
+  builder: (context, state, child) {
+    return Text('Count: $state');
+  },
+  child: YourStaticWidget(), // Optional, won't be rebuilt
+);
+```
 
 ## StateListener
 
 A widget that listens for state changes and executes side effects without rebuilding the UI.
-
 ```dart
-// Explicit provider
-StateListener<MyDataType>(
-  provider: provider,
+StateListener.of<CounterNotifier, int>(
   listenWhen: (previous, current) => previous != current, // Default, optional
   callListenerOnInit: false, // Default, optional
   listener: (context, state) {
@@ -212,47 +165,16 @@ StateListener<MyDataType>(
   child: YourWidget(),
 );
 
-```
-```dart
-// Provider from context
-StateListener.of<MyProvider, MyDataType>(
-  listener: (context, state) { /* side effects */ },
-  child: YourWidget(),
-);
-```
-
-## StateBuilder
-
-A widget that rebuilds the UI when the provider's state changes.
-
-```dart
-// Explicit provider
-StateBuilder<MyDataType>(
-  provider: provider,
-  rebuildWhen: (previous, current) => previous != current, // Default, optional
-  builder: (context, state, child) {
-    return Text('Count: $state');
-  },
-  child: YourStaticWidget(), // Optional, won't be rebuilt
-);
-```
-```dart
-// Provider from context
-StateBuilder.of<MyProvider, MyDataType>(
-  builder: (context, state, child) => Text('$state'),
-);
 ```
 
 ## StateConsumer
 
-A widget that combines the features of `StateListener` and `StateBuilder`,
-allowing you to listen for state changes and rebuild the UI from the same
-provider.
+A widget that combines `StateListener` and `StateBuilder`,
+allowing you to listen for state changes and rebuild the UI
+from the same listenable.
 
 ```dart
-// Explicit provider
-StateConsumer<MyDataType>(
-  provider: provider,
+StateConsumer.of<CounterNotifier, int>(
   listenWhen: (previous, current) => previous != current, // Default, optional
   callListenerOnInit: false, // Default, optional
   listener: (context, state) {
@@ -265,21 +187,14 @@ StateConsumer<MyDataType>(
   child: YourStaticWidget(), // Optional, won't be rebuilt
 );
 ```
-```dart
-// Provider from context
-StateConsumer.of<MyProvider, MyDataType>(
-  listener: (context, state) { /* side effects */ },
-  builder: (context, state, child) => Text('$state'),
-);
-```
-> **Tip:** `State Widgets` work with any notifier
-> provided by ProviderKit, not just `StateNotifier`.
 
 ---
 
-## Multi State Widgets
+### Multi-State Widgets
 
-Multi State Widgets let you combine multiple providers into one type-safe state and use it to trigger side effects or rebuild the UI. There are three widgets for this: `MultiStateListener`, `MultiStateBuilder`, and `MultiStateConsumer`.
+The `.multi` constructors let you combine multiple listenables into a single,
+type-safe state. They are available on `StateListener`, `StateBuilder`, and
+`StateConsumer`.
 
 <p>
   <img
@@ -290,120 +205,63 @@ Multi State Widgets let you combine multiple providers into one type-safe state 
   />
 </p>
 
-## How it works
+#### How it works
 
-Every Multi State Widget has a `providers` callback. Use `.watch` on each provider to listen to its state changes:
-
-```dart
-providers: () => (
-  user: userProvider.watch,
-  isLoading: loadingField.watch,
-),
-```
-
-The widget automatically listens to every provider marked with .watch.
-
-The value returned from `providers` becomes the **combined state** passed to the `listener`/`builder`.
-It can be any Dart type — a record, a List, or a custom class:
+Each `.multi` constructor accepts a `listenables` callback. Use `.watch` to
+subscribe to the listenable's state. The callback can return any Dart type,
+including records, lists, or custom objects.
 
 ```dart
-// Record
-providers: () => (user: userProvider.watch, count: counter.watch),
-
-// List
-providers: () => mutations.map((m) => m.watch).toList(),
-
-// Custom class
-providers: () => MyScreenState(
-  user: userProvider.watch,
-  profile: profileProvider.watch,
-),
-```
-Providers can have completely different state types while the combined state remains fully type-safe.
-
-### MultiStateListener
-
-Use this widget when your listener needs the state of multiple
-providers to perform side effects without rebuilding the UI.
-
-```dart
-MultiStateListener(
-  providers: () => (
-    user: userProvider.watch,
-    cart: cartProvider.watch,
-  ),
-  listenWhen: (previous, current) => previous != current, // Default, optional
-  callListenerOnInit: false, // Default, optional
-  listener: (context, state) {
-    print('${state.user}: ${state.cart}');
-  },
-  child: YourWidget(),
-);
-```
-
-### MultiStateBuilder
-
-A widget that listens to multiple providers and uses their combined state to rebuild the UI.
-```dart
-MultiStateBuilder(
-  providers: () => (
-    user: userProvider.watch,
-    cart: cartProvider.watch,
-  ),
-  rebuildWhen: (previous, current) => previous != current, // Default, optional
-  child: YourStaticWidget(), // Optional, won't be rebuilt
+StateBuilder.multi(
+  listenables: () => (
+    user: userNotifier.watch,
+    cart: cartNotifier.watch,
+  ), // Returns a record
   builder: (context, state, child) {
-     return Text('${state.user}: ${state.cart}');
+    return Text('${state.user.name}: ${state.cart.length}');
   },
 );
 ```
+#### Using Provider
 
-### MultiStateConsumer
-
-A widget that combines the features of `MultiStateListener` and
-`MultiStateBuilder`, allowing you to listen to and rebuild from multiple
-providers.
+You can also resolve notifiers from the widget tree inside the
+`listenables` callback using `of<T>().watch`.
 
 ```dart
-MultiStateConsumer(
-  providers: () => (
-    user: userProvider.watch,
-    cart: cartProvider.watch,
+StateBuilder.multi(
+  listenables: () => (
+    user: of<UserNotifier>().watch,
+    settings: of<SettingsNotifier>().watch,
   ),
-  listenWhen: (previous, current) => previous != current, // Default, optional
-  callListenerOnInit: false, // Default, optional
-  listener: (context, state) {
-    print('${state.user}: ${state.cart}');
-  },
-  rebuildWhen: (previous, current) => previous != current, // Default, optional
-  child: YourStaticWidget(), // Optional, won't be rebuilt
   builder: (context, state, child) {
-    return Text('${state.user}: ${state.cart}');
+    return Text('${state.user.name}: ${state.settings.theme}');
   },
 );
 ```
 
 ### WatchBuilder
 
-`WatchBuilder` provides a simple way to rebuild the UI when the state used inside the builder changes.
+`WatchBuilder` provides a simple way to listen to one or more listenables.
+It automatically rebuilds the UI whenever a listenable accessed through
+`.watch` inside its builder changes.
 
 ```dart
 WatchBuilder(
   builder: (context, child) {
-    final user = userProvider.watch;
-    final cart = cartProvider.watch;
+    final user = userNotifier.watch; // Stable, locally owned notifier.
+    final settings = of<SettingsNotifier>().watch; // Provider-managed notifier.
 
-    return Text('${user.name}: ${cart.length}');
+    return Text('${user.name}: ${settings.theme}');
   },
-)
+);
 ```
-State is accessed directly with .watch, and the widget automatically tracks the providers used by the builder.
-Unlike `MultiStateBuilder`, you don't need to declare a `providers` callback or create a combined state.
 
-Use `WatchBuilder` when you want a simple way to rebuild from multiple state sources.
-
-> **Tip:** `Multi State Widgets` work with any notifier
-> provided by ProviderKit, not just `StateNotifier`.
+> **Important:** When you own a notifier and its instance remains stable,
+> passing it directly is perfectly fine. However, when a notifier is supplied
+> by the `provider` package and may be replaced, prefer resolving it through
+> `.of` or `of<T>().watch`. This allows ProviderKit widgets to follow provider
+> updates and listen to the newly supplied notifier, such as when using
+> `ProxyProvider`.
 
 ---
 
@@ -413,8 +271,13 @@ workflows.
 
 ## ViewState
 
-`ViewState` represents the different states a view can have, including
-`InitialState`, `LoadingState`, `DataState`, `EmptyState`, and `ErrorState`.
+`ViewState<T>` represents the different states of data displayed by a view:
+
+- `InitialState` — the initial state of a view.
+- `LoadingState` — data is being loaded.
+- `DataState<T>` — data has been loaded successfully.
+- `EmptyState` — the result contains no data.
+- `ErrorState` — an error occurred while loading data.
 
 It is particularly useful for managing data displayed by a view, such as data loaded from a server or local storage, where the UI needs to represent different stages of the data lifecycle.
 
@@ -427,456 +290,287 @@ It is particularly useful for managing data displayed by a view, such as data lo
   />
 </p>
 
-
-| State            | Description                                                       | Properties |
-|-----------------|-------------------------------------------------------------------|------------|
-| `InitialState`  | Represents the initial state of a view.                          | None       |
-| `LoadingState`  | Represents a loading state with optional progress and message.   | `message: String?`, `progress: double?` |
-| `DataState`     | Represents a successful data state containing the result object. | `data: T` |
-| `EmptyState`    | Represents an empty state with an optional message.              | `message: String?` |
-| `ErrorState` | Represents an error state containing mapped error information, the original error, its stack trace, and an optional retry callback. | `errorInfo: ErrorInfo`, `error: Object`, `stackTrace: StackTrace`, `onRetry: VoidCallback?` |
-
-### Error information
-
-
-`ErrorState` contains the mapped `errorInfo`, the original `error`, its
-`stackTrace`, and an optional `onRetry` callback.
-
-You can provide `errorInfo` explicitly when you want to define the error
-information yourself:
-
-```dart
-final state = ErrorState(
-  error,
-  stackTrace,
-  errorInfo: const ErrorInfo(
-    message: 'An error occurred.',
-    code: 'unknown_error',
-  ),
-  onRetry: retry,
-);
-```
-
-When `errorInfo` is omitted, ProviderKit automatically creates it using the
-`ErrorInfoMapper` configured through `ProviderKit.configure()`:
-
-```dart
-final state = ErrorState(
-  error,
-  stackTrace,
-);
-
-print(state.errorInfo.message);
-print(state.errorInfo.code);
-```
-
-This allows application errors to be converted into consistent,
-user-friendly `ErrorInfo` values that can be used directly by UI and
-application logic.
-
-For example, a listener can use the mapped information without needing to
-handle the underlying exception type:
-
-```dart
-errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-  showToast(errorInfo.message);
-}
-```
+`ViewState<T>` also provides `data` and `dataOrNull` getters to access the data contained in a `DataState`.
 
 ### Handling ViewState
 
-`ViewState` provides `when()`, `maybeWhen()`, `whenOrNull()`, `map()`,
-`maybeMap()`, and `mapOrNull()` for handling its different states without
-manually checking the state type.
+`ViewState<T>` provides `when()`, `maybeWhen()`, `whenOrNull()`, `map()`, `maybeMap()`, and `mapOrNull()` to handle its different states without manually checking their types.
 
-Use `when()` when every state should be handled:
+Use `when()` to handle every state and access its values:
 
 ```dart
 state.when(
   initialState: () => ...,
   loadingState: (message, progress) => ...,
   dataState: (data) => ...,
-  emptyState: (message) => ...,
+  emptyState: (message, onRefresh) => ...,
   errorState: (errorInfo, error, stackTrace, onRetry) => ...,
 );
 ```
-> **Note:** `EmptyState` will be used only for `Iterable` data types. For Example when your T is a `List`, `Set` etc.
+
+Use `map()` when you need to handle the concrete state objects instead. The `maybe` and `OrNull` variants let you handle only the states you need.
 
 ## ViewStateNotifier
 
-`ViewStateNotifier` is a `StateNotifier` that manages a `ViewState<T>`.
-It provides a convenient way to represent and update the different states of
-data-driven UI, such as loading, success, empty, and error states.
+`ViewStateNotifier<T>` is a base class for manually managing a `ViewState<T>`. Extend it when you want to control state transitions yourself.
 
 ```dart
-class MyViewStateProvider extends ViewStateNotifier<List<Item>> {
-  final Repository _repo = Repository();
+class ProductsNotifier extends ViewStateNotifier<List<Product>> {
+  ProductsNotifier(this._repository) : super(const InitialState());
 
-  MyViewStateProvider() : super(const InitialState()) {
-    init();
-  }
+  final ProductRepository _repository;
 
-  Future<void> init() async {
-    try {
-      state = const LoadingState();
-      final List<Item> items = await _repo.getItems(10);
-      if (!mounted) return; // Guard against disposal
-      if (items.isEmpty) {
-        state = const EmptyState();
-        return;
-      }
-      state = DataState(items);
-    } catch (error, stackTrace) {
-      state = ErrorState(
-        error,
-        stackTrace,
-        onRetry: onRefresh,
-      );
-    }
-  }
-
-  void onRefresh() {
+  Future<void> loadProducts() async {
     state = const LoadingState();
-    init();
+
+    try {
+      final products = await _repository.fetchProducts();
+
+      if (products.isEmpty) {
+        state = const EmptyState();
+      } else {
+        state = DataState(products);
+      }
+    } catch (error, stackTrace) {
+      state = ErrorState(error, stackTrace);
+    }
   }
 }
 ```
-The notifier exposes the current `ViewState<T>` through `state`, allowing
-widgets to react to each state through ProviderKit's View State widgets.
 
-> **Note:** Use `mounted` to check whether the notifier is still alive before
-> updating state after an asynchronous operation.
-
-
-
-**Tired of manually implementing the same logic for every provider?**
-No worries! Introducing **FutureNotifier**—a more efficient way to manage our view state.
-
+For common asynchronous workflows, use `FutureNotifier` or `StreamNotifier`, which manage the corresponding `ViewState` transitions automatically.
 
 ## FutureNotifier
 
-`FutureNotifier` automatically handles much of the boilerplate required
-for asynchronous `ViewState` management:
-
-<table>
-  <tr>
-    <th align="center">Before</th>
-    <th align="center">After</th>
-  </tr>
-  <tr valign="top">
-    <td>
-      <img
-        src="https://github.com/user-attachments/assets/f98fd8ad-50bf-4fb5-9426-1ff17a8d6b65"
-        alt="Before"
-        width="100%"
-        style="max-height: 600px;"
-      >
-    </td>
-    <td>
-      <img
-        src="https://github.com/user-attachments/assets/315421e8-db67-4144-bd17-931e0ee455b4"
-        alt="After"
-        width="100%"
-        style="max-height: 400px;"
-      >
-    </td>
-  </tr>
-</table>
-
-Instead of manually managing loading, data, empty, error, and refresh states,
-implement `fetchData()`:
+`FutureNotifier<T>` manages asynchronous data loading through a `Future`. Override `build()` to provide the data, and ProviderKit automatically manages the corresponding `ViewState` transitions.
 
 ```dart
-class MyViewStateProvider extends FutureNotifier<List<Item>> {
-  @override
-  FutureOr<List<Item>> fetchData() => Repository().getItems(10);
-}
+class ProductsNotifier extends FutureNotifier<List<Product>> {
+  ProductsNotifier(this._repository);
 
+  final ProductRepository _repository;
+
+  @override
+  Future<List<Product>> build() {
+    return _repository.fetchProducts();
+  }
+}
 ```
 
-The notifier automatically manages the associated `ViewState` transitions,
-error handling, empty-state handling, and refresh behavior.
+## StreamNotifier
 
-> **Note:** By default, an empty `Iterable` result is represented by
-> `EmptyState`. Use `disableEmptyState` to treat an empty `Iterable` as
-> `DataState` instead.
+`StreamNotifier<T>` manages continuous data updates through a `Stream`. Override `build()` to provide the stream, and ProviderKit manages the subscription and corresponding `ViewState` transitions.
 
-### What does `FutureNotifier` handle?
-- Automatically fetches data upon initialization.  
-- Transitions to `LoadingState` before fetching.  
-- If the data is `Iterable` and if it's empty, it switches to `EmptyState`.  
-- Catches errors and converts them into `ErrorState`.  
-- Includes a built-in `refresh()` function to re-fetch data with a loading-state transition.
-- Provides refreshSilently() to re-fetch data without automatically transitioning to LoadingState.
-- Passes the `refresh` function, error, and stack trace to `ErrorState`.  
-- Internally guarded with `mounted` – For safe async state updates.  
+```dart
+class MessagesNotifier extends StreamNotifier<List<Message>> {
+  MessagesNotifier(this._repository);
 
+  final MessageRepository _repository;
 
-| **Attributes**         | **Type**                                  | **Description**  |
-|-----------------------------|------------------------------------------|----------------|
-| **Constructor Params**  |                                          |                |
-| `initialState`              | `ViewState<T>`                           | The initial state of the provider. Defaults to `LoadingState`. |
-| `disableEmptyState`         | `bool`                                   | By default, if `T` is an `Iterable` (like `List`, `Set`, etc.), an empty iterable will result in `EmptyState`. Setting this to `true` forces an empty iterable to be assigned as `DataState`. |
-| **Property**               |                                          |                |
-| `state`                     | `ViewState<T>`                           | The current state of the provider, which can be `LoadingState`, `DataState`, `EmptyState`, or `ErrorState`. |
-| **Methods**                  |                                          |                |
-| `init()`                     | `FutureOr<void>`                         | Runs on initialization, setting up states and **Guarded with try-catch block**. It won't execute again if already initialized unless `refresh` is called. |
-| `fetchData()`                | `FutureOr<T>`                            | Fetches data from an API or database. Must be implemented in subclasses. |
-| `errorStateObject()`         | `ErrorState<T>`                          | Helps to customize the default `ErrorState` Object |
-| `loadingStateObject()`       | `LoadingState<T>`                        | Helps to customize the default `LoadingState` Object  |
-| `emptyStateObject()`         | `EmptyState<T>`                          | Helps to customize the default `EmptyState` Object  instance. |
-| `refresh()` | `Future<void>` | Refreshes data with a loading-state transition. |
-| `refreshSilently()` | `Future<void>` | Refreshes data without a loading-state transition. |
+  @override
+  Stream<List<Message>> build() {
+    return _repository.watchMessages();
+  }
+}
+```
 
+## Shared Async Notifier Features
 
-When `ErrorState.onRetry` is not provided, View State Widgets use the
-`refresh()` method of the `FutureNotifier` as the retry callback.
+Both `FutureNotifier` and `StreamNotifier` share the following features.
 
-Before moving on to the widgets that listen to `ViewStateNotifier` and `FutureNotifier`, let's first look at `ViewStateWidgetsProvider`, which allows us to define the default widgets used to represent different `ViewState`s.
+### Both notifiers constructor options
 
+`initialState` (default: `LoadingState`) · `startInitialBuild` (default: `true`) · `enableEmptyState` (default: `true`) · `loadingMessage` (default: `null`) · `emptyMessage` (default: `null`).
 
-## ViewStateWidgetsProvider
+By default, the initial state is `LoadingState`. Set `startInitialBuild` to `false` to start manually using `refresh()` or `rebuild()`. Set `enableEmptyState` to `false` to represent empty `Iterable` results as `DataState`.
 
-In a typical application, different `ViewState`s need different UI states—for
-example, a loading indicator for `LoadingState`, an error widget for
-`ErrorState`, an empty widget for `EmptyState`, and the actual content for
-`DataState`.
+### Refresh and rebuild
 
-Instead of configuring these widgets repeatedly for each View State widget,
-`ViewStateWidgetsProvider` lets you define them once and reuse them throughout
-the widget tree.
+Use `refresh()` to rerun the current `build()` with the same inputs. Use `rebuild()` when an input that determines the result changes, such as a search query, or filter.
 
-The configured widgets are used automatically by [`ViewStateBuilder`](#viewstatebuilder),
-[`ViewStateConsumer`](#viewstateconsumer), [`MultiViewStateBuilder`](#multiviewstatebuilder),
-and [`MultiViewStateConsumer`](#multiviewstateconsumer).
+When the current state is `DataState`, `refresh()` keeps the existing data visible while loading. The new result replaces it when available, and if the refresh fails, the existing data is preserved.
+
+```dart
+await refresh();
+await rebuild();
+```
+
+### Invalidate the current build
+
+Use `invalidateBuild()` to invalidate the current `build()` execution without starting a replacement or changing the current state.
+
+```dart
+invalidateBuild();
+```
+
+> **Outdated builds:** ProviderKit automatically protects against outdated builds. When `refresh()` or `rebuild()` starts a new build, subsequent state updates and results from the previous build are ignored. This prevents older builds from overwriting newer state.
+
+For asynchronous tasks outside `build()`, use `checkStaleness()` to ensure their results are still relevant before applying them to the current state.
+
+For example, `loadNextPage()` may still be running when `rebuild()` starts a new build. If the page request completes afterward, its result is considered stale and must not be appended to the current `DataState`.
+
+```dart
+Future<void> loadNextPage() async {
+  final isOperationStale = checkStaleness();
+
+  final products = await _repository.fetchNextPage();
+
+  if (isOperationStale()) return;
+
+  state = DataState([...state.data, ...products]);
+}
+```
+
+The captured staleness check returns `true` after a refresh, rebuild, build invalidation, or disposal. It does not cancel the underlying asynchronous task.
+
+### State setters
+
+Use these helpers to update the current `ViewState`:
+
+`setInitial()` · `setLoading()` · `setData(data)` · `setEmpty()` · `setError(error, stackTrace)`
+
+ProviderKit automatically applies configured messages, maps error information, and attaches the appropriate refresh or retry callbacks to empty and error states.
+
+### Error handling
+
+When an asynchronous build fails, ProviderKit creates an `ErrorState`. Besides the original error and stack trace, `ErrorState` contains an `ErrorInfo` object with user-facing error details, such as a message and error code.
+
+This allows your UI to display a meaningful error through `errorInfo.message` without needing to understand individual exception types.
+ProviderKit uses `ErrorInfoMapper` to convert the original error and stack trace into `ErrorInfo`.
+Configure it once at application startup
+
+```dart
+void main() {
+  ProviderKit.configure(
+    errorInfoMapper: (error, stackTrace) {
+      if (error is AuthException) {
+        return const ErrorInfo(
+          message: 'Authentication failed.',
+          code: 'authentication_failed',
+        );
+      }
+
+      return ErrorInfo(message: error.toString());
+    },
+  );
+
+  runApp(const MyApp());
+}
+```
+
+Configuring `ErrorInfoMapper` is optional. If omitted, ProviderKit uses `error.toString()` as the default error message.
+
+## View State Widgets
+
+View State Widgets work with `ViewState<T>` and automatically respond to changes between `InitialState`, `LoadingState`, `DataState`, `EmptyState`, and `ErrorState`.
+
+They work with `ViewStateNotifier`, `FutureNotifier`, and `StreamNotifier`.
+
+ProviderKit provides three widgets:
+
+- `ViewStateBuilder` — builds the UI based on the current state.
+- `ViewStateListener` — listens for state changes and performs side effects without rebuilding the UI.
+- `ViewStateConsumer` — combines listening and building in one widget.
+
+Each widget supports direct listenable access, `.of` for context-based
+resolution, and `.multi` for combining multiple listenables.
+
+### ViewStateBuilder
+
+Use `ViewStateBuilder` to build the UI based on the current state.
+
+```dart
+ViewStateBuilder.of<ProductsNotifier, List<Product>>(
+  dataBuilder: (context, products, _) => ProductsList(products: products),
+);
+```
+
+You can customize the UI for individual states using `initialBuilder`,
+`loadingBuilder`, `emptyBuilder`, and `errorBuilder`.
+
+### ViewStateListener
+
+Use `ViewStateListener` to perform side effects when a specific state is reached.
+
+```dart
+ViewStateListener.of<ProductsNotifier, List<Product>>(
+  dataStateListener: (context, products) {
+    showToast('${products.length} products loaded');
+  },
+  child: const ProductsView(),
+);
+```
+You can listen for individual states using `initialStateListener`,
+`loadingStateListener`, `emptyStateListener`, and `errorStateListener`.
+
+### ViewStateConsumer
+
+Use `ViewStateConsumer` when you need both state-specific side effects and UI rebuilding.
+
+```dart
+ViewStateConsumer.of<ProductsNotifier, List<Product>>(
+  dataStateListener: (context, products) {
+    showToast('${products.length} products loaded');
+  },
+  dataBuilder: (context, products, _) => ProductsList(products: products),
+);
+```
+It also supports the optional state-specific listeners and builders available
+on `ViewStateListener` and `ViewStateBuilder`.
+
+### ViewStateWidgetsProvider
+
+`ViewStateWidgetsProvider` lets you configure default widgets for initial, loading, empty, and error states once and reuse them throughout the widget tree.
+These defaults are automatically used by View State Builders and Consumers whenever a corresponding custom builder isn't provided.
+
+For app-wide defaults, wrap your `MaterialApp` with `ViewStateWidgetsProvider`. It must be available above the View State Widgets that rely on these defaults.
 
 ```dart
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-@override
-Widget build(BuildContext context) {
-  return ViewStateWidgetsProvider(
-    initialStateBuilder: (isSliver) => MyInitialWidget(isSliver),
-    loadingStateBuilder: (message, progress, isSliver) => MyLoadingWidget(
-      message: message,
-      progress: progress,
-      isSliver: isSliver,
-    ),
-    emptyStateBuilder: (message, isSliver) => MyEmptyWidget(
-      message: message,
-      isSliver: isSliver,
-    ),
-    errorStateBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) =>
-     MyErrorWidget(
-      errorInfo: errorInfo,
-      onRetry: onRetry,
-      isSliver: isSliver,
-    ),
-    child: const MaterialApp(),
-  );
-}
-}
-
-```
-Additionally, you can wrap any section of your widget tree with `ViewStateWidgetsProvider` to completely redefine its state widgets, or use `ViewStateWidgetsProvider.override` to update only specific state builders while inheriting the rest from the parent `ViewStateWidgetsProvider`.
-
-```dart
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-
   @override
   Widget build(BuildContext context) {
-    return ViewStateWidgetsProvider.override(
-      context: context,
-      // Overrides ONLY the loading builder for this subtree, used internally by `ViewStateWidgets`.
-      loadingStateBuilder: (message, progress, isSliver) {
-        const widget = Center(child: ProfileSkeletonLoader());
-        return isSliver ? const SliverToBoxAdapter(child: widget) : widget;
-      },
-      child: const ProfileView(),
+    return ViewStateWidgetsProvider(
+      initialStateBuilder: (_, isSliver) =>
+          MyInitialWidget(isSliver),
+      loadingStateBuilder: (_, details, isSliver) =>
+          MyLoadingWidget(message: details.message),
+      emptyStateBuilder: (_, details, isSliver) =>
+          MyEmptyWidget(message: details.message),
+      errorStateBuilder: (_, details, isSliver) =>
+          MyErrorWidget(message: details.message),
+
+      // Example localization with easy_localization
+      messageResolver: (context, message) => context.tr(message),
+
+      child: const MaterialApp(),
     );
   }
 }
 ```
+The `messageResolver` localizes messages from `ErrorInfoMapper` (`ErrorInfo.message`) and messages configured through `LoadingState.message` and `EmptyState.message`. View State Widgets resolve these messages before passing them to the corresponding state builders or listeners.
 
-With `ViewStateWidgetsProvider`, we can significantly reduce the amount of UI boilerplate:
+#### Scoped overrides
 
-<table>
-  <tr>
-    <th align="center">Before</th>
-    <th align="center">After</th>
-  </tr>
-  <tr valign="top">
-    <td>
-      <img
-        src="https://github.com/user-attachments/assets/63167856-c219-4587-8db9-14f4cd6bbc91"
-        alt="Before"
-        width="100%"
-        style="max-height: 500px;"
-      >
-    </td>
-    <td>
-      <img
-        src="https://github.com/user-attachments/assets/d247e875-0295-446c-8ca0-f4228c2dcb1e"
-        alt="After"
-        width="100%"
-        style="max-height: 400px;"
-      >
-    </td>
-  </tr>
-</table>
-
-## View State Widgets
-
-View State Widgets are similar to [State Widgets](#state-widgets), but are
-designed to work with [`ViewState`](#viewstate). They listen to providers that
-extend [`ViewStateNotifier`](#viewstatenotifier) or
-[`FutureNotifier`](#futurenotifier) and automatically respond to
-changes between `InitialState`, `LoadingState`, `DataState`, `EmptyState`, and
-`ErrorState`.
-
-Each widget supports two ways to access the provider:
-
-1. **Explicitly** — pass the provider instance through the `provider` parameter.
-2. **From context** — use the `.of` constructor to resolve the provider from the
-   widget tree.
-
-When using the `.of` constructor, the provider must be available in the widget
-tree through `Provider`, `ChangeNotifierProvider`, or another compatible
-provider widget from the [`provider`](https://pub.dev/packages/provider)
-package.
-
-The following widgets are available:
-
-- [`ViewStateListener`](#viewstatelistener) — listens to `ViewState` changes and
-  executes state-specific side effects.
-- [`ViewStateBuilder`](#viewstatebuilder) — builds the UI based on the current
-  `ViewState`.
-- [`ViewStateConsumer`](#viewstateconsumer) — combines listening and building in
-  one widget.
-
-## ViewStateListener
-A widget that listens for `ViewState` changes and executes state-specific side effects without rebuilding the UI.
+Use `ViewStateWidgetsProvider.override` to customize specific state widgets for a subtree. Unspecified builders inherit their parent's configuration.
 
 ```dart
-// Explicit provider
-ViewStateListener<MyDataType>(
-  provider: myProvider,
-  dataStateListener: (data) => context.showToast(data.toString()),
-  child: YourWidget(),
-)
-```
-```dart
-// Provider from context
-ViewStateListener.of<MyViewStateProvider, MyDataType>(
-  dataStateListener: (data) => context.showToast(data.toString()),
-  child: YourWidget(),
-);
-```
-
-| Attribute Name              | Type                                                                                           | Required/Optional | Description |
-|----------------------------|------------------------------------------------------------------------------------------------|------------------|-------------|
-| `provider`                 | `P`                                                                                           | **Required**         | The provider instance to listen to. To resolve the provider from the widget tree, use the `.of` method instead. |
-| `initialStateListener`     | `void Function()?`                                                                            | Optional         | Invoked when the state is `InitialState`. |
-| `loadingStateListener`     | `void Function(String? message, double? progress)?`                                          | Optional         | Invoked when the state is `LoadingState`. |
-| `dataStateListener`        | `void Function(T data)?`                                                                      | **Required**     | Invoked when the state is `DataState`. |
-| `emptyStateListener`       | `void Function(String? message)?`                                                             | Optional         | Invoked when the state is `EmptyState`. |
-| `errorStateListener` | `void Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry)?` | Optional | Invoked when the state is `ErrorState`. |
-| `listenWhen`               | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                   | Optional         | Determines whether to listen for state changes based on previous and next state comparisons. |
-| `callListenerOnInit` | `bool`                                                                                        | Optional         | Determines whether the state listener should be called immediately upon initialization. Defaults to `false`. |
-| `child`                    | `Widget?`                                                                                    | **Required**     | The child widget wrapped by `ViewStateListener`. |
-
-
-## ViewStateBuilder
-A widget that rebuilds the UI based on the current `ViewState`.
-
-The state widgets configured through [`ViewStateWidgetsProvider`](#viewstatewidgetsprovider)
-are used by default for `InitialState`, `LoadingState`, `EmptyState`, and
-`ErrorState`. You can override any of them directly in `ViewStateBuilder`.
-
-```dart
-// Explicit provider
-ViewStateBuilder<MyDataType>(
-  provider: myProvider,
-  dataBuilder: (data) => Text(data.toString()),
-)
-```
-```dart
-// Provider from context
-ViewStateBuilder.of<MyViewStateProvider, MyDataType>(
-  dataBuilder: (data) => Text(data.toString()),
+ViewStateWidgetsProvider.override(
+  context: context,
+  loadingStateBuilder: (_, details, isSliver) {
+    const widget = ProfileSkeletonLoader();
+    return isSliver ? SliverToBoxAdapter(child: widget) : widget;
+  },
+  child: const ProfileView(),
 );
 ```
 
 
-| Attribute Name     | Type                                                                 | Required/Optional | Description |
-|-------------------|----------------------------------------------------------------------|------------------|-------------|
-| `provider`       | `P`                                                                 | **Required**         | The provider instance to listen to. To resolve the provider from the widget tree, use the `.of` method instead. |
-| `rebuildWhen`    | `bool Function(ViewState<T> previous, ViewState<T> next)?`           | Optional         | Determines if the builder should rebuild based on state changes. |
-| `initialBuilder` | `Widget Function(bool isSliver)?`                                    | Optional         | Called when the state is `InitialState`. |
-| `dataBuilder`    | `Widget Function(T data)`                                            | **Required**     | Called when the state is `DataState`, passing the retrieved data. |
-| `errorBuilder` | `Widget Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry, bool isSliver)?` | Optional | Called when the state is `ErrorState`. |
-| `loadingBuilder` | `Widget Function(String? message, double? progress, bool isSliver)?` | Optional         | Called when the state is `LoadingState`. |
-| `emptyBuilder`   | `Widget Function(String? message, bool isSliver)?`                   | Optional         | Called when the state is `EmptyState`. |
-| `isSliver`       | `bool`                                                               | Optional         | Specifies whether the widget is a sliver. Defaults to `false`. |
-| `child`         | `Widget?`                                                            | Optional         | A static child widget that does not depend on the state. |
+### Multi-View State Widgets
 
+The `.multi` constructors let you combine the `ViewState` of multiple notifiers and treat them as a single `ViewState`. The combined view state is then used to determine which state-specific `builder` or `listener` is called. They are available on `ViewStateBuilder`, `ViewStateListener`, and `ViewStateConsumer`.
 
-## `ViewStateConsumer`
-
-A widget that combines the features of `ViewStateListener` and
-`ViewStateBuilder`, allowing you to listen to state changes and rebuild the UI
-from the same provider.
-
-The state widgets configured through [`ViewStateWidgetsProvider`](#viewstatewidgetsprovider)
-are used by default for `InitialState`, `LoadingState`, `EmptyState`, and
-`ErrorState`. You can override them directly in `ViewStateConsumer` when needed.
-
-```dart
-// Explicit provider
-ViewStateConsumer<MyDataType>(
-  provider: myProvider,
-  dataStateListener: (data) => context.showToast(data.toString()),
-  dataBuilder: (data) => Text(data.toString()),
-)
-```
-
-```dart
-// Provider from context
-ViewStateConsumer.of<MyViewStateProvider, MyDataType>(
-  dataStateListener: (data) => context.showToast(data.toString()),
-  dataBuilder: (data) => Text(data.toString()),
-);
-```
-
-
-| Attribute Name              | Type                                                                                           | Required/Optional | Description |
-|----------------------------|------------------------------------------------------------------------------------------------|------------------|-------------|
-| `provider`                 | `P`                                                                                           | **Required**         | The provider instance to listen to. To resolve the provider from the widget tree, use the `.of` method instead. |
-| `initialStateListener`     | `void Function()?`                                                                            | Optional         | Invoked when the state is `InitialState`. |
-| `loadingStateListener`     | `void Function(String? message, double? progress)?`                                          | Optional         | Invoked when the state is `LoadingState`. |
-| `dataStateListener`        | `void Function(T data)?`                                                                      | Optional         | Invoked when the state is `DataState`. |
-| `emptyStateListener`       | `void Function(String? message)?`                                                             | Optional         | Invoked when the state is `EmptyState`. |
-| `errorStateListener` | `void Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry)?` | Optional | Invoked when the state is `ErrorState`. |
-| `listenWhen`               | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                   | Optional         | Determines whether to listen for state changes based on previous and next state comparisons. |
-||
-| `rebuildWhen`              | `bool Function(ViewState<T> previous, ViewState<T> next)?`                                    | Optional         | Determines if the builder should rebuild based on state changes. |
-| `initialBuilder`           | `Widget Function(bool isSliver)?`                                                             | Optional         | Called when the state is `InitialState`. |
-| `loadingBuilder`           | `Widget Function(String? message, double? progress, bool isSliver)?`                          | Optional         | Called when the state is `LoadingState`. |
-| `emptyBuilder`             | `Widget Function(String? message, bool isSliver)?`                                            | Optional         | Called when the state is `EmptyState`. |
-| `dataBuilder`              | `Widget Function(T data)`                                                                     | **Required**     | Called when the state is `DataState`, passing the retrieved data. |
-| `errorBuilder` | `Widget Function(ErrorInfo errorInfo, Object error, StackTrace stackTrace, VoidCallback? onRetry, bool isSliver)?` | Optional | Called when the state is `ErrorState`. |
-| `isSliver`                 | `bool`                                                                                        | Optional         | Specifies whether the widget is a sliver. Defaults to `false`. |
-
----
-
-## Multi View State Widgets
-
-
-Multi View State Widgets work similarly to [Multi State Widgets](#multi-state-widgets), but are designed specifically for combining multiple `ViewState` providers.
-
-They combine the `ViewState` of multiple providers and treat them as a single `ViewState`. The combined view state is then used to determine which state-specific `builder` or `listener` is called.
 
 <p>
   <img
@@ -887,61 +581,30 @@ They combine the `ViewState` of multiple providers and treat them as a single `V
   />
 </p>
 
-When all providers are in `DataState`, their data is combined into a single typed value, just like the combined state in MultiState Widgets. Otherwise, the combined state follows the priority rules below.
+#### Combined state priority
 
-### ViewState Priority
+When combining multiple `ViewState` values, ProviderKit uses the following priority:
 
-When multiple providers have different view states, the combined `ViewState` follows this priority:
+**`ErrorState` → `InitialState` → `LoadingState` → `EmptyState` → `DataState`**
 
-**ErrorState** → **InitialState** → **LoadingState** → **EmptyState** → **DataState**
+- **ErrorState:** Used when any notifier is in an error state. The first error provides the error details, while retry callbacks from all retryable errors are combined.
+- **InitialState:** Used when no errors exist and at least one notifier is in initial state.
+- **LoadingState:** Used when no errors or initial states exist and at least one notifier is in loading state. The first loading state provides the message, and available progress values are combined.
+- **EmptyState:** Used when no higher-priority state exists and at least one notifier is empty. The first empty state provides its details.
+- **DataState:** Used only when all listenables contain data. Their values are combined into a single typed state.
 
-**`ErrorState` takes priority when any provider is in an error state**. The first provider in an error state provides the error details and message, while retry callbacks from all retryable error providers are combined.
+> If one listenable is in `EmptyState` while others contain data, the combined state is `EmptyState`. Set `enableEmptyState: false` on the corresponding async notifier when you want an empty collection to remain `DataState`.
 
-**`InitialState` takes priority when no provider is in error state and at least one provider is in an initial state.**
-
-**`LoadingState` takes priority when no provider is in error or initial and at least one is in loading state**. The first loading provider provides the message and details, while available progress values are combined.
-
-**`EmptyState` takes priority when no provider is in error, initial, or loading and at least one is in an empty state**. The first provider in an empty state provides the empty-state details.
-
-**`DataState` is used only when all providers are in `DataState`**. Their data is combined into a single typed value and passed to the `builder` or `listener`.
-
-> If some providers are in `DataState` while another is in `EmptyState`, the combined state becomes `EmptyState`. If you want to avoid this, keep the provider in `DataState` with an empty value instead, or use `disableEmptyState` with `FutureNotifier`.
-
-
-## MultiViewStateListener
-
-This widget listens to multiple `ViewState` providers and triggers state-specific side effects based on their combined view state.
+#### Combining multiple view states
 
 ```dart
-MultiViewStateListener(
-  providers: () => (
-    movie: movieProvider.watch,
-    similarMovies: similarMoviesProvider.watch,
-    trailers: trailersProvider.watch,
+ViewStateBuilder.multi(
+  listenables: () => (
+    movie: of<MovieNotifier>().watch,
+    similarMovies: of<SimilarMoviesNotifier>().watch,
+    trailers: trailersNotifier.watch,
   ),
-  dataStateListener: (state) {
-    // Use .data to access the data from each ViewState.
-    print(state.movie.data);
-    print(state.similarMovies.data);
-    print(state.trailers.data);
-  },
-  child: MovieDetailsView(),
-);
-```
-
-## MultiViewStateBuilder
-
-This widget listens to multiple `ViewState` providers and builds the UI based on their combined view state.
-
-```dart
-MultiViewStateBuilder(
-  providers: () => (
-    movie: movieProvider.watch,
-    similarMovies: similarMoviesProvider.watch,
-    trailers: trailersProvider.watch,
-  ),
-  dataBuilder: (state) {
-    // Use .data to access the data from each ViewState.
+  dataBuilder: (context, state, child) {
     return MovieDetailsView(
       movie: state.movie.data,
       similarMovies: state.similarMovies.data,
@@ -951,94 +614,46 @@ MultiViewStateBuilder(
 );
 ```
 
-Use `initialBuilder`, `loadingBuilder`, `emptyBuilder`, and `errorBuilder` to customize the UI for the corresponding states. The default widgets configured through `ViewStateWidgetsProvider` are used when these builders are not provided.
+For `ViewStateBuilder.multi` and `ViewStateConsumer.multi`, the default widgets configured through `ViewStateWidgetsProvider` are used for states without custom builders. You can override them using the corresponding state builders.
 
-## MultiViewStateConsumer
-
-This widget combines the features of `MultiViewStateListener` and `MultiViewStateBuilder`, allowing you to listen to and build from multiple `ViewState` providers.
-
-```dart
-MultiViewStateConsumer(
-  providers: () => (
-    movie: movieProvider.watch,
-    similarMovies: similarMoviesProvider.watch,
-    trailers: trailersProvider.watch,
-  ),
-  dataStateListener: (state) {
-    // Use .data to access the data from each ViewState.
-    print(state.movie.data);
-    print(state.similarMovies.data);
-    print(state.trailers.data);
-  },
-  dataBuilder: (state) {
-    return MovieDetailsView(
-      movie: state.movie.data,
-      similarMovies: state.similarMovies.data,
-      trailers: state.trailers.data,
-    );
-  },
-);
-```
-
-Use `initialBuilder`, `loadingBuilder`, `emptyBuilder`, and `errorBuilder` to customize the UI for the corresponding states. The default widgets configured through `ViewStateWidgetsProvider` are used when these builders are not provided.
-
----
 
 ## Cache Mixins
-ProviderKit provides cache mixins for storing and restoring `ViewState` data
-when needed.
+
+ProviderKit provides two cache mixins for retaining and restoring `ViewState` data.
 
 ### ExViewStateCacheMixin
 
-`ExViewStateCacheMixin` can be used with providers that support `ViewState`, such
-as [`ViewStateNotifier`](#viewstatenotifier) and
-[`FutureNotifier`](#futurenotifier).
-
-It keeps track of the most recent state of each `ViewState` type and provides
-access to the cached states.
-
+It automatically keeps track of the most recent state of each `ViewState` type as the notifier's state changes. No manual caching is required.
 
 ```dart
-class MyViewStateProvider extends ViewStateNotifier<MyDataType> with ExViewStateCacheMixin {
-  // Your implementation here
+class ProductsNotifier extends ViewStateNotifier<List<Product>>
+    with ExViewStateCacheMixin {
 }
 ```
 
+Access the cached states through `exInitialState`, `exLoadingState`, `exDataState`, `exEmptyState`, and `exErrorState`. Use `exDataStateObject` to access the cached `DataState` object.
 
-| Name             | Type                  | Description |
-|----------------------|----------------------|-------------|
-| `exInitialState`    | `InitialState<T>?`   | Stores the last `InitialState`. |
-| `exLoadingState`    | `LoadingState<T>?`   | Stores the last `LoadingState`. |
-| `exEmptyState`      | `EmptyState<T>?`     | Stores the last `EmptyState`. |
-| `exErrorState`      | `ErrorState<T>?`     | Stores the last `ErrorState`. |
-| `exDataState`       | `DataState<T>?`      | Stores the last `DataState`. |
-| `exDataStateObject` | `T?`                 | Stores the last data object from `DataState`. |
-| `clearCache()` | `void`     | Clears all cached states. |
-
+Call `clearCache()` to clear all cached states.
 
 ### DataStateCacheMixin
 
-It can be used with providers that support `ViewState`,
-such as [`ViewStateNotifier`](#viewstatenotifier) and
-[`FutureNotifier`](#futurenotifier).
-It lets you cache a `DataState` so you can temporarily change the current
-data and restore the cached data later.
-This is useful for operations such as filtering, searching, or locally
-modifying data while keeping the original data available.
+`DataStateCacheMixin<T>` lets you cache a `DataState<T>` so you can temporarily modify the current data and restore the original data later.
 
-#### Example with `FutureNotifier`:
+This is useful for operations such as filtering, searching, or locally modifying data.
 
 ```dart
-class MyViewStateProvider extends FutureNotifier<List<String>>
-    with DataStateCacheMixin<List<String>> {
+class ProductsNotifier extends FutureNotifier<List<Product>>
+    with DataStateCacheMixin {
+  ProductsNotifier(this._repository);
+
+  final ProductRepository _repository;
 
   @override
-  Future<List<String>> fetchData() async {
-    final data = await repository.getData();
+  Future<List<Product>> build() async {
+    final products = await _repository.fetchProducts();
 
-    // Cache the original data before applying local changes.
-    cacheDataState(DataState(data));
-    return data;
+    cacheDataState(DataState(products));
+    return products;
   }
 
   void clearFilter() {
@@ -1052,22 +667,13 @@ class MyViewStateProvider extends FutureNotifier<List<String>>
 }
 ```
 
-| Name | Type | Description |
-|---|---|---|
-| `cachedDataState` | `DataState<T>?` | Returns the cached `DataState<T>`. |
-| `cachedData` | `T?` | Returns the data from the cached `DataState<T>`. |
-| `cacheDataState()` | `(DataState<T> dataState)` | Caches the given `DataState<T>` for later use. |
-| `clearDataStateCache()` | `void` | Clears the cached `DataState<T>` and its data. |
+Use `cacheDataState()` to save a `DataState` for later restoration. Access the cached state through `cachedDataState`, or just its data through `cachedData`. Call `clearDataStateCache()` when you no longer need the cached value.
 
 ---
-<br>
 
-# Mutations
+## Mutation
 
-A `Mutation` manages the state of an asynchronous operation such as creating, updating, deleting, or submitting data.
-When an operation is running, the UI may need to show a loading indicator, display the result when it succeeds, or show an error when it fails.
-
-`Mutation` handles these states for you, making it simple for the UI to react to the progress and result of an operation.
+`Mutation<T>` manages the state of asynchronous operations such as signing in, submitting forms, or updating data. It exposes idle, loading, success, and error states so the UI can react to each operation.
 
 <p>
   <img
@@ -1077,158 +683,167 @@ When an operation is running, the UI may need to show a loading indicator, displ
   />
 </p>
 
-## MutationState
 
-A mutation progresses through four states: `MutationIdle` → `MutationLoading` → `MutationSuccess` or `MutationError`.
+### Global configuration
 
-| State | Description | Properties |
-| --- | --- | --- |
-| `MutationIdle` | Represents the initial state before the mutation has been executed. | None |
-| `MutationLoading` | Represents a mutation that is currently executing. | None |
-| `MutationSuccess` | Represents a successfully completed mutation and contains its result. | `data: T` |
-| `MutationError` | Represents a failed mutation and contains the mapped `errorInfo`, original `error`, and its `stackTrace`. | `errorInfo: ErrorInfo`, `error: Object`, `stackTrace: StackTrace` |
-
-Mutation state is managed internally by `run()` and cannot be assigned
-directly.
-
-When an operation fails, `MutationError` creates `errorInfo` using the
-`ErrorInfoMapper` configured through `ProviderKit.configure()`.
-
-`MutationState` provides `when()`, `maybeWhen()`, `whenOrNull()`, `map()`,
-`maybeMap()`, and `mapOrNull()` for handling its states.
-
-Use `when()` when every state should be handled:
+You can optionally configure the default concurrency policy and error mapping once at application startup:
 
 ```dart
-state.when(
-  idle: () => const Text('Ready'),
-  loading: () => const CircularProgressIndicator(),
-  success: (data) => Text('Success: $data'),
-  error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
-);
-```
+void main() {
+  ProviderKit.configure(
+    mutationConcurrency: MutationConcurrency.ignoreIfBusy,
+    errorInfoMapper: (error, stackTrace) {
+      if (error is AuthException) {
+        return const ErrorInfo(
+          message: 'Authentication failed.',
+          code: 'authentication_failed',
+        );
+      }
 
+      return ErrorInfo(message: error.toString());
+    },
+  );
 
-### Defining a Mutation
-
-Create a mutation with the generic type representing the return type of the operation:
-
-```dart
-final addTodo = Mutation<Todo>();
-```
-
-### Listening to a Mutation
-
-Once a mutation is defined, you can listen to its state in the UI using
-ProviderKit state widgets such as [`StateBuilder`](#statebuilder),
-[`StateListener`](#statelistener), [`StateConsumer`](#stateconsumer), and their
-multi-provider variants.
-
-```dart
-StateBuilder(
-  provider: deleteTodo,
-  builder: (context, state, child) {
-    return state.when(
-      idle: () => const Text('Delete'),
-      loading: () => const CircularProgressIndicator(),
-      success: (_) => const Icon(Icons.check),
-      error: (errorInfo, error, stackTrace) => Text(errorInfo.message),
-    );
-  },
-);
-```
-Use [`StateListener`](#statelistener) when you need to perform side effects
-without rebuilding the UI.
-
-### Triggering a Mutation
-
-Execute a mutation by passing an asynchronous operation to `run()`:
-
-```dart
-await addTodo.run(
-  () => Api.addTodo(todo),
-);
-```
-
-A mutation can be triggered from any application action, such as a button press:
-
-```dart
-ElevatedButton(
-  onPressed: () async {
-    await addTodo.run(
-      () => Api.addTodo(todo),
-    );
-  },
-  child: const Text('Add Todo'),
-);
-```
-
-When `run()` starts, the mutation enters `MutationLoading`. When the operation
-completes, it transitions to `MutationSuccess` or `MutationError` depending on
-the result.
-
-> **Note:** Multiple `run()` calls can execute concurrently. Each operation
-> continues until it completes, but only the most recently started execution can
-> update the mutation state. Earlier executions cannot overwrite the state
-> produced by a newer execution or by `reset()`.
-
-### Using the Result
-
-`run()` returns the result produced by the asynchronous operation, allowing you
-to use it immediately:
-
-```dart
-final todo = await addTodo.run(
-  () => Api.addTodo(todoId),
-);
-
-// Add the created todo to the local list.
-myList = [...myList, todo]
-```
-
-After a successful execution, the result is also available through the
-mutation's `data` property:
-
-```dart
-if (addTodo.isSuccess) {
-  final todo = addTodo.data;
-
-  // Use the result for other application logic.
+  runApp(const MyApp());
 }
 ```
 
-Use the value returned by `run()` when you need the result immediately after the
-operation. Use `data` when accessing the result from the current successful
-mutation state.
+The default concurrency policy is `parallel` when not configured. The configured `ErrorInfoMapper` is also used to create consistent error information for failed mutations.
 
-### Resetting
 
-`reset()` returns the mutation to `MutationIdle` and invalidates any in-flight
-execution, preventing it from updating the mutation state after the reset.
+A mutation progresses through four states:
+`MutationIdle` → `MutationLoading` → `MutationSuccess` or `MutationError`.
 
-```dart
-addTodo.reset();
-```
 
-### Disposing
+### Basic usage
 
-Dispose the mutation when the widget or provider that owns it is disposed.
+Create a mutation in the class that owns the operation and reuse the same instance:
 
 ```dart
-addTodo.dispose();
+class AuthNotifier extends ChangeNotifier {
+  final signInMutation = Mutation<User>();
+
+  Future<MutationResult<User>> signIn(
+    String email,
+    String password,
+  ) {
+    return signInMutation.run(
+      () => Api.signIn(email, password),
+    );
+  }
+
+  @override
+  void dispose() {
+    signInMutation.dispose();
+    super.dispose();
+  }
+}
 ```
 
-A disposed mutation should not be used again.
+### Listening to mutation state
 
+Use ProviderKit's state widgets to react to mutation state changes:
+
+```dart
+StateBuilder.of<AuthNotifier, MutationState<User>>(
+  selectListenable: (auth) => auth.signInMutation,
+  builder: (context, state, child) {
+    return state.when(
+      idle: () => const Text('Sign in'),
+      loading: () => const CircularProgressIndicator(),
+      success: (user) => Text('Welcome, ${user.name}'),
+      error: (errorInfo, error, stackTrace) =>
+          Text(errorInfo.message),
+    );
+  },
+);
+```
+
+`selectListenable` selects the mutation from the current provider instance. This is useful when the provider can be replaced, such as with `ProxyProvider`, because the widget can follow the newly supplied mutation instead of retaining a reference to the previous instance.
+
+When you own a stable mutation instance, passing it directly through `listenable` is also fine.
+
+### Handling execution results
+
+`run()` returns a `MutationResult<T>` describing the outcome of that specific execution:
+
+- `MutationSucceeded<T>` — contains the returned data.
+- `MutationErrored<T>` — contains the error, stack trace, and mapped `ErrorInfo`.
+- `MutationIgnored<T>` — indicates that the execution was ignored.
+
+Use `result.when()` to handle each outcome:
+
+```dart
+final result = await authNotifier.signIn(email, password);
+
+result.when(
+  succeeded: (user) {
+    // Continue after successful sign-in.
+  },
+  errored: (errorInfo, error, stackTrace) {
+    showToast(errorInfo.message);
+  },
+  ignored: (reason) {
+    // No action needed.
+  },
+);
+```
+
+Errors thrown by the mutation action are returned as `MutationErrored` rather than being rethrown.. You can also provide optional `onSuccess` and `onError` callbacks to `run()`.
+
+Use `MutationState` to observe the current mutation state reactively, and `MutationResult` to handle the outcome of a particular execution.
+
+### Execution concurrency
+
+Mutations support four concurrency policies:
+
+- `parallel` — allows concurrent executions.
+- `latestOnly` — only the latest execution can publish its outcome.
+- `ignoreIfBusy` — ignores new executions while one is running.
+- `queue` — executes requests sequentially in FIFO order.
+
+The default is `parallel`. You can override it for an individual mutation:
+
+```dart
+final signInMutation = Mutation<User>(
+  concurrency: MutationConcurrency.ignoreIfBusy,
+);
+```
+
+### Reset and disposal
+
+Call `reset()` to return the mutation to `MutationIdle` and invalidate active, uncommitted and queued executions.
+
+```dart
+signInMutation.reset();
+```
+
+Resetting doesn't cancel the underlying asynchronous operations; their invalidated outcomes are ignored.
+Dispose the mutation when its owning notifier is disposed. A disposed mutation cannot be used again.
+
+```dart
+signInMutation.dispose();
+```
 ## MutationGroup
 
-A `MutationGroup` manages multiple independent `Mutation` instances using unique keys.
+`MutationGroup<T>` manages multiple independent mutations using unique keys. It is particularly useful for lists where each item needs its own mutation state, such as deleting individual items.
 
-Each key represents an independent mutation. Requesting a key returns the
-`Mutation` associated with that key.
+<p>
+  <img
+    src="https://github.com/user-attachments/assets/06c6d0d3-e764-4b2c-b546-4ed0460cc8fa"
+    width="213" height="261"
+    alt="Mutation Demo"
+  />
+</p>
+
+### Basic usage
+
+Create a group and retrieve a mutation using an item's key:
 
 ```dart
-final deleteTodo = MutationGroup<void>();
+final deleteTodo = MutationGroup<void>(
+  concurrency: MutationConcurrency.ignoreIfBusy,
+);
 
 final mutation = deleteTodo(todo.id);
 
@@ -1237,158 +852,13 @@ await mutation.run(
 );
 ```
 
-Conceptually, the group manages:
+Each key maintains its own `Mutation` instance and state. Repeated lookups for the same key return the same cached instance while it remains available.
 
-```text
-deleteTodo
-├── todo 1 → Mutation<void>
-├── todo 2 → Mutation<void>
-├── todo 3 → Mutation<void>
-└── ...
-```
+### Automatic disposal
 
-Each keyed mutation has its own independent state:
+Keyed mutations are automatically disposed when they have no listeners and no pending executions. Loading mutations remain alive until their executions finish.
 
-```text
-Todo 1 → Loading
-Todo 2 → Idle
-Todo 3 → Error
-```
-
-The key identifies the mutation within a specific `MutationGroup` instance. The group owns the cache and lifecycle of its keyed mutations.
-
-This is particularly useful for lists, where the same operation may need to run independently for many items.
-
-<p>
-  <img
-    src="https://github.com/user-attachments/assets/06c6d0d3-e764-4b2c-b546-4ed0460cc8fa"
-    width="290" height="355"
-    alt="Mutation Demo"
-  />
-</p>
-
-`MutationGroup` automatically disposes keyed mutations when they have no
-listeners and are not currently loading. This prevents a large or continuously
-scrolling list from retaining a mutation for every item that has been viewed.
-
-### Defining a MutationGroup
-
-Create a `MutationGroup` with the generic type representing the return type of the operation:
-
-```dart
-final deleteTodo = MutationGroup<void>();
-```
-
-The group is typically kept inside a provider or other object that owns the
-operation:
-
-```dart
-class TodoProvider {
-  final deleteTodo = MutationGroup<void>();
-
-  Future<void> delete(int id) {
-    return deleteTodo(id).run(
-      () => Api.deleteTodo(id),
-    );
-  }
-
-  void dispose() {
-    deleteTodo.dispose();
-  }
-}
-```
-Dispose the group when the provider that owns it is disposed.
-
-### Getting a Mutation by Key
-
-Call the group with a key to get the mutation associated with that key:
-
-```dart
-final mutation = deleteTodo(todo.id);
-```
-
-If a mutation for that key is already cached, the same instance is returned:
-
-```dart
-final first = deleteTodo(todo.id);
-final second = deleteTodo(todo.id);
-
-identical(first, second); // true while cached
-```
-
-The cache belongs to the specific `MutationGroup` instance. A different group
-has its own independent cache, even when using the same key.
-
-This allows a mutation to remain available when a list item temporarily leaves
-the widget tree. When the item appears again, requesting the same key returns
-the cached mutation if it has not been disposed.
-
-### Using MutationGroup in a List
-
-A common use case for `MutationGroup` is giving each list item its own
-independent mutation state.
-
-```dart
-ListView.builder(
-  itemCount: todos.length,
-  itemBuilder: (context, index) {
-    final todo = todos[index];
-    final mutation = provider.deleteTodo(todo.id);
-
-    return StateBuilder(
-      provider: mutation,
-      builder: (context, state, child) {
-        return ListTile(
-          title: Text(todo.title),
-          trailing: IconButton(
-            onPressed: state.isLoading
-                ? null
-                : () => provider.delete(todo.id),
-            icon: state.isLoading
-                ? const CircularProgressIndicator()
-                : const Icon(Icons.delete),
-          ),
-        );
-      },
-    );
-  },
-);
-```
-### Automatic Disposal
-
-`MutationGroup` automatically disposes a keyed mutation when:
-
-- It has no listeners.
-- It is not currently loading.
-
-A mutation remains alive while it has listeners or while its operation is running.
-
-For example:
-
-- `Idle` + no listeners → eligible for disposal
-- `Success` + no listeners → eligible for disposal
-- `Error` + no listeners → eligible for disposal
-- `Loading` + no listeners → kept alive until the operation completes
-- Any state + listeners → kept alive
-
-This allows `MutationGroup` to safely manage mutations for large or continuously
-scrolling lists without retaining every mutation indefinitely.
-
-### Keeping Completed States Alive
-
-By default, `MutationGroup` can automatically dispose completed mutations when
-they have no listeners.
-
-Use `keepAliveStates` to keep specific completed states cached:
-
-```dart
-final deleteTodo = MutationGroup<void>(
-  keepAliveStates: {
-    KeepAliveState.success,
-  },
-);
-```
-You can keep both successful and failed mutations alive:
+Use `keepAliveStates` to retain completed success or error states when needed.
 
 ```dart
 final deleteTodo = MutationGroup<void>(
@@ -1399,181 +869,124 @@ final deleteTodo = MutationGroup<void>(
 );
 ```
 
-`Loading` mutations are always kept alive until their operation completes.
-
-Keeping completed states alive increases the number of mutations retained by the
-group, so use it carefully for large or long-lived groups.
-
-### Manual Disposal
-
-You can manually dispose of keyed mutations when you no longer need them.
-
-Pass a key to `dispose()` to remove and dispose of a specific mutation:
-
-```dart
-deleteTodo.dispose(todo.id);
-```
-
-Call `dispose()` without a key to dispose of all cached mutations in the group:
+Dispose the group when its owning notifier is disposed:
 
 ```dart
 deleteTodo.dispose();
 ```
 
-Manual disposal immediately disposes the selected mutations, including mutations
-that are currently loading.
-
-> **Note:** `MutationGroup` automatically disposes individual keyed mutations
-> when they become eligible for automatic disposal. However, you must manually
-> dispose the `MutationGroup` itself when its owning provider or widget is
-> disposed.
-
-For example:
-
-```dart
-@override
-void dispose() {
-  group.dispose();
-  super.dispose();
-}
-```
 ---
 
-## State Field
+## StateField
 
-`StateField<T>` is a lightweight reactive state field for developers who prefer the traditional `ChangeNotifier` style.
-Instead of keeping all state in a single state object, you can keep individual variables and make them reactive.
+`StateField<T>` is a lightweight reactive field for managing supporting state independently from a notifier's main state.
+It is useful for keeping values such as search queries, filters, sorting options, and UI preferences separate from the main data state.
+
+For example, a products notifier can keep its query configuration in a
+`StateField` while `FutureNotifier` manages the loaded products:
 
 ```dart
-class LoginProvider extends ChangeNotifier {
-  final email = StateField('');
-  final password = StateField('');
-  final isLoading = StateField(false);
+class ProductsNotifier extends FutureNotifier<List<Product>> {
+  ProductsNotifier(this._repository);
+
+  final ProductRepository _repository;
+
+  final query = StateField(const ProductSearchQuery());
+
+  @override
+  Future<List<Product>> build() {
+    return _repository.fetchItems(query.state);
+  }
+
+  Future<void> updateQuery(ProductSearchQuery value) async {
+    query.state = value;
+    await rebuild();
+  }
+
+  @override
+  void dispose() {
+    query.dispose();
+    super.dispose();
+  }
 }
 ```
 
-Update a field through `state`:
+Each `StateField` can be observed independently using ProviderKit state widgets:
 
 ```dart
-email.state = 'user@example.com';
-isLoading.state = true;
-```
-
-Each `StateField` can be used directly with ProviderKit state widgets such as [`StateBuilder`](#statebuilder), [`StateListener`](#statelistener), and [`StateConsumer`](#stateconsumer), as well as their multi-provider variants [`MultiStateBuilder`](#multistatebuilder), [`MultiStateListener`](#multistatelistener), and [`MultiStateConsumer`](#multistateconsumer).
-
-
-```dart
-StateBuilder<String>(
-  provider: email,
-  builder: (context, state, child) {
-    return Text(state);
+StateBuilder(
+  listenable: notifier.query,
+  builder: (context, query, child) {
+    return SearchFilters(query: query);
   },
 );
 ```
 
-`StateField` should be disposed when it is no longer needed. For fields owned by a `ChangeNotifier` or `State`, it is highly recommended to use ProviderKit's automatic resource disposal mixins to avoid manually disposing each field.
+You can use `StateField` with ProviderKit's state widgets, including their `.of` and `.multi` variants.
+
+Fields owned by a notifier should be disposed when their owner is disposed. Use ProviderKit's automatic resource disposal mixins to manage their lifecycle without manually disposing each field.
 
 See [Automatic Resource Disposal](#automatic-resource-disposal) for details.
 
-> **Tip:** Use `StateField` when you prefer independent reactive fields and a traditional `ChangeNotifier` style. Use `StateNotifier` when you prefer a single state architecture.
+> **Tip:** Use `StateField` for supporting values that benefit from independent state and notifications, while keeping your main data state focused on the data it manages.
 
----
 
 ## Automatic Resource Disposal
 
-ProviderKit provides resource mixins that automatically dispose resources
-created through them when the owning `ChangeNotifier` or `State` is disposed.
+ProviderKit provides resource mixins that automatically dispose resources when their owning `ChangeNotifier` or `State` is disposed.
 
-The mixins manage the lifecycle of:
-
-- `StateField`
-- `Mutation`
-- `MutationGroup`
-- `Debounce`
-- `Throttle`
-
-Resources created through the mixins are owned by their notifier or `State`, so
-you do not need to manually dispose each resource.
-
+They manage the lifecycle of `StateField`, `Mutation`, `MutationGroup`, `Debounce`, and `Throttle`, so you don't need to dispose each resource manually.
 
 ### NotifierResourcesMixin
 
-Use `NotifierResourcesMixin` with any `ChangeNotifier`, including ProviderKit
-notifiers such as `StateNotifier`, `ViewStateNotifier`, and
-`FutureNotifier`.
+Use `NotifierResourcesMixin` with any `ChangeNotifier`, including ProviderKit notifiers:
 
 ```dart
 class SearchNotifier extends ChangeNotifier
     with NotifierResourcesMixin {
-  late final searchQuery = field("");
+  late final searchQuery = field('');
   late final searchMutation = mutation<List<Movie>>();
+  late final searchGroup = mutationGroup<void>();
   late final searchDebounce = debounce();
-
-  // ...
+  late final searchThrottle = throttle();
 }
 ```
 
-For convenience, `ResourceNotifier` provides the same resource management without explicitly adding the mixin or extending `ChangeNotifier`:
+`ResourceNotifier` is a convenience base class that combines `ChangeNotifier`
+with `NotifierResourcesMixin`:
 
 ```dart
 class SearchNotifier extends ResourceNotifier {
-  late final searchQuery = field("");
+  late final searchQuery = field('');
   late final searchMutation = mutation<List<Movie>>();
 }
 ```
-Resources are disposed automatically when the notifier is disposed.
 
 ### StateResourcesMixin
 
-Use `StateResourcesMixin` with the `State` of a `StatefulWidget`.
+Use `StateResourcesMixin` with the `State` of a `StatefulWidget`:
 
 ```dart
 class _SearchPageState extends State<SearchPage>
     with StateResourcesMixin<SearchPage> {
-  late final searchQuery = field("");
-  late final searchMutation = mutation<List<Movie>>();
+  late final searchQuery = field('');
   late final searchDebounce = debounce();
-
-  // ...
 }
 ```
-Resources are disposed automatically when the `State` is disposed.
 
-### Declaring resources
+Declare resources using `late final` so they are created lazily when first accessed and disposed automatically with their owner.
 
-Declare resources with `late final` so they are created lazily when first
-accessed and managed automatically by the mixin.
+### Shared debounce and throttle helpers
 
-```dart
-late final searchQuery = field("");
-late final searchMutation = mutation<List<Movie>>();
-late final searchGroup = mutationGroup<Movie>();
-late final searchDebounce = debounce();
-late final searchThrottle = throttle();
-```
-
-Use the mixin's resource methods instead of creating `StateField`, `Mutation`, `MutationGroup`,
-`Debounce`, or `Throttle` instances directly. Resources created through the
-mixin are automatically owned and disposed with the notifier or `State`.
-
-### Shared helpers
-
-For simple debounced or throttled operations, use the shared helpers instead
-of creating a dedicated instance:
+For simple debounced or throttled operations, use `debounceRun()` and `throttleRun()` instead of creating dedicated instances:
 
 ```dart
-debounceRun(() {
-  search(query);
-});
+debounceRun(() => search(query));
 
-throttleRun(() {
-  submit();
-});
+throttleRun(() => submit());
 ```
 
-Each mixin manages one shared `Debounce` and one shared `Throttle`, created
-lazily on first use. Calls without a `key` share the same operation, while
-different keys maintain independent operations:
+Each mixin maintains one shared `Debounce` and `Throttle`, created lazily on first use. Calls without a key share the same operation, while different keys maintain independent operations:
 
 ```dart
 debounceRun(
@@ -1587,115 +1000,64 @@ debounceRun(
 );
 ```
 
-For complete documentation on `Debounce` and `Throttle`, see
-[`rate_kit`](https://pub.dev/packages/rate_kit).
-
-### Automatic disposal
-
-All resources created through these mixins are disposed automatically with
-their owner. No manual cleanup is required.
-
-The following is unnecessary:
-
-```dart
-// ❌ Not needed.
-@override
-void dispose() {
-  searchQuery.dispose();
-  searchMutation.dispose();
-  searchDebounce.dispose();
-  super.dispose();
-}
-```
-
----
+`Debounce` and `Throttle` are provided by [`rate_kit`](https://pub.dev/packages/rate_kit), which ProviderKit uses for its rate-limiting utilities. See its documentation for the complete API.
 
 ## NestedStateListener
 
-`NestedStateListener` allows multiple state listeners to be nested within a
-single widget. It supports `StateListener`, `ViewStateListener`,
-`MultiStateListener`, and `MultiViewStateListener`.
-
-This is useful when a widget needs to listen to multiple independent state
-sources without manually nesting each listener.
+`NestedStateListener` lets you combine multiple state listeners under a single widget without manually nesting them.
+It supports `StateListener`, `ViewStateListener`, and their `.multi` constructors.
 
 ```dart
 NestedStateListener(
   listeners: [
-    StateListener.of<MyProvider, DataType>(
+    StateListener.of<AuthNotifier, AuthState>(
       listener: (context, state) {
-        // Handle state changes.
+        // Handle authentication state changes.
       },
     ),
-    MultiStateListener<DataType>(
-      providers: [ProviderOne(), ProviderTwo()],
-      listener: (context, states) {
-        // Handle state changes.
+    ViewStateListener.of<ProductsNotifier, List<Product>>(
+      dataStateListener: (context, products) {
+        // Handle product updates.
+      },
+    ),
+    StateListener.multi(
+      listenables: () => (
+        cart: cartNotifier.watch,
+        wishlist: wishlistNotifier.watch,
+      ),
+      listener: (context, state) {
+        // Handle combined state changes.
       },
     ),
   ],
   child: const MyChildWidget(),
 );
 ```
-
 ---
 
-## NotifierObserver  
+## NotifierObserver
 
-`NotifierObserver` allows you to monitor the lifecycle and state changes of
-ProviderKit notifiers. It can be used for debugging, logging, analytics, or other cross-cutting
-concerns.
+`NotifierObserver` lets you monitor the lifecycle and state changes of ProviderKit notifiers. It is useful for debugging, logging, analytics, and other application-wide monitoring.
 
-### Setting up a global observer
+### Debugging with DebugNotifierObserver
 
-Configure a global `NotifierObserver` through `ProviderKit.configure()`.
-This is typically done during application startup, before running the `MaterialApp`.
+Use `DebugNotifierObserver` to log notifier events during development.
+Add it to your existing `ProviderKit.configure()` call at application startup:
 
 ```dart
 void main() {
   ProviderKit.configure(
-    observer: MyNotifierObserver(),
+    observer: DebugNotifierObserver(),
+    // Other global configuration...
   );
 
   runApp(const MyApp());
 }
 ```
-```dart
-class MyNotifierObserver extends NotifierObserver {
-  @override
-  void onCreate(NotifierBase notifier) {
-    super.onCreate(notifier);
-    debugPrint('Created: ${notifier.runtimeType}');
-  }
 
-  @override
-  void onChange(NotifierBase notifier, Change change) {
-    super.onChange(notifier, change);
-    debugPrint(
-      '${notifier.runtimeType}: '
-      '${change.currentState.runtimeType} → '
-      '${change.nextState.runtimeType}',
-    );
-  }
+`DebugNotifierObserver` uses `debugPrint` to log notifier creation, state changes, errors, and disposal to the debug console.
+For custom logging or analytics, extend `NotifierObserver` and override `onCreate`, `onChange`, `onError`, and `onDispose`.
 
-  @override
-  void onError(
-    NotifierBase notifier,
-    Object error,
-    StackTrace stackTrace,
-  ) {
-    super.onError(notifier, error, stackTrace);
-    debugPrint('${notifier.runtimeType} error: $error');
-  }
-
-  @override
-  void onDispose(NotifierBase notifier) {
-    super.onDispose(notifier);
-    debugPrint('Disposed: ${notifier.runtimeType}');
-  }
-}
-```
----
 
 ## VS Code Extension
 
@@ -1706,11 +1068,8 @@ Type `pk` in a Dart file to discover the available snippets.
 [Install VS Code Extension — ProviderKit Snippets](https://marketplace.visualstudio.com/items?itemName=Ram-Prasanth.providerkit-snippets)
 
 ---
-### Acknowledgements
 
-Some features of this package were inspired by `flutter_bloc` and `riverpod`.
-
-### 🛠 Features & Bug Reports  
+### 🛠 Features & Bug Reports
 Have a feature request or found a bug? Open an issue in the
 [GitHub Issue Tracker](https://github.com/RAMb002/provider_kit/issues).
 

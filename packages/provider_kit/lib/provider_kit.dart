@@ -9,3 +9,4 @@ export 'src/observer/index.dart';
 export 'src/state/index.dart';
 export 'src/view_state/index.dart';
 export 'src/resources/index.dart';
+export 'package:rate_kit/rate_kit.dart';
