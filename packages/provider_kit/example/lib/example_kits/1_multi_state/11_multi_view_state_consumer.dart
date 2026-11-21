@@ -31,19 +31,19 @@ class MultiViewStateConsumerExample extends StatelessWidget {
               trailers: trailersProvider.watch,
             ),
             initialStateListener: (context) =>
-                context.showToast('Initial state'),
+                context.showSnackBar('Initial state'),
             loadingStateListener: (context, details) =>
-                context.showToast('Loading state'),
+                context.showSnackBar('Loading state'),
             emptyStateListener: (context, details) =>
-                context.showToast('Empty state'),
+                context.showSnackBar('Empty state'),
             dataStateListener: (context, state) {
-              context.showToast(
+              context.showSnackBar(
                 'Movie: ${state.movie.data.title}\n'
                 'Similar movies: ${state.similarMovies.data.length}\n'
                 'Trailers: ${state.trailers.data.length}',
               );
             },
-            errorStateListener: (context, details) => context.showToast(
+            errorStateListener: (context, details) => context.showSnackBar(
               'Error state: ${details.message}',
             ),
             dataBuilder: (_, state, __) {

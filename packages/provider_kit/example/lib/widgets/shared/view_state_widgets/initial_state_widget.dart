@@ -4,8 +4,10 @@ class InitialStateWidget extends StatelessWidget {
   const InitialStateWidget({
     super.key,
     this.isSliver = false,
+    this.message,
   });
   final bool isSliver;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {

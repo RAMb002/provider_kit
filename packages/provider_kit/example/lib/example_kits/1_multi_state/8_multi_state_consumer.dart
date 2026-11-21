@@ -44,7 +44,7 @@ class _MultiStateConsumerExampleState extends State<MultiStateConsumerExample> {
           notifications: notificationProvider.watch,
         ),
         listener: (context, state) {
-          context.showToast(
+          context.showSnackBar(
             'Profile: ${state.profile}, '
             'Cart: ${state.cart}, '
             'Notifications: ${state.notifications}',

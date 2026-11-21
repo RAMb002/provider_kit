@@ -28,7 +28,7 @@ class _StateConsumerExampleState extends State<StateConsumerExample> {
             },
             child: StateConsumer.of<ExampleProvider, int>(
               listener: (context, state) {
-                context.showToast(state.toString());
+                context.showSnackBar(state.toString());
               },
               builder: (context, value, child) {
                 return Text("$value");

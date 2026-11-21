@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class ErrorStateWidget extends StatelessWidget {
-  final String? text;
+class EmptyStateWidget extends StatelessWidget {
+  final String? message;
   final VoidCallback? onTap;
   final bool isSliver;
 
-  const ErrorStateWidget({
-    required this.text,
+  const EmptyStateWidget({
+    required this.message,
     required this.onTap,
     this.isSliver = false,
     super.key,
@@ -27,19 +27,24 @@ class ErrorStateWidget extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          const Icon(
+            Icons.inbox_outlined,
+            size: 36,
+          ),
+          const SizedBox(
+            height: 5,
+          ),
           Text(
-            text ?? "Something went wrong",
+            message ?? "No data found",
             style: const TextStyle(
               fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.red,
             ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           ElevatedButton(
             onPressed: onTap,
-            child: const Text('Retry'),
+            child: const Text('Refresh'),
           ),
         ],
       ),

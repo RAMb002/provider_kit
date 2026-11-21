@@ -20,7 +20,7 @@ class StateListenerExample extends StatelessWidget {
               listenable: context.read<ExampleProvider>(),
               listenWhen: (previous, current) => previous != current,
               listener: (context, state) {
-                context.showToast(state.toString());
+                context.showSnackBar(state.toString());
               },
               child: const Text("This is just a text"),
             ));

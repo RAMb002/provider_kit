@@ -17,17 +17,17 @@ class ProviderMultiStateListenerExample extends StatelessWidget {
           StateListener<int>(
               listenable: ExampleProvider(1),
               listener: (context, state) {
-                context.showToast(state.toString());
+                context.showSnackBar(state.toString());
               }),
           StateListener<int>(
               listenable: ExampleProvider(2),
               listener: (context, state) {
-                context.showToast(state.toString());
+                context.showSnackBar(state.toString());
               }),
           StateListener<int>(
               listenable: ExampleProvider(3),
               listener: (context, state) {
-                context.showToast(state.toString());
+                context.showSnackBar(state.toString());
               }),
         ],
         child: const Text('data'),
