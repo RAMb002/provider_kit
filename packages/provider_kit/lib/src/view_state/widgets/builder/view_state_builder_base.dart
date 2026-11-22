@@ -44,7 +44,7 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
       loadingBuilder,
       emptyBuilder,
       isSliver,
-      child
+      child,
     );
   }
 
@@ -56,7 +56,9 @@ abstract class ViewStateBuilderBase<P extends ViewStateNotifier<T>, T>
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties
-      ..add(DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null))
+      ..add(
+        DiagnosticsProperty<P?>('listenable', listenable, defaultValue: null),
+      )
       ..add(
         ObjectFlagProperty<RebuildWhen<ViewState<T>>?>.has(
           'rebuildWhen',

@@ -7,8 +7,7 @@ part of 'state_consumer.dart';
 ///
 /// The actual listenable resolution, subscriptions, equality checks, rebuild
 /// scheduling, and listener scheduling are handled by this base's state.
-abstract class StateConsumerBase<P, T>
-    extends StateConsumer<T> {
+abstract class StateConsumerBase<P, T> extends StateConsumer<T> {
   const StateConsumerBase({
     super.key,
     this.listenable,
@@ -36,8 +35,7 @@ abstract class StateConsumerBase<P, T>
       _StateConsumerBaseState<P, T>();
 }
 
-class _StateConsumerBaseState<P, T>
-    extends State<StateConsumerBase<P, T>> {
+class _StateConsumerBaseState<P, T> extends State<StateConsumerBase<P, T>> {
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, T>(

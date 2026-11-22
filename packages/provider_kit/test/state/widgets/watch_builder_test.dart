@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
-import 'package:provider_kit/src/state/multi_state/multi_state.dart';
 
 void main() {
   Widget wrap(Widget child) {

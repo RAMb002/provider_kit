@@ -72,7 +72,7 @@ abstract class MultiViewStateBuilderBase<T> extends ViewStateBuilder<T> {
       loadingBuilder,
       emptyBuilder,
       dataBuilder,
-      child
+      child,
     );
   }
 

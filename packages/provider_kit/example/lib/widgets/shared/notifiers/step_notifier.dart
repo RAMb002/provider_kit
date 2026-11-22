@@ -1,4 +1,3 @@
-
 import 'package:provider_kit/provider_kit.dart';
 
 /// A second independent notifier used by the multi-listenable examples.

@@ -12,9 +12,8 @@ class TestLocaleInherited extends InheritedWidget {
   final String locale;
 
   static String of(BuildContext context) {
-    final inherited =
-        context.dependOnInheritedWidgetOfExactType<
-            TestLocaleInherited>();
+    final inherited = context
+        .dependOnInheritedWidgetOfExactType<TestLocaleInherited>();
 
     assert(inherited != null, 'TestLocaleInherited not found');
 
@@ -28,19 +27,14 @@ class TestLocaleInherited extends InheritedWidget {
 }
 
 /// Simulates a message resolver that reads the current locale.
-String? testLocaleMessageResolver(
-  BuildContext context,
-  String message,
-) {
+String? testLocaleMessageResolver(BuildContext context, String message) {
   return '${TestLocaleInherited.of(context)}:$message';
 }
 
 // Default state widget builders used by tests.
 
-Widget testDefaultInitialStateBuilder(
-  BuildContext context,
-  bool isSliver,
-) => const SizedBox();
+Widget testDefaultInitialStateBuilder(BuildContext context, bool isSliver) =>
+    const SizedBox();
 
 Widget testDefaultLoadingStateBuilder(
   BuildContext context,

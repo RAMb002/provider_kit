@@ -100,10 +100,7 @@ void main() {
       final notifier = _TestAsyncNotifier(events);
       addTearDown(notifier.dispose);
       await Future<void>.delayed(Duration.zero);
-      expect(
-        events.where((event) => event == 'initialize').length,
-        1,
-      );
+      expect(events.where((event) => event == 'initialize').length, 1);
     });
 
     test('does not call onInitialize after disposal', () async {

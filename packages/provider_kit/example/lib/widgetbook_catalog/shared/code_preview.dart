@@ -243,7 +243,6 @@ class _SourceCodeBlockState extends State<_SourceCodeBlock> {
               final source = snapshot.data;
               if (source == null) return const SizedBox.shrink();
 
-
               return Container(
                 width: double.infinity,
                 color: const Color(0xFF282C34),

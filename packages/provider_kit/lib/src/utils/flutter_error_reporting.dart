@@ -35,10 +35,7 @@ extension FutureErrorReporting on Future<void> {
   ///
   /// The returned future is intentionally not exposed, making this suitable
   /// for fire-and-forget operations.
-  void reportOnError({
-    String? message,
-    String library = 'provider_kit',
-  }) {
+  void reportOnError({String? message, String library = 'provider_kit'}) {
     unawaited(
       catchError((Object error, StackTrace stackTrace) {
         reportErrorToFlutter(

@@ -23,8 +23,7 @@ import 'package:provider_kit/src/utils/equality_check.dart';
 /// [BuildContext]. If [selector] is supplied, it selects the
 /// listenable from that provider; otherwise, the provider itself is used.
 @internal
-final class StateEngine<P, T>
-    extends StatefulWidget {
+final class StateEngine<P, T> extends StatefulWidget {
   const StateEngine({
     super.key,
     this.listenable,
@@ -87,8 +86,7 @@ final class StateEngine<P, T>
 }
 
 /// Manages the subscription and state lifecycle for [StateEngine].
-class _StateEngineState<P, T>
-    extends State<StateEngine<P, T>> {
+class _StateEngineState<P, T> extends State<StateEngine<P, T>> {
   late StateListenable<T> _listenable;
   late T _previousState;
   late T _state;

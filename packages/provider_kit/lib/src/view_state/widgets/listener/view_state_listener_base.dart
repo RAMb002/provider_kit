@@ -37,7 +37,7 @@ abstract class ViewStateListenerBase<P extends ViewStateNotifier<T>, T>
 
   /// Dispatches the current state to its corresponding callback.
   void onStateChange(BuildContext context, ViewState<T> state) {
-    ViewStateWidgetUtils.handleListener<P,T>(
+    ViewStateWidgetUtils.handleListener<P, T>(
       context: context,
       listenable: listenable,
       state: state,

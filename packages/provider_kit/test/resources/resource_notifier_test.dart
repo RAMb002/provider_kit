@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
-import 'package:rate_kit/rate_kit.dart';
 
 void main() {
   group('ResourceNotifier', () {

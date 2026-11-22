@@ -92,8 +92,7 @@ final class _DependencyTracker {
       final T value = callback();
 
       assert(
-        scope.dependencies.isNotEmpty ||
-            scope.providerDependencies.isNotEmpty,
+        scope.dependencies.isNotEmpty || scope.providerDependencies.isNotEmpty,
         '$widgetName requires at least one dependency.\n\n'
         'Use `.watch` to observe a StateListenable or `of<P>()` '
         'to resolve a Provider-managed StateListenable inside the '

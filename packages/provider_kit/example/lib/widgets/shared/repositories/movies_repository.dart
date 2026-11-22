@@ -6,13 +6,13 @@ class MoviesRepository {
   int _attempt = 0;
 
   Future<List<String>> fetchMovies([bool? giveData]) async {
-    if(giveData == true) _attempt = 2;
+    if (giveData == true) _attempt = 2;
     // Simulate a network request.
     await Future.delayed(const Duration(seconds: 2));
 
     switch (_attempt++) {
       case 0:
-         throw const MoviesException();
+        throw const MoviesException();
 
       case 1:
         return const [];
@@ -36,4 +36,3 @@ class MoviesRepository {
     ];
   }
 }
-

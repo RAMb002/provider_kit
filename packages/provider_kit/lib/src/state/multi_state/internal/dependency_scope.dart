@@ -9,9 +9,7 @@ part of '../multi_state.dart';
 /// The scope is temporary and exists only while its collection callback
 /// is being evaluated.
 final class _DependencyScope {
-  _DependencyScope({
-    required this.context,
-  });
+  _DependencyScope({required this.context});
 
   /// Context used to resolve Provider-managed listenables.
   ///
@@ -24,8 +22,7 @@ final class _DependencyScope {
   ///
   /// Uses identity-based equality so that distinct listenable instances
   /// are tracked independently, regardless of their equality implementation.
-  final Set<StateListenable> dependencies =
-      Set<StateListenable>.identity();
+  final Set<StateListenable> dependencies = Set<StateListenable>.identity();
 
   /// Provider identity dependencies discovered through `of<P>()`.
   ///

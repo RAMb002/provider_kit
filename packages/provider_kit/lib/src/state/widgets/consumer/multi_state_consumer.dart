@@ -81,7 +81,10 @@ abstract class MultiStateConsumerBase<T> extends StateConsumer<T> {
   void debugFillProperties(DiagnosticPropertiesBuilder properties) {
     super.debugFillProperties(properties);
     properties.add(
-      ObjectFlagProperty<MultiStateListenables<T>>.has('listenables', listenables),
+      ObjectFlagProperty<MultiStateListenables<T>>.has(
+        'listenables',
+        listenables,
+      ),
     );
   }
 }

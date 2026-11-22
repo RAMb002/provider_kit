@@ -3,8 +3,7 @@ part of 'state_consumer.dart';
 /// Private implementation of [StateConsumer.of].
 ///
 /// Resolves the [StateListenable] from the widget tree.
-class _StateConsumerOf<P, T>
-    extends _CallbackStateConsumerBase<P, T> {
+class _StateConsumerOf<P, T> extends _CallbackStateConsumerBase<P, T> {
   const _StateConsumerOf({
     super.key,
     required super.builder,

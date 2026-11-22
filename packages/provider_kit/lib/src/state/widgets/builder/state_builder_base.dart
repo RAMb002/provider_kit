@@ -4,8 +4,7 @@ part of 'state_builder.dart';
 ///
 /// Provides the shared listenable, rebuild predicate, and child configuration
 /// used by state-based builder widgets.
-abstract class StateBuilderBase<P, T>
-    extends StateBuilder<T> {
+abstract class StateBuilderBase<P, T> extends StateBuilder<T> {
   const StateBuilderBase({
     super.key,
     this.listenable,
@@ -28,8 +27,7 @@ abstract class StateBuilderBase<P, T>
 }
 
 /// The state class for [StateBuilderBase].
-class _StateBuilderBaseState<P, T>
-    extends State<StateBuilderBase<P, T>> {
+class _StateBuilderBaseState<P, T> extends State<StateBuilderBase<P, T>> {
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, T>(
