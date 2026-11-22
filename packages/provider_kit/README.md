@@ -742,11 +742,13 @@ class AuthNotifier extends ChangeNotifier {
 
 ### Listening to mutation state
 
-Use ProviderKit's state widgets to react to mutation state changes:
+When a `Mutation` is owned by a notifier and exposed through a provider, use `StateBuilder.select` to retrieve and observe it.
+
+The `selector` callback receives the provided notifier and returns the nested `Mutation` to observe. ProviderKit automatically subscribes to the selected mutation and reevaluates the selector when the provider notifies its dependents, allowing it to follow a replacement mutation.
 
 ```dart
-StateBuilder.of<AuthNotifier, MutationState<User>>(
-  selectListenable: (auth) => auth.signInMutation,
+StateBuilder.select<AuthNotifier, MutationState<User>>(
+  selector: (auth) => auth.signInMutation,
   builder: (context, state, child) {
     return state.when(
       idle: () => const Text('Sign in'),
@@ -759,7 +761,7 @@ StateBuilder.of<AuthNotifier, MutationState<User>>(
 );
 ```
 
-`selectListenable` selects the mutation from the current provider instance. This is useful when the provider can be replaced, such as with `ProxyProvider`, because the widget can follow the newly supplied mutation instead of retaining a reference to the previous instance.
+`selector` selects the mutation from the current provider instance. This is useful when the provider can be replaced, such as with `ProxyProvider`, because the widget can follow the newly supplied mutation instead of retaining a reference to the previous instance.
 
 When you own a stable mutation instance, passing it directly through `listenable` is also fine.
 
@@ -922,7 +924,7 @@ StateBuilder(
 );
 ```
 
-You can use `StateField` with ProviderKit's state widgets, including their `.of` and `.multi` variants.
+You can use `StateField` with ProviderKit's state widgets, including their `.select` and `.multi` variants.
 
 Fields owned by a notifier should be disposed when their owner is disposed. Use ProviderKit's automatic resource disposal mixins to manage their lifecycle without manually disposing each field.
 

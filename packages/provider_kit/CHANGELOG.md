@@ -15,6 +15,7 @@
 - Added details objects for loading, empty, and error callbacks in view-state widgets.
 - Added `refresh` support to `EmptyState` in `ViewState`.
 - Added `ViewStateMessageResolver` for centralized message localization and scoped overrides through `ViewStateWidgetsProvider`.
+- Added `.select` constructors to state widgets for observing nested listenables.
 
 **Async Notifiers**
 - Overhauled `FutureNotifier` refresh, rebuild, error handling, and stale-operation protection.
@@ -40,6 +41,10 @@ its API names for caching and restoring `DataState`.
 - Updated `MutationGroup.dispose()` to optionally accept a key for disposing a
 specific keyed mutation.
 - Removed the separate `disposeKey()` API.
+
+**Observers**
+
+- Added `DebugNotifierObserver` for convenient notifier debugging.
 
 ## 0.4.0
 

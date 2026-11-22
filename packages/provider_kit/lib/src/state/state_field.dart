@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/base/state_listenable.dart';
+
 /// {@template provider_kit.state_field}
 /// A lightweight observable state field.
 ///
@@ -47,13 +48,28 @@ import 'package:provider_kit/src/base/state_listenable.dart';
 /// `field` and disposes them when the notifier is disposed.
 ///
 /// ```dart
-/// class LoginController extends ChangeNotifier
+/// class LoginNotifier extends ChangeNotifier
 ///     with NotifierResourcesMixin {
 ///   late final name = field('');
 /// }
 /// ```
 ///
 /// This avoids having to manually dispose each [StateField].
+///
+/// When a [StateField] is owned by a [ChangeNotifier] and exposed through
+/// a provider, use `.select` to retrieve and listen to the field:
+///
+/// ```dart
+/// StateBuilder.select<LoginNotifier, String>(
+///   selector: (notifier) => notifier.name,
+///   builder: (context, state, child) {
+///     return Text(state);
+///   },
+/// );
+/// ```
+///
+/// The same approach works with `StateListener.select` and
+/// `StateConsumer.select`.
 /// {@endtemplate}
 class StateField<T> extends ChangeNotifier implements StateListenable<T> {
   /// {@macro provider_kit.state_field}
