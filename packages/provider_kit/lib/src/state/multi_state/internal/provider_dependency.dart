@@ -18,7 +18,7 @@ abstract interface class _ProviderDependency {
 ///
 /// The identity comparison deliberately uses [identical], so replacing
 /// a notifier is detected independently of its equality implementation.
-final class _TypedProviderDependency<P extends StateListenable<dynamic>>
+final class _TypedProviderDependency<P extends ChangeNotifier>
     implements _ProviderDependency {
   const _TypedProviderDependency(this.listenable);
 

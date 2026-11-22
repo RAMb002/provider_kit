@@ -115,6 +115,16 @@ class _ProxyNotifier extends StateNotifier<int> {
   }
 }
 
+class _ChangeNotifierWithField extends ChangeNotifier {
+  final count = StateField<int>(0);
+
+  @override
+  void dispose() {
+    count.dispose();
+    super.dispose();
+  }
+}
+
 class _MediaSelection {
   const _MediaSelection(this.index);
 
@@ -2402,6 +2412,44 @@ void main() {
 
           counter.dispose();
           rating.dispose();
+        },
+      );
+
+      testWidgets(
+        'watches a nested StateField owned by ChangeNotifier using of in multi',
+        (tester) async {
+          final notifier = _ChangeNotifierWithField();
+          final states = <int>[];
+
+          await tester.pumpWidget(
+            _host(
+              ChangeNotifierProvider<_ChangeNotifierWithField>.value(
+                value: notifier,
+                child: StateBuilder<int>.multi(
+                  listenables: () => of<_ChangeNotifierWithField>().count.watch,
+                  builder: (_, state, __) {
+                    states.add(state);
+                    return Text('$state');
+                  },
+                ),
+              ),
+            ),
+          );
+
+          expect(states, [0]);
+          expect(find.text('0'), findsOneWidget);
+
+          notifier.count.state = 1;
+          await tester.pump();
+
+          expect(states, [0, 1]);
+          expect(find.text('1'), findsOneWidget);
+
+          await tester.pumpWidget(const SizedBox());
+
+          expect(notifier.count.hasListeners, isFalse);
+
+          notifier.dispose();
         },
       );
       testWidgets(

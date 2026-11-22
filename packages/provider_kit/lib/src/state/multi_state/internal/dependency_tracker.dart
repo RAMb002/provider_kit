@@ -49,7 +49,7 @@ final class _DependencyTracker {
   ///
   /// Repeated resolutions of the same Provider type within one collection
   /// share a single identity dependency.
-  static P readProvider<P extends StateListenable<dynamic>>() {
+  static P readProvider<P extends ChangeNotifier>() {
     if (_scopes.isEmpty) {
       throw StateError(
         'of<$P>() can only be used inside a '

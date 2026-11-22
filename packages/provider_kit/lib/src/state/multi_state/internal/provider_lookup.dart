@@ -20,6 +20,6 @@ part of '../multi_state.dart';
 /// Resolving an object does not subscribe to its state notifications.
 /// Access a [StateListenable] through `.watch` to establish a state
 /// dependency.
-P of<P extends StateListenable<dynamic>>() {
+P of<P extends ChangeNotifier>() {
   return _DependencyTracker.readProvider<P>();
 }
