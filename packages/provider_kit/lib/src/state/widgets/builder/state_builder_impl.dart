@@ -8,7 +8,6 @@ class _StateBuilder<T>
   const _StateBuilder({
     super.key,
     required StateListenable<T> listenable,
-    super.selectListenable,
     required super.builder,
     super.rebuildWhen,
     super.child,
@@ -24,13 +23,12 @@ class _StateBuilder<T>
 }
 
 /// Shared implementation for callback-based [StateBuilder] variants.
-abstract class _CallbackStateBuilderBase<P extends StateListenable<T>, T>
-    extends StateBuilderBase<P, T> {
+abstract class _CallbackStateBuilderBase<P, T> extends StateBuilderBase<P, T> {
   const _CallbackStateBuilderBase({
     super.key,
     required this.builder,
     super.listenable,
-    super.selectListenable,
+    super.selector,
     super.rebuildWhen,
     super.child,
   });

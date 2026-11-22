@@ -16,8 +16,8 @@ const myCounterAppTextConditionKey = Key('myCounterAppTextCondition');
 const myCounterAppTextKey = Key('myCounterAppText');
 const myCounterAppIncrementButtonKey = Key('myCounterAppIncrementButton');
 
-class _SelectableCounterProvider extends StateNotifier<int> {
-  _SelectableCounterProvider() : selected = StateField<int>(10), super(0);
+class _SelectableCounterProvider extends ChangeNotifier {
+  _SelectableCounterProvider() : selected = StateField<int>(10);
 
   final StateField<int> selected;
 
@@ -286,7 +286,7 @@ void main() {
     );
 
     testWidgets(
-      'listens to a nested listenable using StateBuilder.of selectListenable',
+      'listens to a nested listenable using StateBuilder.select selector',
       (tester) async {
         final provider = _SelectableCounterProvider();
         final states = <int>[];
@@ -296,8 +296,8 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ChangeNotifierProvider<_SelectableCounterProvider>.value(
               value: provider,
-              child: StateBuilder.of<_SelectableCounterProvider, int>(
-                selectListenable: (notifier) => notifier.selected,
+              child: StateBuilder.select<_SelectableCounterProvider, int>(
+                selector: (notifier) => notifier.selected,
                 builder: (_, state, __) {
                   states.add(state);
                   return Text('$state');
@@ -374,7 +374,6 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateBuilder.of<ThemeProvider, ThemeData>(
-        selectListenable: (provider) => provider,
         builder: (context, state, child) => const SizedBox(),
       ).debugFillProperties(builder);
 
@@ -384,7 +383,23 @@ void main() {
           .toList();
 
       expect(description, contains('has builder'));
-      expect(description, contains('has selectListenable'));
+    });
+
+    test('StateBuilder.select overrides debugFillProperties', () {
+      final builder = DiagnosticPropertiesBuilder();
+
+      StateBuilder.select<ThemeProvider, ThemeData>(
+        selector: (provider) => provider,
+        builder: (context, state, child) => const SizedBox(),
+      ).debugFillProperties(builder);
+
+      final description = builder.properties
+          .where((node) => !node.isFiltered(DiagnosticLevel.info))
+          .map((node) => node.toString())
+          .toList();
+
+      expect(description, contains('has builder'));
+      expect(description, contains('has selector'));
     });
   });
 }

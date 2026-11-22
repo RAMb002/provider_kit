@@ -4,12 +4,12 @@ part of 'state_builder.dart';
 ///
 /// Provides the shared listenable, rebuild predicate, and child configuration
 /// used by state-based builder widgets.
-abstract class StateBuilderBase<P extends StateListenable<dynamic>, T>
+abstract class StateBuilderBase<P, T>
     extends StateBuilder<T> {
   const StateBuilderBase({
     super.key,
     this.listenable,
-    this.selectListenable,
+    this.selector,
     super.rebuildWhen,
     super.child,
   }) : super.base();
@@ -17,8 +17,8 @@ abstract class StateBuilderBase<P extends StateListenable<dynamic>, T>
   /// {@macro provider_kit.state_listener.listenable}
   final StateListenable<T>? listenable;
 
-  /// {@macro provider_kit.state_listener.selectListenable}
-  final SelectStateListenable<P, T>? selectListenable;
+  /// {@macro provider_kit.state_listener.selector}
+  final SelectStateListenable<P, T>? selector;
 
   /// The function that builds the widget tree based on the current state.
   Widget build(BuildContext context, T state, Widget? child);
@@ -28,13 +28,13 @@ abstract class StateBuilderBase<P extends StateListenable<dynamic>, T>
 }
 
 /// The state class for [StateBuilderBase].
-class _StateBuilderBaseState<P extends StateListenable<dynamic>, T>
+class _StateBuilderBaseState<P, T>
     extends State<StateBuilderBase<P, T>> {
   @override
   Widget build(BuildContext context) {
     return StateEngine<P, T>(
       listenable: widget.listenable,
-      selectListenable: widget.selectListenable,
+      selector: widget.selector,
       rebuildWhen: widget.rebuildWhen,
       builder: widget.build,
       widgetName: widget.debugWidgetName,

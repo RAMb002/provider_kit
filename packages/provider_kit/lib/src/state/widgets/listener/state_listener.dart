@@ -11,6 +11,7 @@ part 'multi_state_listener.dart';
 part 'state_listener_base.dart';
 part 'state_listener_impl.dart';
 part 'state_listener_of.dart';
+part 'state_listener_select.dart';
 
 /// {@template provider_kit.stateListener}
 /// A widget that listens to state changes and invokes a callback. It is typically
@@ -19,6 +20,7 @@ part 'state_listener_of.dart';
 ///
 /// - Use [StateListener] to listen to state from a single listenable.
 /// - Use [StateListener.of] to resolve a listenable from the widget tree.
+/// - Use [StateListener.select] to select a nested StateListenable from a provider.
 /// - Use [StateListener.multi] to listen to and combine state from multiple listenables.
 ///
 /// When the state changes, [listenWhen] determines whether [listener] is called.
@@ -52,14 +54,14 @@ part 'state_listener_of.dart';
 ///   child: SomeWidget(),
 /// );
 /// ```
-/// When retrieving a nested listenable from a provider, use
-/// [selectListenable]. The selector is reevaluated when the provider
-/// dependency changes, allowing ProviderKit to subscribe to the nested
+/// When the provided object exposes a nested listenable, use
+/// [StateListener.select] instead. The selector is reevaluated when the
+/// provider dependency changes, allowing ProviderKit to subscribe to the
 /// listenable belonging to the updated object:
 ///
 /// ```dart
-/// StateListener.of<MyStateListenable, MutationState<void>>(
-///   selectListenable: (notifier) => notifier.saveMutation,
+/// StateListener.select(
+///   selector: (MyNotifier notifier) => notifier.saveMutation,
 ///   listener: (context, state) {
 ///     // React to mutation state changes.
 ///   },
@@ -177,19 +179,27 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// package, use `of<T>().watch` inside the `listenables` callback to
   /// resolve and watch them.
   ///
-  /// This also tracks the provider dependency, so the collection is
-  /// re-evaluated when the provider dependency changes, such as when
-  /// a provider supplies a different notifier.
+  /// You can also access nested listenables owned by a provided object
+  /// and use `.watch` directly on them. For example,
+  /// `of<AuthNotifier>().signInMutation.watch` watches a mutation owned
+  /// by `AuthNotifier`. There is no need to use `.select` inside
+  /// [StateListener.multi].
+  ///
+  /// ProviderKit tracks both provider dependencies and nested listenable
+  /// dependencies. When a provider supplies a different notifier, the
+  /// `listenables` callback is re-evaluated to resolve its listenables
+  /// again. Changes to any watched listenable also cause the combined
+  /// state to be re-evaluated.
   ///
   /// ```dart
   /// StateListener.multi(
   ///   listenables: () => (
   ///     user: of<UserNotifier>().watch,
-  ///     settings: of<SettingsNotifier>().watch,
+  ///     save: of<AuthNotifier>().signInMutation.watch,
   ///   ),
   ///   listener: (context, state) {
   ///     // state.user
-  ///     // state.settings
+  ///     // state.save
   ///   },
   ///   child: const MyPage(),
   /// );
@@ -210,29 +220,15 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   /// Use this when a listenable has already been exposed in the widget tree,
   /// for example through a provider from the `provider` package.
   ///
-  /// By default, the provided object itself must implement [StateListenable].
-  /// Use [selectListenable] to listen to a nested listenable owned by the
-  /// provided object, such as a [Mutation] or [StateField].
-  ///
+  /// The provided object itself must implement [StateListenable].
   /// {@endtemplate}
-  ///
-  /// Listen directly to a provided StateListenable:
+  /// To listen to a nested listenable exposed by a provider, use
+  /// [StateListener.select] instead.
   ///
   /// ```dart
   /// StateListener.of<MyStateListenable, MyState>(
   ///   listener: (context, state) {
   ///     // React to state changes.
-  ///   },
-  ///   child: SomeWidget(),
-  /// );
-  /// ```
-  ///
-  /// Listen to a nested listenable from a provider:
-  /// ```dart
-  /// StateListener.of(
-  ///   selectListenable: (MyStateListenable notifier) => notifier.saveMutation,
-  ///   listener: (context, state) {
-  ///     // React to mutation state changes.
   ///   },
   ///   child: const MyPage(),
   /// );
@@ -240,7 +236,6 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   static of<P extends StateListenable<T>, T>({
     Key? key,
     required ListenerCallback<T> listener,
-    SelectStateListenable<P, T>? selectListenable,
     ListenWhen<T>? listenWhen,
     bool callListenerOnInit = false,
     Widget? child,
@@ -248,7 +243,44 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
     return _StateListenerOf<P, T>(
       key: key,
       listener: listener,
-      selectListenable: selectListenable,
+      listenWhen: listenWhen,
+      callListenerOnInit: callListenerOnInit,
+      child: child,
+    );
+  }
+
+  /// {@template provider_kit.state_widget.select}
+  /// Resolves a provider-managed object and selects a nested [StateListenable].
+  ///
+  /// Use this when the provided object exposes a [StateListenable], such as a
+  /// `Mutation` or `StateField`.
+  ///
+  /// The selector is reevaluated when the provider dependency changes,
+  /// allowing the listener to subscribe to the listenable belonging to
+  /// the updated object.
+  /// {@endtemplate}
+  ///
+  /// ```dart
+  /// StateListener.select(
+  ///   selector: (MyNotifier notifier) => notifier.saveMutation,
+  ///   listener: (context, state) {
+  ///     // React to mutation state changes.
+  ///   },
+  ///   child: const MyPage(),
+  /// );
+  /// ```
+  static select<P extends ChangeNotifier, T>({
+    Key? key,
+    required SelectStateListenable<P, T> selector,
+    required ListenerCallback<T> listener,
+    ListenWhen<T>? listenWhen,
+    bool callListenerOnInit = false,
+    Widget? child,
+  }) {
+    return _StateListenerSelect<P, T>(
+      key: key,
+      selector: selector,
+      listener: listener,
       listenWhen: listenWhen,
       callListenerOnInit: callListenerOnInit,
       child: child,

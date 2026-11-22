@@ -10,12 +10,14 @@ part 'multi_state_builder.dart';
 part 'state_builder_base.dart';
 part 'state_builder_impl.dart';
 part 'state_builder_of.dart';
+part 'state_builder_select.dart';
 
 /// {@template provider_kit.state_builder}
 /// A widget that rebuilds its UI when its state changes.
 ///
 /// - Use [StateBuilder] to rebuild from a single listenable.
 /// - Use [StateBuilder.of] to retrieve a listenable from the widget tree.
+/// - Use [StateBuilder.select] to select a nested StateListenable from a provider.
 /// - Use [StateBuilder.multi] to combine state from multiple listenables.
 ///
 /// The builder is called when the state changes and [rebuildWhen] allows the
@@ -51,16 +53,16 @@ part 'state_builder_of.dart';
 /// );
 /// ```
 ///
-/// When retrieving a nested listenable from a provider, use
-/// [selectListenable]. The selector is reevaluated when the provider
-/// dependency changes, allowing ProviderKit to subscribe to the nested
+/// When the provided object exposes a nested listenable, use
+/// [StateBuilder.select] instead. The selector is reevaluated when the
+/// provider dependency changes, allowing ProviderKit to subscribe to the
 /// listenable belonging to the updated object:
 ///
 /// ```dart
-/// StateBuilder.of<MyStateListenable, MutationState<void>>(
-///   selectListenable: (notifier) => notifier.saveMutation,
+/// StateBuilder.select(
+///   selector: (MyNotifier notifier) => notifier.saveMutation,
 ///   builder: (context, state, child) {
-///     // React to mutation state changes.
+///     return MyWidget(state);
 ///   },
 ///   child: const MyPage(),
 /// );
@@ -173,18 +175,33 @@ abstract class StateBuilder<T> extends StatefulWidget {
   /// package, use `of<T>().watch` inside the `listenables` callback to
   /// resolve and watch them.
   ///
-  /// This also tracks the provider dependency, so the collection is
-  /// re-evaluated when the provider dependency changes, such as when
-  /// a provider supplies a different notifier.
+  /// You can also access nested listenables owned by a provided object
+  /// and use `.watch` directly on them. For example,
+  /// `of<AuthNotifier>().signInMutation.watch` watches a mutation owned
+  /// by `AuthNotifier`. There is no need to use `.select` inside
+  /// [StateBuilder.multi].
+  ///
+  /// ProviderKit tracks both provider dependencies and nested listenable
+  /// dependencies. When a provider supplies a different notifier, the
+  /// `listenables` callback is re-evaluated to resolve its listenables
+  /// again. Changes to any watched listenable also cause the combined
+  /// state to be re-evaluated.
   ///
   /// ```dart
   /// StateBuilder.multi(
   ///   listenables: () => (
   ///     user: of<UserNotifier>().watch,
-  ///     settings: of<SettingsNotifier>().watch,
+  ///     save: of<AuthNotifier>().saveMutation.watch,
   ///   ),
   ///   builder: (context, state, child) {
-  ///     return Text(state.user.name);
+  ///     return Column(
+  ///       children: [
+  ///         Text(state.user.name),
+  ///         if (state.save.isLoading)
+  ///           const CircularProgressIndicator(),
+  ///         child!,
+  ///       ],
+  ///     );
   ///   },
   ///   child: const MyPage(),
   /// );
@@ -199,8 +216,8 @@ abstract class StateBuilder<T> extends StatefulWidget {
   }) = _MultiStateBuilder<T>;
 
   /// {@macro provider_kit.state_widget.of}
-  ///
-  /// Listen directly to a provided StateListenable:
+  /// To listen to a nested listenable exposed by a provider, use
+  /// [StateBuilder.select] instead.
   ///
   /// ```dart
   /// StateBuilder.of<MyStateListenable, MyState>(
@@ -209,27 +226,41 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
-  /// Listen to a nested listenable from a provider:
+  static of<P extends StateListenable<T>, T>({
+    Key? key,
+    required StateWidgetBuilder<T> builder,
+    RebuildWhen<T>? rebuildWhen,
+    Widget? child,
+  }) {
+    return _StateBuilderOf<P, T>(
+      key: key,
+      builder: builder,
+      rebuildWhen: rebuildWhen,
+      child: child,
+    );
+  }
+
+  /// {@macro provider_kit.state_widget.select}
   ///
   /// ```dart
-  /// StateBuilder.of(
-  ///   selectListenable: (MyStateListenable notifier) => notifier.saveMutation,
+  /// StateBuilder.select(
+  ///   selector: (MyNotifier notifier) => notifier.saveMutation,
   ///   builder: (context, state, child) {
   ///     return MyWidget(state);
   ///   },
   ///   child: const MyPage(),
   /// );
   /// ```
-  static of<P extends StateListenable<T>, T>({
+  static select<P extends ChangeNotifier, T>({
     Key? key,
+    required SelectStateListenable<P, T> selector,
     required StateWidgetBuilder<T> builder,
-    SelectStateListenable<P, T>? selectListenable,
     RebuildWhen<T>? rebuildWhen,
     Widget? child,
   }) {
-    return _StateBuilderOf<P, T>(
+    return _StateBuilderSelect<P, T>(
       key: key,
-      selectListenable: selectListenable,
+      selector: selector,
       builder: builder,
       rebuildWhen: rebuildWhen,
       child: child,

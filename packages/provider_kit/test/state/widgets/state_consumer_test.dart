@@ -187,7 +187,7 @@ void main() {
       expect(find.text('State: 2'), findsOneWidget);
     });
     testWidgets(
-      'selects and listens to a nested listenable using StateConsumer.of',
+      'selects and listens to a nested listenable using StateConsumer.select',
       (tester) async {
         final provider = _SelectableCounterProvider();
         final builderStates = <int>[];
@@ -198,8 +198,8 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ChangeNotifierProvider<_SelectableCounterProvider>.value(
               value: provider,
-              child: StateConsumer.of<_SelectableCounterProvider, int>(
-                selectListenable: (notifier) => notifier.selected,
+              child: StateConsumer.select<_SelectableCounterProvider, int>(
+                selector: (notifier) => notifier.selected,
                 builder: (_, state, __) {
                   builderStates.add(state);
                   return Text('$state');
@@ -363,7 +363,6 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateConsumer.of<CounterProvider, int>(
-        selectListenable: (provider) => provider,
         builder: (_, __, ___) => const SizedBox(),
         listener: (_, __) {},
       ).debugFillProperties(builder);
@@ -375,7 +374,25 @@ void main() {
 
       expect(description, contains('has builder'));
       expect(description, contains('has listener'));
-      expect(description, contains('has selectListenable'));
+    });
+
+    test('StateConsumer.select overrides debugFillProperties', () {
+      final builder = DiagnosticPropertiesBuilder();
+
+      StateConsumer.select<CounterProvider, int>(
+        selector: (provider) => provider,
+        builder: (_, __, ___) => const SizedBox(),
+        listener: (_, __) {},
+      ).debugFillProperties(builder);
+
+      final description = builder.properties
+          .where((node) => !node.isFiltered(DiagnosticLevel.info))
+          .map((node) => node.toString())
+          .toList();
+
+      expect(description, contains('has builder'));
+      expect(description, contains('has listener'));
+      expect(description, contains('has selector'));
     });
   });
 }

@@ -56,7 +56,7 @@ class _MutationProviderExampleState extends State<MutationProviderExample> {
                 ),
                 const SizedBox(height: 16),
                 StateBuilder.of<FeedbackNotifier, MutationState<String>>(
-                  selectListenable: (notifier) => notifier.sendMutation,
+                  selector: (notifier) => notifier.sendMutation,
                   builder: (context, state, child) {
                     return state.when(
                       idle: () => FilledButton(

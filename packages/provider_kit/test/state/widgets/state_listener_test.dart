@@ -12,8 +12,8 @@ const listenerResetButtonKey = Key('listener_reset_button');
 const listenerNoopButtonKey = Key('listener_noop_button');
 const listenerIncrementButtonKey = Key('listener_increment_button');
 
-class _SelectableOwner extends StateNotifier<int> {
-  _SelectableOwner() : selected = StateField<int>(10), super(0);
+class _SelectableOwner extends ChangeNotifier {
+  _SelectableOwner() : selected = StateField<int>(10);
 
   final StateField<int> selected;
 
@@ -277,7 +277,7 @@ void main() {
     );
 
     testWidgets(
-      'listens to a nested listenable using StateListener.of selectListenable',
+      'listens to a nested listenable using StateListener.select selector',
       (tester) async {
         final owner = _SelectableOwner();
         final states = <int>[];
@@ -285,8 +285,8 @@ void main() {
         await tester.pumpWidget(
           ChangeNotifierProvider<_SelectableOwner>.value(
             value: owner,
-            child: StateListener.of<_SelectableOwner, int>(
-              selectListenable: (notifier) => notifier.selected,
+            child: StateListener.select<_SelectableOwner, int>(
+              selector: (notifier) => notifier.selected,
               listener: (_, state) => states.add(state),
               child: const SizedBox(),
             ),
@@ -378,7 +378,6 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateListener.of<CounterProvider, int>(
-        selectListenable: (provider) => provider,
         listener: (_, __) {},
         child: const SizedBox(),
       ).debugFillProperties(builder);
@@ -389,7 +388,24 @@ void main() {
           .toList();
 
       expect(description, contains('has listener'));
-      expect(description, contains('has selectListenable'));
+    });
+
+    test('StateListener.select overrides debugFillProperties', () {
+      final builder = DiagnosticPropertiesBuilder();
+
+      StateListener.select<CounterProvider, int>(
+        selector: (provider) => provider,
+        listener: (_, __) {},
+        child: const SizedBox(),
+      ).debugFillProperties(builder);
+
+      final description = builder.properties
+          .where((node) => !node.isFiltered(DiagnosticLevel.info))
+          .map((node) => node.toString())
+          .toList();
+
+      expect(description, contains('has listener'));
+      expect(description, contains('has selector'));
     });
   });
 }

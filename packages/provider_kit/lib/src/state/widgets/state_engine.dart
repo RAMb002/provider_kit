@@ -20,15 +20,15 @@ import 'package:provider_kit/src/utils/equality_check.dart';
 /// - Both callbacks can be supplied to support consumer widgets.
 ///
 /// When [listenable] is null, the provider is resolved from the current
-/// [BuildContext]. If [selectListenable] is supplied, it selects the
+/// [BuildContext]. If [selector] is supplied, it selects the
 /// listenable from that provider; otherwise, the provider itself is used.
 @internal
-final class StateEngine<P extends StateListenable<dynamic>, T>
+final class StateEngine<P, T>
     extends StatefulWidget {
   const StateEngine({
     super.key,
     this.listenable,
-    this.selectListenable,
+    this.selector,
     this.listener,
     this.listenWhen,
     this.rebuildWhen,
@@ -41,7 +41,7 @@ final class StateEngine<P extends StateListenable<dynamic>, T>
   /// The listenable whose state is observed.
   ///
   /// When null, the listenable is resolved from the Provider-managed object.
-  /// The optional [selectListenable] determines which listenable is observed.
+  /// The optional [selector] determines which listenable is observed.
   final StateListenable<T>? listenable;
 
   /// Selects the listenable to observe from the provided object.
@@ -51,7 +51,7 @@ final class StateEngine<P extends StateListenable<dynamic>, T>
   /// The selected listenable should normally retain its identity.
   /// If it is replaced, the provider must notify its dependents so
   /// the engine can update its subscription.
-  final SelectStateListenable<P, T>? selectListenable;
+  final SelectStateListenable<P, T>? selector;
 
   /// Called when the state changes and [listenWhen] allows the notification.
   final ListenerCallback<T>? listener;
@@ -87,7 +87,7 @@ final class StateEngine<P extends StateListenable<dynamic>, T>
 }
 
 /// Manages the subscription and state lifecycle for [StateEngine].
-class _StateEngineState<P extends StateListenable<dynamic>, T>
+class _StateEngineState<P, T>
     extends State<StateEngine<P, T>> {
   late StateListenable<T> _listenable;
   late T _previousState;
@@ -233,7 +233,7 @@ class _StateEngineState<P extends StateListenable<dynamic>, T>
   }
 
   StateListenable<T> _resolveListenable(P provider) {
-    final selector = widget.selectListenable;
+    final selector = widget.selector;
 
     return selector != null
         ? selector(provider)
