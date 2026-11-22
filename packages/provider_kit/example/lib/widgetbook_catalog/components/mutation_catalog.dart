@@ -32,7 +32,7 @@ WidgetbookComponent mutationComponent() {
         builder: (context) => CodePreview(
           title: 'Mutation - Provider Integration',
           description: 'Resolve a Mutation from the Provider tree using '
-              'selectListenable.',
+              'selector.',
           preview: const MutationProviderExample(),
           sourceFiles: [
             WidgetbookSourceFile(

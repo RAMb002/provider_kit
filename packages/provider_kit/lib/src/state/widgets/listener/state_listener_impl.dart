@@ -6,7 +6,6 @@ class _StateListener<T>
     super.key,
     required super.listener,
     required StateListenable<T> listenable,
-    super.selectListenable,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,
@@ -22,13 +21,13 @@ class _StateListener<T>
 }
 
 /// Shared implementation for callback-based [StateListener] variants.
-abstract class _CallbackStateListenerBase<P extends StateListenable<dynamic>, T>
+abstract class _CallbackStateListenerBase<P, T>
     extends StateListenerBase<P, T> {
   const _CallbackStateListenerBase({
     super.key,
     required super.listenable,
     required this.listener,
-    super.selectListenable,
+    super.selector,
     super.listenWhen,
     super.callListenerOnInit,
     super.child,

@@ -8,7 +8,6 @@ class _StateConsumer<T>
   const _StateConsumer({
     super.key,
     required StateListenable<T> listenable,
-    super.selectListenable,
     required super.builder,
     required super.listener,
     super.rebuildWhen,
@@ -27,14 +26,14 @@ class _StateConsumer<T>
 }
 
 /// Shared implementation for callback-based [StateConsumer] variants.
-abstract class _CallbackStateConsumerBase<P extends StateListenable<dynamic>, T>
+abstract class _CallbackStateConsumerBase<P, T>
     extends StateConsumerBase<P, T> {
   const _CallbackStateConsumerBase({
     super.key,
     super.listenable,
     required this.builder,
     required this.listener,
-    super.selectListenable,
+    super.selector,
     super.rebuildWhen,
     super.listenWhen,
     super.callListenerOnInit,

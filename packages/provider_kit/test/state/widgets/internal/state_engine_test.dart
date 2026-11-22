@@ -10,9 +10,9 @@ import 'package:provider_kit/src/state/widgets/state_engine.dart';
 
 import '../../../shared/mocks/notifiers.dart';
 
-StateEngine<P, T> _engine<P extends StateListenable<dynamic>, T>({
+StateEngine<P, T> _engine<P, T>({
   StateListenable<T>? listenable,
-  SelectStateListenable<P, T>? selectListenable,
+  SelectStateListenable<P, T>? selector,
   StateWidgetBuilder<T>? builder,
   ListenerCallback<T>? listener,
   ListenWhen<T>? listenWhen,
@@ -22,7 +22,7 @@ StateEngine<P, T> _engine<P extends StateListenable<dynamic>, T>({
 }) {
   return StateEngine<P, T>(
     listenable: listenable,
-    selectListenable: selectListenable,
+    selector: selector,
     builder: builder,
     listener: listener,
     listenWhen: listenWhen,
@@ -149,6 +149,19 @@ class _EquatableValue {
 
   @override
   int get hashCode => value.hashCode;
+}
+
+class _PlainSelectableOwner extends ChangeNotifier {
+  _PlainSelectableOwner(int initialValue)
+    : selected = StateField<int>(initialValue);
+
+  final StateField<int> selected;
+
+  @override
+  void dispose() {
+    selected.dispose();
+    super.dispose();
+  }
 }
 
 void main() {
@@ -1310,7 +1323,7 @@ void main() {
             ChangeNotifierProvider<_MovieNotifier>.value(
               value: movie,
               child: _engine<_MovieNotifier, MutationState<void>>(
-                selectListenable: (provider) => provider.saveMutation,
+                selector: (provider) => provider.saveMutation,
                 builder: (_, state, __) {
                   mutationStates.add(state);
                   return Text(state.runtimeType.toString());
@@ -1342,6 +1355,84 @@ void main() {
         movie.disposeResources();
       });
 
+      testWidgets(
+        'selects from a ChangeNotifierProvider and rebinds when its value changes',
+        (tester) async {
+          final first = _PlainSelectableOwner(10);
+          final second = _PlainSelectableOwner(20);
+
+          var active = first;
+          late StateSetter replaceProvider;
+
+          final buildStates = <int>[];
+          final listenerStates = <int>[];
+
+          await tester.pumpWidget(
+            _host(
+              StatefulBuilder(
+                builder: (_, setState) {
+                  replaceProvider = setState;
+
+                  return ChangeNotifierProvider<_PlainSelectableOwner>.value(
+                    value: active,
+                    child: _engine<_PlainSelectableOwner, int>(
+                      selector: (provider) => provider.selected,
+                      builder: (_, state, __) {
+                        buildStates.add(state);
+                        return Text('$state');
+                      },
+                      listener: (_, state) => listenerStates.add(state),
+                    ),
+                  );
+                },
+              ),
+            ),
+          );
+
+          // Initial state from the first provider.
+          expect(buildStates, [10]);
+          expect(first.selected.hasListeners, isTrue);
+
+          // Observe changes from the first selected listenable.
+          first.selected.state = 11;
+          await tester.pump();
+
+          expect(buildStates, [10, 11]);
+          expect(listenerStates, [11]);
+
+          // Replace the provider value.
+          replaceProvider(() => active = second);
+          await tester.pump();
+
+          expect(buildStates, [10, 11, 20]);
+          expect(listenerStates, [11]);
+
+          // The previous selected listenable must be detached.
+          expect(first.selected.hasListeners, isFalse);
+          expect(second.selected.hasListeners, isTrue);
+
+          first.selected.state = 12;
+          await tester.pump();
+
+          expect(buildStates, [10, 11, 20]);
+          expect(listenerStates, [11]);
+
+          // The new selected listenable must remain active.
+          second.selected.state = 21;
+          await tester.pump();
+
+          expect(buildStates, [10, 11, 20, 21]);
+          expect(listenerStates, [11, 21]);
+
+          await tester.pumpWidget(const SizedBox());
+
+          expect(second.selected.hasListeners, isFalse);
+
+          first.dispose();
+          second.dispose();
+        },
+      );
+
       testWidgets('rebinds a nested Mutation when the provider is replaced', (
         tester,
       ) async {
@@ -1353,7 +1444,7 @@ void main() {
         final listenerStates = <MutationState<void>>[];
 
         final engine = _engine<_MediaNotifier, MutationState<void>>(
-          selectListenable: (provider) => provider.saveMutation,
+          selector: (provider) => provider.saveMutation,
           builder: (_, state, __) {
             buildStates.add(state);
             return const SizedBox();
@@ -1430,7 +1521,7 @@ void main() {
         final states = <int>[];
 
         final engine = _engine<_MediaNotifier, int>(
-          selectListenable: (provider) => provider.rating,
+          selector: (provider) => provider.rating,
           builder: (_, state, __) {
             states.add(state);
             return Text('$state');
@@ -1484,7 +1575,7 @@ void main() {
             ChangeNotifierProvider<_MovieNotifier>.value(
               value: movie,
               child: _engine<_MovieNotifier, MutationState<void>>(
-                selectListenable: (provider) => provider.saveMutation,
+                selector: (provider) => provider.saveMutation,
                 listener: (_, state) => listenerStates.add(state),
                 child: const SizedBox(),
               ),
@@ -1595,7 +1686,7 @@ void main() {
         final states = <int>[];
 
         final engine = _engine<_MediaNotifier, int>(
-          selectListenable: (provider) => provider.rating,
+          selector: (provider) => provider.rating,
           builder: (_, state, __) {
             states.add(state);
             return Text('$state');
@@ -1668,18 +1759,16 @@ void main() {
         expect(tester.takeException(), isA<ProviderNotFoundException>());
       });
 
-      testWidgets('propagates exceptions thrown by selectListenable', (
-        tester,
-      ) async {
+      testWidgets('propagates exceptions thrown by selector', (tester) async {
         final movie = _MovieNotifier();
-        final selectionError = StateError('selectListenable failed');
+        final selectionError = StateError('selector failed');
 
         await tester.pumpWidget(
           _host(
             ChangeNotifierProvider<_MovieNotifier>.value(
               value: movie,
               child: _engine<_MovieNotifier, MutationState<void>>(
-                selectListenable: (_) => throw selectionError,
+                selector: (_) => throw selectionError,
                 child: const SizedBox(),
               ),
             ),
@@ -1806,7 +1895,7 @@ void main() {
             ChangeNotifierProvider<_MovieNotifier>.value(
               value: movie,
               child: _engine<_MovieNotifier, MutationState<void>>(
-                selectListenable: (provider) => provider.saveMutation,
+                selector: (provider) => provider.saveMutation,
                 listener: (_, state) => listenerStates.add(state),
                 child: const SizedBox(),
               ),

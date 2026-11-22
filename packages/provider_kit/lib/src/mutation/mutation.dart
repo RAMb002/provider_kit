@@ -48,12 +48,12 @@ part 'mutation_state.dart';
 ///
 /// ### Basic usage
 ///
-/// Create a mutation in the class that owns the operation, such as a provider
+/// Create a mutation in the class that owns the operation, such as a notifier
 /// or controller, and reuse the same instance whenever the operation is
 /// performed.
 ///
 /// ```dart
-/// class AuthProvider {
+/// class AuthNotifier extends ChangeNotifier {
 ///   final signInMutation = Mutation<User>();
 ///
 ///   Future<MutationResult<User>> signIn(String email) {
@@ -62,8 +62,10 @@ part 'mutation_state.dart';
 ///     );
 ///   }
 ///
+///   @override
 ///   void dispose() {
 ///     signInMutation.dispose();
+///     super.dispose();
 ///   }
 /// }
 /// ```
@@ -72,8 +74,8 @@ part 'mutation_state.dart';
 /// to react to its state.
 ///
 /// ```dart
-/// StateBuilder.of<AuthProvider, MutationState<User>>(
-///   selectListenable: (AuthProvider provider) => provider.signInMutation,
+/// StateBuilder.select(
+///   selector: (AuthNotifier notifier) => notifier.signInMutation,
 ///   builder: (context, state, child) {
 ///     return state.when(
 ///       idle: () => const Text('SignIn'),
@@ -163,7 +165,7 @@ part 'mutation_state.dart';
 /// ### Reusing a mutation
 ///
 /// A [Mutation] is stateful and should normally be created once and reused.
-/// Keep the mutation in the provider, controller, or other object that owns
+/// Keep the mutation in the notifier, controller, or other object that owns
 /// the operation, and call [run] whenever the operation needs to be performed.
 ///
 /// Calling [run] does not create a new mutation. It updates the state of the
@@ -263,6 +265,32 @@ part 'mutation_state.dart';
 ///
 /// Instead, keep the mutation outside the widget's [build] method and provide
 /// the same instance to the widget that needs to observe it.
+///
+/// ### Managing mutations with NotifierResourcesMixin
+///
+/// For mutations owned by a `ChangeNotifier` or a ProviderKit notifier,
+/// it is recommended to use `NotifierResourcesMixin`. The mixin tracks
+/// mutations created through `mutation` and automatically disposes them
+/// when the owner is disposed.
+///
+/// ```dart
+/// class AuthNotifier extends ChangeNotifier
+///     with NotifierResourcesMixin {
+///
+///   late final signInMutation = mutation<User>();
+///
+///   Future<MutationResult<User>> signIn(String email) {
+///     return signInMutation.run(
+///       () => Api.signIn(email),
+///     );
+///   }
+/// }
+/// ```
+///
+/// This avoids manually disposing each [Mutation].
+///
+/// When not using `NotifierResourcesMixin`, you must dispose mutations
+/// manually in the owner's `dispose` method.
 ///
 /// See also:
 ///
