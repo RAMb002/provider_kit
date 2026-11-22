@@ -5,6 +5,6 @@ final WidgetbookCategory mutationsDirectory = WidgetbookCategory(
   name: 'Mutations',
   children: [
     mutationComponent(),
-    // mutationGroupComponent(),
+    mutationGroupComponent(),
   ],
 );

@@ -17,7 +17,6 @@ final WidgetbookCategory widgetsDirectory = WidgetbookCategory(
         stateBuilderComponent(),
         stateListenerComponent(),
         stateConsumerComponent(),
-        watchBuilderComponent(),
       ],
     ),
     WidgetbookCategory(
@@ -29,5 +28,6 @@ final WidgetbookCategory widgetsDirectory = WidgetbookCategory(
       ],
     ),
     nestedStateListenerComponent(),
+    watchBuilderComponent(),
   ],
 );

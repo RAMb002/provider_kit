@@ -26,6 +26,12 @@ WidgetbookComponent watchBuilderComponent() => WidgetbookComponent(
               WidgetbookSourceFile(
                 Assets.lib.widgets.shared.notifiers.stepNotifier,
               ),
+              WidgetbookSourceFile(
+                Assets.lib.widgets.shared.notifiers.counterFieldNotifier,
+              ),
+              WidgetbookSourceFile(
+                Assets.lib.widgets.shared.notifiers.moviesNotifier,
+              ),
             ],
           ),
         ),

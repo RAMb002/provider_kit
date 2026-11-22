@@ -1,101 +1,94 @@
+import 'package:example/widgets/shared/notifiers/todo_notifier.dart';
+import 'package:example/widgets/shared/repositories/todo_repository.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-/// Demonstrates independent keyed mutations for list items.
-class MutationGroupExample extends StatefulWidget {
+/// Demonstrates independent per-item operations using MutationGroup.
+class MutationGroupExample extends StatelessWidget {
   const MutationGroupExample({super.key});
 
   @override
-  State<MutationGroupExample> createState() => _MutationGroupExampleState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => TodoNotifier(),
+      child: const _TodoListView(),
+    );
+  }
 }
 
-class _MutationGroupExampleState extends State<MutationGroupExample> {
-  late final _archiveGroup = MutationGroup<void>(
-    concurrency: MutationConcurrency.ignoreIfBusy,
-    keepAliveStates: {
-      KeepAliveState.success,
-      KeepAliveState.error,
-    },
-  );
-
-  final _attempts = <String, int>{};
-
-  static const _tasks = [
-    ('task_1', 'Prepare release notes'),
-    ('task_2', 'Review pull requests'),
-    ('task_3', 'Update documentation'),
-  ];
-
-  @override
-  void dispose() {
-    _archiveGroup.dispose();
-    super.dispose();
-  }
-
-  Future<void> _archiveTask(String id) async {
-    await _archiveGroup(id).run(() async {
-      await Future.delayed(const Duration(seconds: 2));
-
-      final attempt = (_attempts[id] ?? 0) + 1;
-      _attempts[id] = attempt;
-
-      // Demonstrate an error followed by a successful retry.
-      if (id == 'task_2' && attempt == 1) {
-        throw StateError('Unable to archive this task.');
-      }
-    });
-  }
+class _TodoListView extends StatelessWidget {
+  const _TodoListView();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return Padding(
+      padding: const EdgeInsets.all(10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final task in _tasks)
-            StateBuilder<MutationState<void>>(
-              listenable: _archiveGroup(task.$1),
-              builder: (context, state, child) {
-                final theme = Theme.of(context);
-
-                String? subtitle;
-
-                Widget action;
-
-                if (state is MutationLoading<void>) {
-                  action = const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  );
-                } else if (state is MutationSuccess<void>) {
-                  subtitle = 'Archived';
-                  action = Icon(
-                    Icons.check_circle,
-                    color: theme.colorScheme.primary,
-                  );
-                } else if (state is MutationError<void>) {
-                  subtitle = state.errorInfo.message;
-                  action = IconButton(
-                    tooltip: 'Retry',
-                    onPressed: () => _archiveTask(task.$1),
-                    icon: const Icon(Icons.refresh),
-                  );
-                } else {
-                  action = IconButton(
-                    tooltip: 'Archive',
-                    onPressed: () => _archiveTask(task.$1),
-                    icon: const Icon(Icons.archive_outlined),
-                  );
-                }
-
-                return ListTile(
-                  title: Text(task.$2),
-                  subtitle: subtitle == null ? null : Text(subtitle),
-                  trailing: action,
-                );
-              },
+          ViewStateBuilder.of<TodoNotifier, List<Todo>>(
+            emptyBuilder: (context, details) => const Center(
+              child: Text('All tasks completed!'),
             ),
+            dataBuilder: (context, todos, child) {
+              final notifier = context.read<TodoNotifier>();
+
+              return SizedBox(
+                height: 240,
+                child: ListView.separated(
+                  itemCount: todos.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final todo = todos[index];
+
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(todo.title),
+                      trailing: SizedBox(
+                        width: 48,
+                        child: StateBuilder.select<TodoNotifier,
+                            MutationState<void>>(
+                          selector: (notifier) =>
+                              notifier.deleteMutation(todo.id),
+                          builder: (context, state, child) {
+                            return state.when(
+                              idle: () => IconButton(
+                                tooltip: 'Delete task',
+                                onPressed: () => notifier.deleteTodo(todo.id),
+                                icon: const Icon(
+                                  Icons.delete_outline,
+                                ),
+                              ),
+                              loading: () => const Center(
+                                child: SizedBox.square(
+                                  dimension: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              ),
+                              success: (_) => const Icon(
+                                Icons.check_circle_outline,
+                                color: Colors.green,
+                              ),
+                              error: (errorInfo, error, stackTrace) =>
+                                  IconButton(
+                                tooltip: 'Retry',
+                                onPressed: () => notifier.deleteTodo(todo.id),
+                                icon: const Icon(Icons.refresh),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

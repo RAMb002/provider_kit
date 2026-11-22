@@ -4,15 +4,14 @@ import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 /// Demonstrates passing a locally owned Mutation directly to StateBuilder.
-class MutationProviderExample extends StatefulWidget {
-  const MutationProviderExample({super.key});
+class MutationSelectExample extends StatefulWidget {
+  const MutationSelectExample({super.key});
 
   @override
-  State<MutationProviderExample> createState() =>
-      _MutationProviderExampleState();
+  State<MutationSelectExample> createState() => _MutationSelectExampleState();
 }
 
-class _MutationProviderExampleState extends State<MutationProviderExample> {
+class _MutationSelectExampleState extends State<MutationSelectExample> {
   final _textField = TextEditingController();
 
   @override
@@ -28,13 +27,11 @@ class _MutationProviderExampleState extends State<MutationProviderExample> {
         builder: (context, _) {
           final feedbackNotifier = context.read<FeedbackNotifier>();
           return Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(10),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.feedback_outlined, size: 36),
-                const SizedBox(height: 12),
                 Text(
                   'Share your feedback',
                   style: Theme.of(context).textTheme.titleLarge,
@@ -48,24 +45,37 @@ class _MutationProviderExampleState extends State<MutationProviderExample> {
                 const SizedBox(height: 20),
                 TextField(
                   controller: _textField,
-                  maxLines: 3,
+                  maxLines: 1,
                   decoration: const InputDecoration(
                     hintText: 'Write your feedback...',
                     border: OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
-                StateBuilder.of<FeedbackNotifier, MutationState<String>>(
-                  selector: (notifier) => notifier.sendMutation,
+                StateBuilder.select(
+                  selector: (FeedbackNotifier notifier) =>
+                      notifier.sendMutation,
                   builder: (context, state, child) {
                     return state.when(
                       idle: () => FilledButton(
-                        onPressed: () =>
-                            feedbackNotifier.sendFeedback(_textField.text),
+                        onPressed: () async {
+                          final MutationResult result = await feedbackNotifier
+                              .sendFeedback(_textField.text);
+                          result.when(succeeded: (data) {
+                            debugPrint("successfully sent");
+                          }, errored: (errorInfo, error, stackTrace) {
+                            //handle error
+                          }, ignored: (reason) {
+                            //handle ignore if needed
+                          });
+                        },
                         child: const Text('Send Feedback'),
                       ),
                       loading: () => const Center(
-                        child: CircularProgressIndicator(),
+                        child: SizedBox.square(
+                          dimension: 25,
+                          child: CircularProgressIndicator(),
+                        ),
                       ),
                       success: (message) => Column(
                         children: [
@@ -74,7 +84,7 @@ class _MutationProviderExampleState extends State<MutationProviderExample> {
                             color: Colors.green,
                             size: 32,
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 5),
                           Text(
                             message,
                             textAlign: TextAlign.center,
@@ -94,11 +104,6 @@ class _MutationProviderExampleState extends State<MutationProviderExample> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          const SizedBox(height: 8),
-                          // FilledButton(
-                          //   onPressed: _sendFeedback,
-                          //   child: const Text('Retry'),
-                          // ),
                         ],
                       ),
                     );

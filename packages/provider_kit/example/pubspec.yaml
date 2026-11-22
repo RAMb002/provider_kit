@@ -82,7 +82,10 @@ flutter:
     - lib/widgets/view_state_builder/
     - lib/widgets/view_state_listener/
     - lib/widgets/view_state_consumer/
+    - lib/widgets/mutations/
     - lib/widgets/mutations/mutation/
+    - lib/widgets/state_field/
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware

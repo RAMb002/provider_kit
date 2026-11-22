@@ -180,6 +180,7 @@
 //     );
 //   }
 // }
+import 'package:example/widgetbook_catalog/components/state_field_catalog.dart';
 import 'package:example/widgetbook_catalog/mutation_directory.dart';
 import 'package:example/widgets/shared/repositories/movies_repository.dart';
 import 'package:example/widgets/shared/view_state_defaults.dart';
@@ -213,7 +214,13 @@ class ProviderKitWidgetbook extends StatelessWidget {
   Widget build(BuildContext context) {
     return ExampleViewStateDefaults(
       child: Widgetbook.material(
-        directories: [widgetsDirectory, mutationsDirectory],
+        directories: [
+          widgetsDirectory,
+          mutationsDirectory,
+          stateFieldComponent(),
+        ],
+        initialRoute:
+            "?path=widgets/state-widgets/statebuilder/01-·-direct-listenable",
         addons: [
           MaterialThemeAddon(
             themes: [

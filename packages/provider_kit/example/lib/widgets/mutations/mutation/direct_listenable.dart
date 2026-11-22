@@ -24,13 +24,11 @@ class _MutationDirectExampleState extends State<MutationDirectExample> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Icon(Icons.feedback_outlined, size: 36),
-          const SizedBox(height: 12),
           Text(
             'Share your feedback',
             style: Theme.of(context).textTheme.titleLarge,
@@ -44,24 +42,36 @@ class _MutationDirectExampleState extends State<MutationDirectExample> {
           const SizedBox(height: 20),
           TextField(
             controller: _textField,
-            maxLines: 3,
+            maxLines: 1,
             decoration: const InputDecoration(
               hintText: 'Write your feedback...',
               border: OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 16),
-          StateBuilder<MutationState<String>>(
+          StateBuilder(
             listenable: _feedbackNotifier.sendMutation,
             builder: (context, state, child) {
               return state.when(
                 idle: () => FilledButton(
-                  onPressed: () =>
-                      _feedbackNotifier.sendFeedback(_textField.text),
+                  onPressed: () async {
+                    final MutationResult result =
+                        await _feedbackNotifier.sendFeedback(_textField.text);
+                    result.when(succeeded: (data) {
+                      debugPrint("successfully sent");
+                    }, errored: (errorInfo, error, stackTrace) {
+                      //handle error
+                    }, ignored: (reason) {
+                      //handle ignore if needed
+                    });
+                  },
                   child: const Text('Send Feedback'),
                 ),
                 loading: () => const Center(
-                  child: CircularProgressIndicator(),
+                  child: SizedBox.square(
+                    dimension: 25,
+                    child: CircularProgressIndicator(),
+                  ),
                 ),
                 success: (message) => Column(
                   children: [
@@ -70,7 +80,7 @@ class _MutationDirectExampleState extends State<MutationDirectExample> {
                       color: Colors.green,
                       size: 32,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 5),
                     Text(
                       message,
                       textAlign: TextAlign.center,
@@ -89,11 +99,6 @@ class _MutationDirectExampleState extends State<MutationDirectExample> {
                         color: Theme.of(context).colorScheme.error,
                       ),
                       textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton(
-                      onPressed: _feedbackNotifier.sendMutation.reset,
-                      child: const Text('Retry'),
                     ),
                   ],
                 ),

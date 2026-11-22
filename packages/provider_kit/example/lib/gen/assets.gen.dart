@@ -37,6 +37,9 @@ class $LibWidgetsGen {
   $LibWidgetsStateConsumerGen get stateConsumer =>
       const $LibWidgetsStateConsumerGen();
 
+  /// Directory path: lib/widgets/state_field
+  $LibWidgetsStateFieldGen get stateField => const $LibWidgetsStateFieldGen();
+
   /// Directory path: lib/widgets/state_listener
   $LibWidgetsStateListenerGen get stateListener =>
       const $LibWidgetsStateListenerGen();
@@ -64,6 +67,12 @@ class $LibWidgetsMutationsGen {
   /// Directory path: lib/widgets/mutations/mutation
   $LibWidgetsMutationsMutationGen get mutation =>
       const $LibWidgetsMutationsMutationGen();
+
+  /// File path: lib/widgets/mutations/mutation_group.dart
+  String get mutationGroup => 'lib/widgets/mutations/mutation_group.dart';
+
+  /// List of all assets
+  List<String> get values => [mutationGroup];
 }
 
 class $LibWidgetsNestedStateListenerGen {
@@ -157,6 +166,20 @@ class $LibWidgetsStateConsumerGen {
         multiProviderLookup,
         providerLookup
       ];
+}
+
+class $LibWidgetsStateFieldGen {
+  const $LibWidgetsStateFieldGen();
+
+  /// File path: lib/widgets/state_field/direct_listenable.dart
+  String get directListenable =>
+      'lib/widgets/state_field/direct_listenable.dart';
+
+  /// File path: lib/widgets/state_field/provider_select.dart
+  String get providerSelect => 'lib/widgets/state_field/provider_select.dart';
+
+  /// List of all assets
+  List<String> get values => [directListenable, providerSelect];
 }
 
 class $LibWidgetsStateListenerGen {
@@ -304,20 +327,24 @@ class $LibWidgetsWatchBuilderGen {
 class $LibWidgetsMutationsMutationGen {
   const $LibWidgetsMutationsMutationGen();
 
-  /// File path: lib/widgets/mutations/mutation/mutation_direct_listenable.dart
-  String get mutationDirectListenable =>
-      'lib/widgets/mutations/mutation/mutation_direct_listenable.dart';
+  /// File path: lib/widgets/mutations/mutation/direct_listenable.dart
+  String get directListenable =>
+      'lib/widgets/mutations/mutation/direct_listenable.dart';
 
-  /// File path: lib/widgets/mutations/mutation/provider_lookup.dart
-  String get providerLookup =>
-      'lib/widgets/mutations/mutation/provider_lookup.dart';
+  /// File path: lib/widgets/mutations/mutation/provider_select.dart
+  String get providerSelect =>
+      'lib/widgets/mutations/mutation/provider_select.dart';
 
   /// List of all assets
-  List<String> get values => [mutationDirectListenable, providerLookup];
+  List<String> get values => [directListenable, providerSelect];
 }
 
 class $LibWidgetsSharedNotifiersGen {
   const $LibWidgetsSharedNotifiersGen();
+
+  /// File path: lib/widgets/shared/notifiers/counter_field_notifier.dart
+  String get counterFieldNotifier =>
+      'lib/widgets/shared/notifiers/counter_field_notifier.dart';
 
   /// File path: lib/widgets/shared/notifiers/counter_notifier.dart
   String get counterNotifier =>
@@ -342,14 +369,19 @@ class $LibWidgetsSharedNotifiersGen {
   /// File path: lib/widgets/shared/notifiers/step_notifier.dart
   String get stepNotifier => 'lib/widgets/shared/notifiers/step_notifier.dart';
 
+  /// File path: lib/widgets/shared/notifiers/todo_notifier.dart
+  String get todoNotifier => 'lib/widgets/shared/notifiers/todo_notifier.dart';
+
   /// List of all assets
   List<String> get values => [
+        counterFieldNotifier,
         counterNotifier,
         directMovieNotifier,
         feedbackNotifier,
         moviesNotifier,
         recommendationsNotifier,
-        stepNotifier
+        stepNotifier,
+        todoNotifier
       ];
 }
 

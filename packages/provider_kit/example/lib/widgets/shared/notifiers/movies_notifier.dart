@@ -1,6 +1,5 @@
+import 'package:example/widgets/shared/repositories/movies_repository.dart';
 import 'package:provider_kit/provider_kit.dart';
-
-import '../repositories/movies_repository.dart';
 
 class MoviesNotifier extends FutureNotifier<List<String>> {
   MoviesNotifier()

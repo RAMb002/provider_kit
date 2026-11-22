@@ -10,6 +10,7 @@ import '../shared/code_preview.dart';
 
 WidgetbookComponent viewStateConsumerComponent() => WidgetbookComponent(
       name: 'ViewStateConsumer',
+      isInitiallyExpanded: false,
       useCases: [
         WidgetbookUseCase(
           name: '01 · Direct listenable',

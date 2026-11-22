@@ -37,8 +37,4 @@ class ExampleViewStateDefaults extends StatelessWidget {
       child: child,
     );
   }
-
-  Widget _adaptForSliver(Widget child, bool isSliver) {
-    return isSliver ? SliverToBoxAdapter(child: child) : child;
-  }
 }
