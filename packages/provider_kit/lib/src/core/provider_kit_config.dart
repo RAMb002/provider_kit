@@ -4,6 +4,7 @@ final class _ProviderKitConfig {
   _ProviderKitConfig({
     ErrorInfoMapper? errorInfoMapper,
     this.observer,
+    this.mutationConcurrency = MutationConcurrency.parallel,
   }) : errorInfoMapper = errorInfoMapper ?? _defaultErrorInfoMapper;
 
   /// Converts errors into [ErrorInfo] instances.
@@ -14,6 +15,9 @@ final class _ProviderKitConfig {
   /// The global observer used to monitor notifier lifecycle events.
   final NotifierObserver? observer;
 
+  /// The default concurrency policy used by mutations.
+  final MutationConcurrency mutationConcurrency;
+
   /// Creates the default [ErrorInfo] for an unhandled error.
   ///
   /// The default implementation uses [Object.toString] as the error message.
@@ -21,8 +25,6 @@ final class _ProviderKitConfig {
     Object error,
     StackTrace stackTrace,
   ) {
-    return ErrorInfo(
-      message: error.toString(),
-    );
+    return ErrorInfo(message: error.toString());
   }
 }

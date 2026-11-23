@@ -30,11 +30,11 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
     super.initState();
 
     _providerOne = DemoMultiViewStateNotifier(
-      data: 'Flutter',
+      currentData: 'Flutter',
     );
 
     _providerTwo = DemoMultiViewStateNotifier(
-      data: 'ProviderKit',
+      currentData: 'ProviderKit',
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -118,9 +118,9 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
   ) {
     return Center(
       child: ViewStateBuilder<String>(
-        provider: provider,
-        loadingBuilder: (_, __, ___) => const DemoLoadingContent(),
-        dataBuilder: (data) => DemoDataContent(
+        listenable: provider,
+        loadingBuilder: (_, __) => const DemoLoadingContent(),
+        dataBuilder: (_, data, __) => DemoDataContent(
           data: data,
         ),
       ),
@@ -132,13 +132,13 @@ class _MultiViewStateWidgetsDemoState extends State<MultiViewStateWidgetsDemo> {
       height: 166,
       child: DemoCard(
         cardWidth: 270,
-        child: MultiViewStateBuilder<String>(
-          providers: [
-            _providerOne,
-            _providerTwo,
+        child: ViewStateBuilder.multi(
+          listenables: () => [
+            _providerOne.watch,
+            _providerTwo.watch,
           ],
-          loadingBuilder: (_, __, ___) => const DemoLoadingContent(),
-          dataBuilder: (states) {
+          loadingBuilder: (_, __) => const DemoLoadingContent(),
+          dataBuilder: (_, states, __) {
             final data = states.map((state) => state.data).join(' • ');
 
             return DemoDataContent(

@@ -1,3 +1,51 @@
+## Unreleased
+
+**Multi-State**
+
+- Added type-safe, heterogeneous listenable combinations to `MultiState` and `MultiViewState`.
+- Standardized multi-provider APIs with `.multi` constructors across state and view-state widgets.
+- Added `WatchBuilder` for conveniently watching multiple listenables with `.watch`.
+
+**State**
+
+- Added `StateField<T>` for lightweight reactive fields that can be used with `ChangeNotifier`.
+- Added `data` and `dataOrNull` getters to `ViewState` and `ViewStateNotifier`.
+- Rename widget parameters from provider/providers to listenable/listenables across state and view-state widgets.
+- Added `BuildContext` to view-state builder and listener callbacks, and `child` support to data builders.
+- Added details objects for loading, empty, and error callbacks in view-state widgets.
+- Added `refresh` support to `EmptyState` in `ViewState`.
+- Added `ViewStateMessageResolver` for centralized message localization and scoped overrides through `ViewStateWidgetsProvider`.
+- Added `.select` constructors to state widgets for observing nested listenables.
+
+**Async Notifiers**
+- Overhauled `FutureNotifier` refresh, rebuild, error handling, and stale-operation protection.
+- Added `StreamNotifier` for stream-based state management with shared async build management.
+- Added configurable loading and empty messages to `FutureNotifier` and `StreamNotifier`.
+
+**Mixins**
+
+- Added `NotifierResourcesMixin` for automatic disposal of
+`StateField`, `Mutation`, `MutationGroup`, `Debounce`, and `Throttle` resources
+created by `ChangeNotifier` notifiers.
+- Added `StateResourcesMixin` for automatic disposal of the same resources
+created by the `State` of a `StatefulWidget`.
+- Added shared `debounceRun()` and `throttleRun()` helpers with lazy resource
+creation.
+- Renamed `DataStateCopyCacheMixin` to `DataStateCacheMixin` and updated
+its API names for caching and restoring `DataState`.
+
+**Mutations**
+
+- Added `Mutation.data` and `Mutation.dataOrNull` for accessing mutation results.
+- Added `MutationConcurrency` and `MutationResult`.
+- Updated `MutationGroup.dispose()` to optionally accept a key for disposing a
+specific keyed mutation.
+- Removed the separate `disposeKey()` API.
+
+**Observers**
+
+- Added `DebugNotifierObserver` for convenient notifier debugging.
+
 ## 0.4.0
 
 **Added**

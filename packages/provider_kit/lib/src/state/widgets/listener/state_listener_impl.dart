@@ -1,0 +1,53 @@
+part of 'state_listener.dart';
+
+class _StateListener<T>
+    extends _CallbackStateListenerBase<StateListenable<T>, T> {
+  const _StateListener({
+    super.key,
+    required super.listener,
+    required StateListenable<T> listenable,
+    super.listenWhen,
+    super.callListenerOnInit,
+    super.child,
+  }) : super(listenable: listenable);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<StateListenable<T>?>('listenable', listenable),
+    );
+  }
+}
+
+/// Shared implementation for callback-based [StateListener] variants.
+abstract class _CallbackStateListenerBase<P, T>
+    extends StateListenerBase<P, T> {
+  const _CallbackStateListenerBase({
+    super.key,
+    required super.listenable,
+    required this.listener,
+    super.selector,
+    super.listenWhen,
+    super.callListenerOnInit,
+    super.child,
+  });
+
+  /// {@template provider_kit.state_listener.listener}
+  /// The listener function that is called when the state changes.
+  /// {@endtemplate}
+  final ListenerCallback<T> listener;
+
+  @override
+  void onStateChange(BuildContext context, T state) {
+    listener(context, state);
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<ListenerCallback<T>>.has('listener', listener),
+    );
+  }
+}

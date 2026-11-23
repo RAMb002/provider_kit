@@ -33,4 +33,12 @@ abstract class ViewStateNotifier<State>
     extends StateNotifier<ViewState<State>> {
   /// {@macro provider_kit.view_state_notifier}
   ViewStateNotifier(super.state);
+
+  /// Returns the data from the current [DataState].
+  ///
+  /// Only use this getter when the current state is known to be a [DataState].
+  /// Throws a [StateError] otherwise.
+  State get data => state.data;
+
+  State? get dataOrNull => state.dataOrNull;
 }

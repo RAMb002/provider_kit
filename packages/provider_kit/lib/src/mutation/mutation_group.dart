@@ -72,6 +72,31 @@ part of 'mutation.dart';
 /// print(identical(mutationA, mutationB)); // true
 /// ```
 ///
+/// ### Execution results
+///
+/// Each keyed [Mutation] supports the same execution callbacks and
+/// [MutationResult] outcomes as a regular mutation. See [Mutation.run]
+/// for details about execution, callbacks, and returned results.
+///
+/// ### Concurrency
+///
+/// The group uses the application-wide concurrency policy configured
+/// through [ProviderKit.configure], or [MutationConcurrency.parallel]
+/// when no custom policy is configured.
+///
+/// You can override the policy for all mutations created by the group:
+///
+/// ```dart
+/// final deleteTodo = MutationGroup<void>(
+///   concurrency: MutationConcurrency.ignoreIfBusy,
+/// );
+/// ```
+///
+/// The concurrency policy applies independently to each key. Executions
+/// for one key do not affect executions for another key.
+///
+/// See [MutationConcurrency] for details about the available policies.
+///
 /// ### Automatic disposal
 ///
 /// Keyed mutations are automatically removed from the cache when they have
@@ -135,24 +160,16 @@ part of 'mutation.dart';
 ///
 /// ### Manual disposal
 ///
-/// A single keyed mutation can be explicitly disposed with [disposeKey]:
+/// Disposes a mutation associated with [key], or all cached mutations when
+/// no key is provided.
+///
+/// Pass a key to dispose only the mutation associated with that key:
 ///
 /// ```dart
-/// deleteTodo.disposeKey(todo.id);
+/// group.dispose(todo.id);
 /// ```
 ///
-/// The entire group can be disposed when its owner is disposed:
-///
-/// ```dart
-/// @override
-/// void dispose() {
-///   deleteTodo.dispose();
-///   super.dispose();
-/// }
-/// ```
-///
-/// Disposing the group immediately disposes all currently cached mutations,
-/// including mutations that are still loading.
+/// Call without a key to dispose all cached mutations:
 ///
 /// ### When should I use MutationGroup?
 ///
@@ -182,6 +199,9 @@ class MutationGroup<T> {
   final Map<Object, Mutation<T>> _cache = {};
   final Map<Object, _AutoDisposeController<T, Object>> _controllers = {};
   final Set<KeepAliveState> _keepAliveStates;
+
+  /// Determines how concurrent executions are handled by each keyed mutation.
+  final MutationConcurrency concurrency;
 
   /// Creates a group that manages keyed mutations with automatic disposal.
   ///
@@ -217,8 +237,10 @@ class MutationGroup<T> {
   /// The provided set is copied and cannot be modified after the group is
   /// created.
   MutationGroup({
+    MutationConcurrency? concurrency,
     Set<KeepAliveState> keepAliveStates = const {},
-  }) : _keepAliveStates = Set.unmodifiable(keepAliveStates);
+  }) : concurrency = concurrency ?? ProviderKit.defaultMutationConcurrency,
+       _keepAliveStates = Set.unmodifiable(keepAliveStates);
 
   /// Returns the [Mutation] associated with [key].
   ///
@@ -233,7 +255,7 @@ class MutationGroup<T> {
       return existing;
     }
 
-    final mutation = Mutation<T>();
+    final mutation = Mutation<T>(concurrency: concurrency);
     _setupMutation(key, mutation);
     _cache[key] = mutation;
     return mutation;
@@ -263,32 +285,29 @@ class MutationGroup<T> {
 
   bool _shouldDispose(Mutation<T> mutation) {
     // Must have no listeners
-    if (mutation.hasListeners) return false;
+    if (mutation.hasListeners || mutation._hasPendingExecutions) return false;
 
     final state = mutation.state;
 
     return switch (state) {
       MutationIdle<T>() => true,
       MutationLoading<T>() => false,
-      MutationSuccess<T>() =>
-        !_keepAliveStates.contains(KeepAliveState.success),
+      MutationSuccess<T>() => !_keepAliveStates.contains(
+        KeepAliveState.success,
+      ),
       MutationError<T>() => !_keepAliveStates.contains(KeepAliveState.error),
     };
-  }
-
-  /// Disposes the mutation associated with [key].
-  ///
-  /// If no mutation exists for [key], this method does nothing.
-  ///
-  /// This forces disposal even if the mutation is currently loading.
-  void disposeKey(Object key) {
-    _cleanup(key, force: true);
   }
 
   /// Disposes all mutations currently managed by this group.
   ///
   /// This also disposes mutations that are currently loading.
-  void dispose() {
+  void dispose([Object? key]) {
+    if (key != null) {
+      _cleanup(key, force: true);
+      return;
+    }
+
     while (_cache.isNotEmpty) {
       final key = _cache.keys.first;
       _cleanup(key, force: true);
@@ -333,6 +352,7 @@ class _AutoDisposeController<T, K> {
     mutation._setOnFirstListenerAdded(_onFirstListener);
     mutation._setOnLastListenerRemoved(_onLastListener);
     mutation._setOnStateChanged(_onStateChanged);
+    mutation._setOnExecutionCompleted(_onExecutionCompleted);
   }
 
   bool _queued = false;
@@ -354,6 +374,14 @@ class _AutoDisposeController<T, K> {
     }
   }
 
+  void _onExecutionCompleted() {
+    if (!mutation.mounted) return;
+
+    if (shouldDispose(mutation)) {
+      _scheduleDispose();
+    }
+  }
+
   void _scheduleDispose() {
     if (_queued) return;
     _queued = true;
@@ -370,10 +398,8 @@ class _AutoDisposeController<T, K> {
     mutation._setOnLastListenerRemoved(null);
     mutation._setOnStateChanged(null);
     mutation._setOnDisposed(null);
+    mutation._setOnExecutionCompleted(null);
   }
 }
 
-enum KeepAliveState {
-  success,
-  error,
-}
+enum KeepAliveState { success, error }

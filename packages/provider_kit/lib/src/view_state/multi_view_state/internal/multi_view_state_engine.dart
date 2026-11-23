@@ -1,0 +1,329 @@
+part of '../../../state/multi_state/multi_state.dart';
+
+/// Internal implementation shared by the Multi View State listener, builder,
+/// and consumer widgets.
+///
+/// This base owns Multi View State-specific change detection while delegating
+/// dependency collection, subscription management, listener scheduling, and
+/// rebuild scheduling to [_MultiStateCore].
+///
+/// The current combined value and aggregated View State are maintained as
+/// separate snapshots. The combined value is used for Data-state equality,
+/// while [MultiViewStateAggregate] represents the observable Error, Initial,
+/// Loading, and Empty state information.
+///
+@internal
+final class MultiViewStateEngine<T> extends StatefulWidget {
+  const MultiViewStateEngine({
+    super.key,
+    required this.listenables,
+    required this.widgetName,
+    this.listener,
+    this.builder,
+    this.listenWhen,
+    this.rebuildWhen,
+    this.callListenerOnInit = false,
+    this.child,
+  });
+
+  /// Produces the combined state and declares dependencies through `.watch`.
+  /// Provider-owned listenables can also be resolved through `of<P>()`.
+  final MultiStateListenables<T> listenables;
+
+  /// Receives the current combined state and aggregated View State when a
+  /// meaningful change passes [listenWhen].
+  final MultiViewStateListenerCallback<T>? listener;
+
+  /// Builds the widget from the current combined state and aggregate.
+  final MultiViewStateBuilderCallback<T>? builder;
+
+  /// Determines whether a meaningful Multi View State change should invoke
+  /// [listener].
+  final ListenWhen<T>? listenWhen;
+
+  /// Determines whether a meaningful Multi View State change should rebuild
+  /// [builder].
+  final RebuildWhen<T>? rebuildWhen;
+
+  /// Whether [listener] should be called once after initialization.
+  final bool callListenerOnInit;
+
+  /// Optional subtree preserved by listener-only variants.
+  final Widget? child;
+
+  /// Name of the public widget using this private implementation.
+  final String widgetName;
+
+  @override
+  State<MultiViewStateEngine<T>> createState() =>
+      _MultiViewStateEngineState<T>();
+}
+
+/// State implementation for [MultiViewStateEngine].
+///
+/// The state delegates shared dependency and scheduling mechanics to
+/// [_MultiStateCore] and keeps the latest Multi View State aggregate locally.
+class _MultiViewStateEngineState<T> extends State<MultiViewStateEngine<T>> {
+  late final _MultiStateCore<T> _core;
+
+  /// Listenables currently used by the aggregated View State.
+  ///
+  /// Their order is preserved because the first matching listenable determines
+  /// Error, Loading, and Empty details.
+  late List<ViewStateNotifier<dynamic>> _listenables;
+
+  /// Latest aggregated View State snapshot.
+  late MultiViewStateAggregate _currentAggregate;
+
+  @override
+  void initState() {
+    super.initState();
+    _core = _MultiStateCore<T>(onDependencyChange: _handleChange);
+    _updateAndSync();
+    if (widget.callListenerOnInit && widget.listener != null) {
+      _scheduleInitialListener();
+    }
+  }
+
+  @override
+  void didUpdateWidget(MultiViewStateEngine<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _updateAndSync();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // The first didChangeDependencies occurs before the initial build.
+    // Provider identity dependencies have not been established yet.
+    if (!_core.hasBuilt || !_core.hasProviderDependencies) {
+      return;
+    }
+
+    // A Provider identity dependency changed. Resolve the current
+    // instances again and establish a new state and aggregate baseline.
+    final _DependencyCollection<T> collection = _collect();
+
+    _core.state = collection.value;
+
+    _core.syncProviderDependencies(collection.providerDependencies);
+
+    _listenables = _resolveListenables(collection.dependencies);
+    _currentAggregate = MultiViewStateUtils._aggregate(_listenables);
+
+    _core.syncDependencies(collection.dependencies);
+  }
+
+  void _updateAndSync() {
+    final _DependencyCollection<T> collection = _collect();
+
+    _core.state = collection.value;
+    _core.syncProviderDependencies(collection.providerDependencies);
+
+    _listenables = _resolveListenables(collection.dependencies);
+    _currentAggregate = MultiViewStateUtils._aggregate(_listenables);
+
+    _core.syncDependencies(collection.dependencies);
+  }
+
+  /// Schedules the initial listener with the state and aggregate captured
+  /// during initialization.
+  void _scheduleInitialListener() {
+    final T initialState = _core.state;
+    final MultiViewStateAggregate initialAggregate = _currentAggregate;
+    final MultiViewStateListenerCallback<T> initialListener = widget.listener!;
+
+    _core.listenerQueue.scheduleInitialListener(
+      initialCallback: () {
+        initialListener(context, initialState, initialAggregate);
+      },
+      isMounted: () => mounted,
+    );
+  }
+
+  /// Handles a notification from one of the currently subscribed listenables.
+  ///
+  /// Listenable notifications are first converted into a new combined state
+  /// and aggregate. Only meaningful changes continue to listener and rebuild
+  /// processing.
+  void _handleChange() {
+    if (!mounted) {
+      return;
+    }
+
+    final T previousState = _core.state;
+    final MultiViewStateAggregate previousAggregate = _currentAggregate;
+
+    final _DependencyCollection<T> collection = _collect();
+    final T currentState = collection.value;
+
+    final bool providerDependenciesChanged = _core.syncProviderDependencies(
+      collection.providerDependencies,
+    );
+
+    _core.syncDependencies(collection.dependencies);
+    _listenables = _resolveListenables(collection.dependencies);
+
+    final MultiViewStateAggregate currentAggregate =
+        MultiViewStateUtils._aggregate(_listenables);
+
+    _core.state = currentState;
+    _currentAggregate = currentAggregate;
+
+    if (!_hasMeaningfulChange(
+      previousState,
+      currentState,
+      previousAggregate,
+      currentAggregate,
+    )) {
+      // Provider identity dependencies must still be registered during build,
+      // even when the combined View State has not meaningfully changed.
+      if (providerDependenciesChanged) {
+        _scheduleRebuild();
+      }
+
+      return;
+    }
+
+    _notify(
+      previousState,
+      currentState,
+      providerDependenciesChanged: providerDependenciesChanged,
+    );
+  }
+
+  /// Determines whether the aggregated Multi View State meaningfully changed.
+  ///
+  /// Aggregate changes are checked independently from the combined value.
+  /// When both snapshots represent Data, the combined value is additionally
+  /// compared using ProviderKit's standard equality behavior.
+  bool _hasMeaningfulChange(
+    T previousState,
+    T currentState,
+    MultiViewStateAggregate previousAggregate,
+    MultiViewStateAggregate currentAggregate,
+  ) {
+    if (!previousAggregate.isSameAs(currentAggregate)) {
+      return true;
+    }
+
+    if (currentAggregate.status != MultiViewStateStatus.data) {
+      return false;
+    }
+
+    return ObjectKit.shouldNotify(previousState, currentState, null);
+  }
+
+  /// Applies the user-level listener and rebuild filters after the framework
+  /// has determined that a meaningful change occurred.
+  void _notify(
+    T previousState,
+    T currentState, {
+    required bool providerDependenciesChanged,
+  }) {
+    final bool shouldRebuild =
+        widget.builder != null &&
+        (widget.rebuildWhen?.call(previousState, currentState) ?? true);
+
+    final bool shouldListen =
+        widget.listener != null &&
+        (widget.listenWhen?.call(previousState, currentState) ?? true);
+
+    if (shouldRebuild || providerDependenciesChanged) {
+      _scheduleRebuild();
+    }
+
+    if (shouldListen) {
+      final MultiViewStateListenerCallback<T>? listener = widget.listener;
+
+      if (listener != null) {
+        final T state = currentState;
+        final MultiViewStateAggregate aggregate = _currentAggregate;
+
+        _core.listenerQueue.dispatch(() => listener(context, state, aggregate));
+      }
+    }
+  }
+
+  void _scheduleRebuild() {
+    _core.rebuildScheduler.request(
+      isMounted: () => mounted,
+      rebuild: () => setState(() {}),
+    );
+  }
+
+  /// Collects the current combined state and its dependencies.
+  _DependencyCollection<T> _collect() {
+    return _core.collect(
+      context: context,
+      listenables: widget.listenables,
+      widgetName: widget.widgetName,
+    );
+  }
+
+  /// Converts the collected dependencies into the View State listenables used
+  /// for aggregation.
+  ///
+  /// The Multi View State API requires all watched sources to be
+  /// [ViewStateNotifier] instances.
+  List<ViewStateNotifier<dynamic>> _resolveListenables(
+    Iterable<StateListenable> dependencies,
+  ) {
+    return dependencies
+        .map((dependency) {
+          if (dependency is! ViewStateNotifier<dynamic>) {
+            throw StateError(
+              '${widget.widgetName} can only watch ViewStateNotifier '
+              'instances inside its `listenables` callback. '
+              'Received ${dependency.runtimeType}.',
+            );
+          }
+
+          return dependency;
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  void dispose() {
+    _core.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Provider.select must be registered during build.
+    _core.trackProviderDependencies(context);
+
+    final MultiViewStateBuilderCallback<T>? builder = widget.builder;
+
+    if (builder != null) {
+      return builder(context, _core.state, _currentAggregate, widget.child);
+    }
+
+    assert(
+      widget.child != null,
+      '''${widget.widgetName} requires a child when no builder is configured''',
+    );
+
+    return widget.child!;
+  }
+}
+
+@internal
+typedef MultiViewStateListenerCallback<T> =
+    void Function(
+      BuildContext context,
+      T state,
+      MultiViewStateAggregate aggregate,
+    );
+
+@internal
+typedef MultiViewStateBuilderCallback<T> =
+    Widget Function(
+      BuildContext context,
+      T state,
+      MultiViewStateAggregate aggregate,
+      Widget? child,
+    );

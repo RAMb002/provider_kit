@@ -1,0 +1,57 @@
+part of 'state_builder.dart';
+
+/// Private implementation of [StateBuilder].
+///
+/// Configures a builder for a [StateListenable] passed directly to the widget.
+class _StateBuilder<T>
+    extends _CallbackStateBuilderBase<StateListenable<T>, T> {
+  const _StateBuilder({
+    super.key,
+    required StateListenable<T> listenable,
+    required super.builder,
+    super.rebuildWhen,
+    super.child,
+  }) : super(listenable: listenable);
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      DiagnosticsProperty<StateListenable<T>?>('listenable', listenable),
+    );
+  }
+}
+
+/// Shared implementation for callback-based [StateBuilder] variants.
+abstract class _CallbackStateBuilderBase<P, T> extends StateBuilderBase<P, T> {
+  const _CallbackStateBuilderBase({
+    super.key,
+    required this.builder,
+    super.listenable,
+    super.selector,
+    super.rebuildWhen,
+    super.child,
+  });
+
+  /// {@template provider_kit.state_builder.builder}
+  /// Builds the widget tree whenever the state changes and
+  /// [rebuildWhen] allows the rebuild.
+  ///
+  /// The [child] is an optional widget that is not rebuilt when the state
+  /// changes.
+  /// {@endtemplate}
+  final StateWidgetBuilder<T> builder;
+
+  @override
+  Widget build(BuildContext context, T state, Widget? child) {
+    return builder(context, state, child);
+  }
+
+  @override
+  void debugFillProperties(DiagnosticPropertiesBuilder properties) {
+    super.debugFillProperties(properties);
+    properties.add(
+      ObjectFlagProperty<StateWidgetBuilder<T>>.has('builder', builder),
+    );
+  }
+}

@@ -125,7 +125,7 @@ class _UserLikeItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StateBuilder<MutationState<void>>(
-      provider: mutation,
+      listenable: mutation,
       builder: (_, state, __) {
         return Container(
           padding: const EdgeInsets.symmetric(

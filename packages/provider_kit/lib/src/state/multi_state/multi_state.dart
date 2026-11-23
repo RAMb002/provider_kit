@@ -1,0 +1,34 @@
+library provider_kit_multi_state;
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
+import 'package:provider/provider.dart';
+import 'package:provider_kit/src/base/state_listenable.dart';
+import 'package:provider_kit/src/errors/error_info.dart';
+import 'package:provider_kit/src/state/internal/listener_queue.dart';
+import 'package:provider_kit/src/state/internal/rebuild_scheduler.dart';
+import 'package:provider_kit/src/state/type_defs/state_callbacks.dart';
+import 'package:provider_kit/src/utils/equality_check.dart';
+import 'package:provider_kit/src/utils/flutter_error_reporting.dart';
+import 'package:provider_kit/src/view_state/notifiers/async/async_notifiers.dart';
+import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
+import 'package:provider_kit/src/view_state/states/view_states.dart';
+import 'package:provider_kit/src/view_state/type_defs/view_state_callbacks.dart';
+import 'package:provider_kit/src/view_state/utils/view_state_widget_utils.dart';
+import 'package:provider_kit/src/view_state/view_state_widgets_provider.dart';
+import 'package:provider_kit/src/view_state/widgets/view_state_details.dart';
+
+part '../../view_state/multi_view_state/internal/multi_view_state_aggregate.dart';
+part '../../view_state/multi_view_state/internal/multi_view_state_engine.dart';
+part '../../view_state/multi_view_state/internal/multi_view_state_utils.dart';
+part 'extension/watch_extension.dart';
+part 'internal/dependency_collection.dart';
+part 'internal/dependency_scope.dart';
+part 'internal/dependency_subscription.dart';
+part 'internal/dependency_tracker.dart';
+part 'internal/multi_state_engine.dart';
+part 'internal/multi_state_core.dart';
+part 'internal/provider_dependency.dart';
+part 'internal/provider_lookup.dart';
+part 'widgets/watch_builder.dart';

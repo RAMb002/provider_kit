@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -16,10 +17,7 @@ void main() {
         final error = Exception('Something went wrong.');
         final stackTrace = StackTrace.current;
 
-        final info = ProviderKit.resolveErrorInfo(
-          error,
-          stackTrace,
-        );
+        final info = ProviderKit.resolveErrorInfo(error, stackTrace);
 
         expect(info.message, error.toString());
         expect(info.code, isNull);
@@ -31,10 +29,7 @@ void main() {
         final error = Exception('Something went wrong.');
         final stackTrace = StackTrace.current;
 
-        final info = ProviderKit.resolveErrorInfo(
-          error,
-          stackTrace,
-        );
+        final info = ProviderKit.resolveErrorInfo(error, stackTrace);
 
         expect(info.message, error.toString());
         expect(info.code, isNull);
@@ -73,9 +68,7 @@ void main() {
             receivedError = error;
             receivedStackTrace = stackTrace;
 
-            return const ErrorInfo(
-              message: 'Mapped error.',
-            );
+            return const ErrorInfo(message: 'Mapped error.');
           },
         );
 
@@ -88,6 +81,69 @@ void main() {
         expect(receivedStackTrace, same(originalStackTrace));
         expect(info.message, 'Mapped error.');
       });
+
+      test(
+        'reports mapper errors to Flutter and falls back to the default mapper',
+        () {
+          final mapperError = StateError('mapper failed');
+          final originalError = Exception('Original operation error');
+          final originalStackTrace = StackTrace.current;
+
+          final reportedErrors = <FlutterErrorDetails>[];
+          final previousHandler = FlutterError.onError;
+
+          FlutterError.onError = reportedErrors.add;
+          addTearDown(() => FlutterError.onError = previousHandler);
+
+          ProviderKit.configure(
+            errorInfoMapper: (error, stackTrace) {
+              throw mapperError;
+            },
+          );
+
+          final info = ProviderKit.resolveErrorInfo(
+            originalError,
+            originalStackTrace,
+          );
+
+          // Falls back to the default mapper using the original error.
+          expect(info.message, originalError.toString());
+          expect(info.code, isNull);
+
+          // Reports the mapper's exception to Flutter.
+          expect(reportedErrors, hasLength(1));
+          expect(reportedErrors.single.exception, same(mapperError));
+        },
+      );
+    });
+
+    group('default mutation concurrency', () {
+      test('defaults to parallel when not configured', () {
+        expect(
+          ProviderKit.defaultMutationConcurrency,
+          MutationConcurrency.parallel,
+        );
+      });
+
+      test('defaults to parallel when configured without an override', () {
+        ProviderKit.configure();
+
+        expect(
+          ProviderKit.defaultMutationConcurrency,
+          MutationConcurrency.parallel,
+        );
+      });
+
+      test('uses the configured mutation concurrency', () {
+        ProviderKit.configure(
+          mutationConcurrency: MutationConcurrency.ignoreIfBusy,
+        );
+
+        expect(
+          ProviderKit.defaultMutationConcurrency,
+          MutationConcurrency.ignoreIfBusy,
+        );
+      });
     });
 
     group('observer configuration', () {
@@ -95,9 +151,7 @@ void main() {
         const observer = _TestObserver();
 
         expect(
-          () => ProviderKit.configure(
-            observer: observer,
-          ),
+          () => ProviderKit.configure(observer: observer),
           returnsNormally,
         );
       });
@@ -130,10 +184,7 @@ void main() {
 
     group('configuration', () {
       test('can be configured once', () {
-        expect(
-          () => ProviderKit.configure(),
-          returnsNormally,
-        );
+        expect(() => ProviderKit.configure(), returnsNormally);
       });
 
       test('throws StateError when configured more than once', () {
@@ -158,10 +209,7 @@ void main() {
 
         ProviderKit.resetForTesting();
 
-        expect(
-          () => ProviderKit.configure(),
-          returnsNormally,
-        );
+        expect(() => ProviderKit.configure(), returnsNormally);
       });
 
       test('restores the default error mapper', () {
@@ -178,13 +226,21 @@ void main() {
 
         final error = Exception('Original error');
 
-        final info = ProviderKit.resolveErrorInfo(
-          error,
-          StackTrace.current,
-        );
+        final info = ProviderKit.resolveErrorInfo(error, StackTrace.current);
 
         expect(info.message, error.toString());
         expect(info.code, isNull);
+      });
+
+      test('restores the default mutation concurrency', () {
+        ProviderKit.configure(mutationConcurrency: MutationConcurrency.queue);
+
+        ProviderKit.resetForTesting();
+
+        expect(
+          ProviderKit.defaultMutationConcurrency,
+          MutationConcurrency.parallel,
+        );
       });
     });
   });

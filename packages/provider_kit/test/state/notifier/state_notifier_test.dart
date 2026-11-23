@@ -1,4 +1,8 @@
+// ignore_for_file: invalid_use_of_protected_member
+
 import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -15,38 +19,30 @@ class OnChangeNotifier extends StateNotifier<int> {
   }
 }
 
-/// A notifier that tracks whether `onError` was called.
-class OnErrorNotifier extends StateNotifier<int> {
-  OnErrorNotifier(super.state);
+class ThrowingEquality {
+  @override
+  bool operator ==(Object other) {
+    throw StateError('Test error');
+  }
 
-  bool onErrorCalled = false;
+  @override
+  int get hashCode => 0;
+}
+
+class ThrowingEqualityNotifier extends StateNotifier<ThrowingEquality> {
+  ThrowingEqualityNotifier(super.state);
+
+  int onErrorCallCount = 0;
+  Object? receivedError;
+  StackTrace? receivedStackTrace;
 
   @override
   void onError(Object error, StackTrace stackTrace) {
     super.onError(error, stackTrace);
-    onErrorCalled = true;
-  }
-}
 
-/// A notifier that throws inside `onChange` to trigger `onError`.
-class ThrowingOnChangeNotifier extends StateNotifier<int> {
-  ThrowingOnChangeNotifier(super.state);
-
-  @override
-  void onChange(Change<int> change) {
-    super.onChange(change);
-    throw Exception('Intentional error in onChange');
-  }
-}
-
-/// A notifier that extends `OnErrorNotifier` and also throws in `onChange`.
-class CombinedErrorNotifier extends OnErrorNotifier {
-  CombinedErrorNotifier(super.state);
-
-  @override
-  void onChange(Change<int> change) {
-    super.onChange(change);
-    throw Exception('Forced error');
+    onErrorCallCount++;
+    receivedError = error;
+    receivedStackTrace = stackTrace;
   }
 }
 
@@ -125,16 +121,36 @@ void main() {
     // -----------------------------------------------------------------------
     // 4. Protected methods can be overridden
     // -----------------------------------------------------------------------
-    test('onChange can be overridden (and super is called)', () {
+    test('calls overridden onChange when state changes', () {
       final notifier = OnChangeNotifier(1);
+      addTearDown(notifier.dispose);
+
       notifier.state = 2;
+
       expect(notifier.onChangeCallCount, 1);
+      expect(notifier.state, 2);
     });
 
-    test('onError can be overridden (and super is called)', () {
-      final notifier = CombinedErrorNotifier(1);
-      expect(() => notifier.state = 2, throwsException);
-      expect(notifier.onErrorCalled, true);
+    test('dispatches error when state equality comparison throws', () {
+      final initialState = ThrowingEquality();
+      final notifier = ThrowingEqualityNotifier(initialState);
+      addTearDown(notifier.dispose);
+
+      expect(
+        () => notifier.state = ThrowingEquality(),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Test error',
+          ),
+        ),
+      );
+
+      expect(notifier.onErrorCallCount, 1);
+      expect(notifier.receivedError, isA<StateError>());
+      expect(notifier.receivedStackTrace, isNotNull);
+      expect(identical(notifier.state, initialState), isTrue);
     });
 
     // -----------------------------------------------------------------------
@@ -150,26 +166,35 @@ void main() {
     // 6. Dispose behaviour with pending state changes
     // -----------------------------------------------------------------------
     group('dispose behaviour', () {
-      test('setting state after dispose throws AssertionError (debug mode)',
-          () {
-        final notifier = StateNotifier<int>(0);
-        notifier.dispose();
-        expect(() => notifier.state = 1, throwsAssertionError);
-        expect(notifier.state, 0); // state unchanged
-      });
+      test(
+        'setting state after dispose throws FlutterError in debug mode',
+        () {
+          final notifier = StateNotifier<int>(0);
+          notifier.dispose();
+          expect(() => notifier.state = 1, throwsFlutterError);
+          expect(notifier.state, 0);
+        },
+        skip: kReleaseMode,
+      );
 
       test(
-          'calling notifyListeners after dispose throws AssertionError (debug mode)',
-          () {
-        final notifier = StateNotifier<int>(0);
-        notifier.dispose();
-        expect(() => notifier.notifyListeners(), throwsAssertionError);
-      });
+        'notifyListeners after dispose throws FlutterError in debug mode',
+        () {
+          final notifier = StateNotifier<int>(0);
+          notifier.dispose();
+          expect(() => notifier.notifyListeners(), throwsFlutterError);
+        },
+        skip: kReleaseMode,
+      );
 
-      test('multiple dispose calls are safe (second call does nothing)', () {
+      test('dispose can be called multiple times', () {
         final notifier = StateNotifier<int>(0);
-        notifier.dispose();
-        expect(notifier.dispose, returnsNormally);
+
+        expect(() {
+          notifier.dispose();
+          notifier.dispose();
+          notifier.dispose();
+        }, returnsNormally);
       });
 
       test('setting state inside dispose does not cause issue', () {
@@ -179,18 +204,20 @@ void main() {
         expect(notifier.state, 999);
       });
 
-      test('setting state after dispose (via async callback) does not recurse',
-          () async {
-        final completer = Completer<int>();
-        final notifier = StateNotifier<int>(0);
+      test(
+        'setting state after dispose (via async callback) does not recurse',
+        () async {
+          final completer = Completer<int>();
+          final notifier = StateNotifier<int>(0);
 
-        Future.delayed(Duration.zero, () {});
+          Future.delayed(Duration.zero, () {});
 
-        notifier.dispose();
-        completer.complete(42);
-        await completer.future;
-        expect(notifier.state, 0);
-      });
+          notifier.dispose();
+          completer.complete(42);
+          await completer.future;
+          expect(notifier.state, 0);
+        },
+      );
     });
   });
 }

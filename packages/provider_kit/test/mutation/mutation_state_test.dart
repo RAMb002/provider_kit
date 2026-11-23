@@ -59,34 +59,36 @@ void main() {
         mutation.dispose();
       });
 
-      test('handles error state and receives error, stack trace and error info',
-          () async {
-        final mutation = Mutation<int>();
-        final exception = StateError('failure');
+      test(
+        'handles error state and receives error, stack trace and error info',
+        () async {
+          final mutation = Mutation<int>();
+          final exception = StateError('failure');
 
-        try {
-          await mutation.run(() async {
-            throw exception;
-          });
-        } catch (_) {}
+          try {
+            await mutation.run(() async {
+              throw exception;
+            });
+          } catch (_) {}
 
-        final result = mutation.state.when(
-          idle: () => 'idle',
-          loading: () => 'loading',
-          success: (_) => 'success',
-          error: (errorInfo, error, stackTrace) {
-            expect(error, same(exception));
-            expect(stackTrace.toString(), isNotEmpty);
-            expect(errorInfo.message, exception.toString());
-            expect(errorInfo.code, isNull);
-            return 'error';
-          },
-        );
+          final result = mutation.state.when(
+            idle: () => 'idle',
+            loading: () => 'loading',
+            success: (_) => 'success',
+            error: (errorInfo, error, stackTrace) {
+              expect(error, same(exception));
+              expect(stackTrace.toString(), isNotEmpty);
+              expect(errorInfo.message, exception.toString());
+              expect(errorInfo.code, isNull);
+              return 'error';
+            },
+          );
 
-        expect(result, 'error');
+          expect(result, 'error');
 
-        mutation.dispose();
-      });
+          mutation.dispose();
+        },
+      );
     });
 
     group('map', () {
@@ -304,9 +306,7 @@ void main() {
       test('executes the matching callback and returns its result', () {
         final mutation = Mutation<int>();
 
-        final result = mutation.state.whenOrNull(
-          idle: () => 'idle',
-        );
+        final result = mutation.state.whenOrNull(idle: () => 'idle');
 
         expect(result, 'idle');
 
@@ -435,16 +435,14 @@ void main() {
       });
     });
 
-// -------------------------------------------------------------------------
-// mapOrNull
-// -------------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // mapOrNull
+    // -------------------------------------------------------------------------
     group('mapOrNull', () {
       test('executes the matching mapper and returns its result', () {
         final mutation = Mutation<int>();
 
-        final result = mutation.state.mapOrNull(
-          idle: (state) => state.isIdle,
-        );
+        final result = mutation.state.mapOrNull(idle: (state) => state.isIdle);
 
         expect(result, isTrue);
 
@@ -689,20 +687,55 @@ void main() {
 
         mutation.dispose();
       });
+
+      test('a success state is equal to itself when data is NaN', () async {
+        final mutation = Mutation<double>();
+        addTearDown(mutation.dispose);
+        await mutation.run(() async => double.nan);
+        final state = mutation.state;
+        expect(state == state, isTrue);
+      });
+
+      test('idle states with different generic types are not equal', () {
+        final intMutation = Mutation<int>();
+        final stringMutation = Mutation<String>();
+        addTearDown(intMutation.dispose);
+        addTearDown(stringMutation.dispose);
+
+        expect(intMutation.state, isNot(equals(stringMutation.state)));
+      });
+
+      test('error states with different stack traces are not equal', () async {
+        final error = StateError('failure');
+        final first = Mutation<int>();
+        final second = Mutation<int>();
+        addTearDown(first.dispose);
+        addTearDown(second.dispose);
+
+        final firstStackTrace = StackTrace.current;
+        final secondStackTrace = StackTrace.current;
+
+        try {
+          await first.run(
+            () async => Error.throwWithStackTrace(error, firstStackTrace),
+          );
+        } catch (_) {}
+
+        try {
+          await second.run(
+            () async => Error.throwWithStackTrace(error, secondStackTrace),
+          );
+        } catch (_) {}
+
+        expect(first.state, isNot(equals(second.state)));
+      });
     });
     group('toString()', () {
       test('MutationSuccess toString', () async {
         final mutation = Mutation<String>();
-
         await mutation.run(() async => 'success');
-
         final state = mutation.state;
-
-        expect(
-          state.toString(),
-          'MutationSuccess { data: success }',
-        );
-
+        expect(state.toString(), 'MutationSuccess { data: success }');
         mutation.dispose();
       });
       test('MutationError toString', () async {
