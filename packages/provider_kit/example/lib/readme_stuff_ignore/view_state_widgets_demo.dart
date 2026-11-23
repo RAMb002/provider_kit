@@ -79,26 +79,25 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
 
   Widget _buildBuilder() {
     return ViewStateBuilder<String>(
-      provider: _notifier,
+      listenable: _notifier,
       initialBuilder: (_) => _contentForState(
         const InitialState<String>(),
       ),
-      loadingBuilder: (message, progress, _) => _contentForState(
-        LoadingState<String>(message, progress),
+      loadingBuilder: (_, details) => _contentForState(
+        LoadingState<String>(details.message, details.progress),
       ),
-      emptyBuilder: (message, _) => _contentForState(
-        EmptyState<String>(message),
+      emptyBuilder: (_, details) => _contentForState(
+        EmptyState<String>(details.message),
       ),
-      errorBuilder: (errorInfo, error, stackTrace, onRetry, _) =>
-          _contentForState(
+      errorBuilder: (_, details) => _contentForState(
         ErrorState<String>(
-          error,
-          stackTrace,
-          errorInfo: errorInfo,
-          onRetry: onRetry,
+          details.error,
+          details.stackTrace,
+          errorInfo: details.errorInfo,
+          onRetry: details.onRetry,
         ),
       ),
-      dataBuilder: (data) => _contentForState(
+      dataBuilder: (_, data, __) => _contentForState(
         DataState<String>(data),
       ),
     );
@@ -106,20 +105,20 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
 
   Widget _buildListener() {
     return ViewStateListener<String>(
-      provider: _notifier,
-      initialStateListener: () {
+      listenable: _notifier,
+      initialStateListener: (_) {
         showStateChanged('Initial');
       },
-      loadingStateListener: (message, progress) {
+      loadingStateListener: (_, details) {
         showStateChanged('Loading');
       },
-      emptyStateListener: (message) {
+      emptyStateListener: (_, details) {
         showStateChanged('Empty');
       },
-      errorStateListener: (message, onRetry, exception, stackTrace) {
+      errorStateListener: (_, details) {
         showStateChanged('Error');
       },
-      dataStateListener: (data) {
+      dataStateListener: (_, data) {
         showStateChanged('Data');
       },
       child: DemoCard(
@@ -135,41 +134,40 @@ class _ViewStateWidgetsDemoState extends State<ViewStateWidgetsDemo>
 
   Widget _buildConsumer() {
     return ViewStateConsumer<String>(
-      provider: _notifier,
+      listenable: _notifier,
       initialBuilder: (_) => _contentForState(
         const InitialState<String>(),
       ),
-      loadingBuilder: (message, progress, _) => _contentForState(
-        LoadingState<String>(message, progress),
+      loadingBuilder: (_, details) => _contentForState(
+        LoadingState<String>(details.message, details.progress),
       ),
-      emptyBuilder: (message, _) => _contentForState(
-        EmptyState<String>(message),
+      emptyBuilder: (_, details) => _contentForState(
+        EmptyState<String>(details.message),
       ),
-      errorBuilder: (errorInfo, error, stackTrace, onRetry, _) =>
-          _contentForState(
+      errorBuilder: (_, details) => _contentForState(
         ErrorState<String>(
-          error,
-          stackTrace,
-          errorInfo: errorInfo,
-          onRetry: onRetry,
+          details.error,
+          details.stackTrace,
+          errorInfo: details.errorInfo,
+          onRetry: details.onRetry,
         ),
       ),
-      dataBuilder: (data) => _contentForState(
+      dataBuilder: (_, data, __) => _contentForState(
         DataState<String>(data),
       ),
-      initialStateListener: () {
+      initialStateListener: (_) {
         showStateChanged('Initial');
       },
-      loadingStateListener: (message, progress) {
+      loadingStateListener: (_, __) {
         showStateChanged('Loading');
       },
-      emptyStateListener: (message) {
+      emptyStateListener: (_, __) {
         showStateChanged('Empty');
       },
-      errorStateListener: (message, onRetry, exception, stackTrace) {
+      errorStateListener: (_, __) {
         showStateChanged('Error');
       },
-      dataStateListener: (data) {
+      dataStateListener: (_, data) {
         showStateChanged('Data');
       },
     );

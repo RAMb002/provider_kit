@@ -1,0 +1,81 @@
+name: Publish Widgetbook Website
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Choose whether to publish the Widgetbook'
+        required: true
+        type: choice
+        options:
+          - 'Do not publish'
+          - 'Publish to website'
+        default: 'Do not publish'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: ${{ inputs.publish == 'Publish to website' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout selected branch
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Install dependencies
+        working-directory: packages/provider_kit/example
+        run: flutter pub get
+
+      - name: Generate code
+        working-directory: packages/provider_kit/example
+        run: dart run build_runner build --delete-conflicting-outputs
+
+      - name: Build Widgetbook
+        working-directory: packages/provider_kit/example
+        run: |
+          flutter build web \
+            --release \
+            --base-href /provider_kit/widgetbook/ \
+            -t lib/main.dart
+
+      - name: Prepare website
+        run: |
+          mkdir -p site/widgetbook
+          cp -R packages/provider_kit/example/build/web/. site/widgetbook/
+
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    if: ${{ inputs.publish == 'Publish to website' }}
+    needs: build
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

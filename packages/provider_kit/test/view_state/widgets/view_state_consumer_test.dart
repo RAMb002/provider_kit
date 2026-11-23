@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-import '../../shared/mocks/provider_kit.dart';
+import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
+import '../../shared/view_state_message_resolver_helpers.dart';
 
 // -----------------------------------------------------------------------------
 // Helper to provide default ViewStateWidgetsProvider keys once.
@@ -17,12 +18,11 @@ const _defaultErrorKey = Key('default_error');
 
 Widget _withDefaultWidgetProvider(Widget child) {
   return ViewStateWidgetsProvider(
-    initialStateBuilder: (_) => const SizedBox(key: _defaultInitialKey),
+    initialStateBuilder: (_, __) => const SizedBox(key: _defaultInitialKey),
     loadingStateBuilder: (_, __, ___) =>
         const SizedBox(key: _defaultLoadingKey),
-    emptyStateBuilder: (_, __) => const SizedBox(key: _defaultEmptyKey),
-    errorStateBuilder: (_, __, ___, ____, _____) =>
-        const SizedBox(key: _defaultErrorKey),
+    emptyStateBuilder: (_, __, ___) => const SizedBox(key: _defaultEmptyKey),
+    errorStateBuilder: (_, __, ___) => const SizedBox(key: _defaultErrorKey),
     child: child,
   );
 }
@@ -49,9 +49,10 @@ void main() {
       bool callListenerOnInit = false,
       bool isSliver = false,
       bool withDefaultWidgetProvider = true,
+      Widget? child,
     }) {
       final consumer = ViewStateConsumer<String>(
-        provider: provider,
+        listenable: provider,
         initialBuilder: initialBuilder,
         loadingBuilder: loadingBuilder,
         emptyBuilder: emptyBuilder,
@@ -66,6 +67,7 @@ void main() {
         listenWhen: listenWhen,
         callListenerOnInit: callListenerOnInit,
         isSliver: isSliver,
+        child: child,
       );
 
       Widget widget = Directionality(
@@ -83,15 +85,16 @@ void main() {
     // SECTION 1: BUILDER TESTS (mirror ViewStateBuilder)
     // =======================================================================
 
-    testWidgets('dataBuilder is required and called for DataState',
-        (tester) async {
+    testWidgets('dataBuilder is required and called for DataState', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const DataState('Hello'));
       String? capturedData;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (data) {
+          dataBuilder: (_, data, ___) {
             capturedData = data;
             return const SizedBox();
           },
@@ -101,8 +104,64 @@ void main() {
       expect(capturedData, 'Hello');
     });
 
-    testWidgets('calls initialBuilder when state is InitialState',
-        (tester) async {
+    testWidgets(
+      'reuses the same child without rebuilding it when data changes',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const DataState<String>('first'),
+        );
+        addTearDown(provider.dispose);
+
+        var childBuildCount = 0;
+        var dataBuilderCallCount = 0;
+        final receivedChildren = <Widget?>[];
+
+        final staticChild = Builder(
+          builder: (context) {
+            childBuildCount++;
+            return const Text('static child');
+          },
+        );
+
+        await tester.pumpWidget(
+          buildConsumer(
+            provider: provider,
+            child: staticChild,
+            dataBuilder: (_, data, child) {
+              dataBuilderCallCount++;
+              receivedChildren.add(child);
+
+              return Column(children: [Text(data), if (child != null) child]);
+            },
+          ),
+        );
+
+        expect(find.text('first'), findsOneWidget);
+        expect(find.text('static child'), findsOneWidget);
+        expect(dataBuilderCallCount, 1);
+        expect(childBuildCount, 1);
+        expect(identical(receivedChildren.first, staticChild), isTrue);
+
+        provider.emit(const DataState<String>('second'));
+        await tester.pump();
+
+        expect(find.text('first'), findsNothing);
+        expect(find.text('second'), findsOneWidget);
+
+        // The data builder runs again, but the child instance is reused.
+        expect(dataBuilderCallCount, 2);
+        expect(childBuildCount, 1);
+        expect(receivedChildren, hasLength(2));
+        expect(
+          receivedChildren.every((child) => identical(child, staticChild)),
+          isTrue,
+        );
+      },
+    );
+
+    testWidgets('calls initialBuilder when state is InitialState', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool initialBuilt = false;
 
@@ -113,7 +172,7 @@ void main() {
             initialBuilt = true;
             return const SizedBox();
           },
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
         ),
       );
 
@@ -121,20 +180,21 @@ void main() {
     });
 
     testWidgets('calls loadingBuilder with correct parameters', (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const LoadingState('Loading', 0.7));
+      final provider = TestViewStateNotifier<String>(
+        const LoadingState('Loading', 0.7),
+      );
       String? capturedMessage;
       double? capturedProgress;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          loadingBuilder: (message, progress, _) {
-            capturedMessage = message;
-            capturedProgress = progress;
+          loadingBuilder: (_, details) {
+            capturedMessage = details.message;
+            capturedProgress = details.progress;
             return const SizedBox();
           },
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
         ),
       );
 
@@ -143,18 +203,19 @@ void main() {
     });
 
     testWidgets('calls emptyBuilder with message', (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const EmptyState('No data'));
+      final provider = TestViewStateNotifier<String>(
+        const EmptyState('No data'),
+      );
       String? capturedMessage;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          emptyBuilder: (message, _) {
-            capturedMessage = message;
+          emptyBuilder: (_, details) {
+            capturedMessage = details.message;
             return const SizedBox();
           },
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
         ),
       );
 
@@ -165,10 +226,7 @@ void main() {
       final error = Exception('boom');
       final stackTrace = StackTrace.current;
 
-      const errorInfo = ErrorInfo(
-        message: 'Error',
-        code: 'boom',
-      );
+      const errorInfo = ErrorInfo(message: 'Error', code: 'boom');
 
       final provider = TestViewStateNotifier<String>(
         ErrorState<String>(
@@ -183,21 +241,22 @@ void main() {
       VoidCallback? capturedOnRetry;
       Object? capturedError;
       StackTrace? capturedStackTrace;
-      bool? capturedIsSliver;
+      String? capturedMessage;
+      String? capturedCode;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          errorBuilder: (errorInfo, error, stackTrace, onRetry, isSliver) {
-            capturedErrorInfo = errorInfo;
-            capturedOnRetry = onRetry;
-            capturedError = error;
-            capturedStackTrace = stackTrace;
-            capturedIsSliver = isSliver;
+          errorBuilder: (_, details) {
+            capturedErrorInfo = details.errorInfo;
+            capturedOnRetry = details.onRetry;
+            capturedError = details.error;
+            capturedStackTrace = details.stackTrace;
+            capturedMessage = details.message;
+            capturedCode = details.code;
             return const SizedBox();
           },
-          dataBuilder: (_) => const SizedBox(),
-          isSliver: true,
+          dataBuilder: (_, __, ___) => const SizedBox(),
         ),
       );
 
@@ -205,19 +264,22 @@ void main() {
       expect(capturedError, same(error));
       expect(capturedStackTrace, same(stackTrace));
       expect(capturedOnRetry, isA<VoidCallback>());
-      expect(capturedIsSliver, isTrue);
+      expect(capturedMessage, 'Error');
+      expect(capturedCode, 'boom');
     });
 
     // -----------------------------------------------------------------------
     // Fallback to ViewStateWidgetsProvider (builder)
     // -----------------------------------------------------------------------
-    testWidgets('uses default initial widget from provider', (tester) async {
+    testWidgets('uses default initial widget from ViewStateWidgetsProvider', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
           withDefaultWidgetProvider: true,
         ),
       );
@@ -225,13 +287,15 @@ void main() {
       expect(find.byKey(_defaultInitialKey), findsOneWidget);
     });
 
-    testWidgets('uses default loading widget from provider', (tester) async {
+    testWidgets('uses default loading widget from ViewStateWidgetsProvider', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const LoadingState());
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
           withDefaultWidgetProvider: true,
         ),
       );
@@ -239,13 +303,15 @@ void main() {
       expect(find.byKey(_defaultLoadingKey), findsOneWidget);
     });
 
-    testWidgets('uses default empty widget from provider', (tester) async {
+    testWidgets('uses default empty widget from ViewStateWidgetsProvider', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const EmptyState());
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
           withDefaultWidgetProvider: true,
         ),
       );
@@ -253,18 +319,17 @@ void main() {
       expect(find.byKey(_defaultEmptyKey), findsOneWidget);
     });
 
-    testWidgets('uses default error widget from provider', (tester) async {
+    testWidgets('uses default error widget from ViewStateWidgetsProvider', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(
-        ErrorState<String>(
-          Exception('Error'),
-          StackTrace.current,
-        ),
+        ErrorState<String>(Exception('Error'), StackTrace.current),
       );
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
+          dataBuilder: (_, __, ___) => const SizedBox(),
           withDefaultWidgetProvider: true,
         ),
       );
@@ -273,129 +338,132 @@ void main() {
     });
 
     testWidgets(
-        'throws assertion when state is not DataState and no specific builder or ViewStateWidgetProvider is available',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
+      'throws assertion when state is not DataState and no specific builder or ViewStateWidgetProvider is available',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
 
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<String>(
-            provider: provider,
-            dataBuilder: (_) => const SizedBox(),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateConsumer<String>(
+              listenable: provider,
+              dataBuilder: (_, __, ___) => const SizedBox(),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(tester.takeException(), isA<AssertionError>());
-    });
+        expect(tester.takeException(), isA<AssertionError>());
+      },
+    );
 
     // -----------------------------------------------------------------------
     // onRetry resolution (for builder)
     // -----------------------------------------------------------------------
     testWidgets(
-        'errorBuilder receives onRetry from AsyncViewStateNotifier when not explicitly set',
-        (tester) async {
-      final exception = Exception('Test');
-      final provider = MockAsyncViewStateNotifier<String>(
-        fetchDataImpl: () => throw exception,
-      );
-      await tester.pumpAndSettle();
+      'errorBuilder receives onRetry from FutureNotifier when not explicitly set',
+      (tester) async {
+        final exception = Exception('Test');
+        final provider = MockFutureNotifier<String>(
+          buildImpl: () => throw exception,
+        );
+        await tester.pumpAndSettle();
 
-      VoidCallback? capturedOnRetry;
+        VoidCallback? capturedOnRetry;
 
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<String>(
-            provider: provider,
-            errorBuilder: (_, ___, __, onRetry, ____) {
-              capturedOnRetry = onRetry;
-              return const SizedBox();
-            },
-            dataBuilder: (_) => const SizedBox(),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateConsumer<String>(
+              listenable: provider,
+              errorBuilder: (_, details) {
+                capturedOnRetry = details.onRetry;
+                return const SizedBox();
+              },
+              dataBuilder: (_, __, ___) => const SizedBox(),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(capturedOnRetry, provider.refresh);
-    });
+        expect(capturedOnRetry, isNotNull);
+      },
+    );
 
     testWidgets(
-        'errorBuilder receives onRetry from ErrorState when explicitly set (overrides provider)',
-        (tester) async {
-      final provider = MockAsyncViewStateNotifier<String>(
-        fetchDataImpl: () => throw Exception('Test'),
-      );
-      await tester.pumpAndSettle();
+      'errorBuilder receives onRetry from ErrorState when explicitly set (overrides notifier retry callback)',
+      (tester) async {
+        final provider = MockFutureNotifier<String>(
+          buildImpl: () => throw Exception('Test'),
+        );
+        await tester.pumpAndSettle();
 
-      VoidCallback? capturedOnRetry;
-      void explicitOnRetry() {}
+        VoidCallback? capturedOnRetry;
+        void explicitOnRetry() {}
 
-      provider.state = ErrorState<String>(
-        StateError('Error'),
-        StackTrace.current,
-        onRetry: explicitOnRetry,
-      );
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<String>(
-            provider: provider,
-            errorBuilder: (_, ___, __, onRetry, ____) {
-              capturedOnRetry = onRetry;
-              return const SizedBox();
-            },
-            dataBuilder: (_) => const SizedBox(),
-          ),
-        ),
-      );
-
-      expect(capturedOnRetry, explicitOnRetry);
-    });
-
-    testWidgets(
-        'errorBuilder receives null onRetry when provider is not a AsyncViewStateNotifier',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(
-        ErrorState<String>(
+        provider.state = ErrorState<String>(
           StateError('Error'),
           StackTrace.current,
-        ),
-      );
-      VoidCallback? capturedOnRetry;
+          onRetry: explicitOnRetry,
+        );
 
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<String>(
-            provider: provider,
-            errorBuilder: (_, ___, __, onRetry, ____) {
-              capturedOnRetry = onRetry;
-              return const SizedBox();
-            },
-            dataBuilder: (_) => const SizedBox(),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateConsumer<String>(
+              listenable: provider,
+              errorBuilder: (_, details) {
+                capturedOnRetry = details.onRetry;
+                return const SizedBox();
+              },
+              dataBuilder: (_, __, ___) => const SizedBox(),
+            ),
           ),
-        ),
-      );
+        );
 
-      expect(capturedOnRetry, isNull);
-    });
+        expect(capturedOnRetry, explicitOnRetry);
+      },
+    );
+
+    testWidgets(
+      'errorBuilder receives null onRetry when listenable is not a FutureNotifier',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          ErrorState<String>(StateError('Error'), StackTrace.current),
+        );
+        VoidCallback? capturedOnRetry;
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateConsumer<String>(
+              listenable: provider,
+              errorBuilder: (_, details) {
+                capturedOnRetry = details.onRetry;
+                return const SizedBox();
+              },
+              dataBuilder: (_, __, ___) => const SizedBox(),
+            ),
+          ),
+        );
+
+        expect(capturedOnRetry, isNull);
+      },
+    );
 
     // -----------------------------------------------------------------------
     // rebuildWhen (builder filtering)
     // -----------------------------------------------------------------------
-    testWidgets('rebuildWhen controls whether builder is called',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('initial'));
+    testWidgets('rebuildWhen controls whether builder is called', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('initial'),
+      );
       int buildCount = 0;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (data) {
+          dataBuilder: (_, data, ___) {
             buildCount++;
             return const SizedBox();
           },
@@ -424,153 +492,95 @@ void main() {
     });
 
     testWidgets(
-        'rebuildWhen receives correct previous and current states across transitions',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      List<ViewState<String>> previousList = [];
-      List<ViewState<String>> currentList = [];
+      'rebuildWhen receives correct previous and current states across transitions',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
+        List<ViewState<String>> previousList = [];
+        List<ViewState<String>> currentList = [];
 
-      await tester.pumpWidget(
-        buildConsumer(
-          withDefaultWidgetProvider: true,
-          provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          rebuildWhen: (previous, current) {
-            previousList.add(previous);
-            currentList.add(current);
-            return true;
-          },
-        ),
-      );
-
-      provider.emit(const LoadingState<String>());
-      await tester.pump();
-
-      expect(previousList.length, 1);
-      expect(previousList[0], const InitialState<String>());
-      expect(currentList[0], const LoadingState<String>());
-
-      provider.emit(const DataState<String>('data'));
-      await tester.pump();
-
-      expect(previousList.length, 2);
-      expect(previousList[1], const LoadingState<String>());
-      expect(currentList[1], const DataState<String>('data'));
-
-      provider.emit(
-        ErrorState<String>(
-          StateError('Error'),
-          StackTrace.current,
-        ),
-      );
-      await tester.pump();
-
-      expect(previousList.length, 3);
-      expect(previousList[2], const DataState<String>('data'));
-      expect(currentList[2], isA<ErrorState<String>>());
-    });
-
-    // -----------------------------------------------------------------------
-    // isSliver flag propagation (builder)
-    // -----------------------------------------------------------------------
-    testWidgets(
-        'passes isSliver flag to all builders (initial, loading, empty, error)',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      bool initialIsSliver = false;
-      bool loadingIsSliver = false;
-      bool emptyIsSliver = false;
-      bool errorIsSliver = false;
-
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<String>(
+        await tester.pumpWidget(
+          buildConsumer(
+            withDefaultWidgetProvider: true,
             provider: provider,
-            isSliver: true,
-            initialBuilder: (isSliver) {
-              initialIsSliver = isSliver;
-              return const SizedBox();
+            dataBuilder: (_, __, ___) => const SizedBox(),
+            rebuildWhen: (previous, current) {
+              previousList.add(previous);
+              currentList.add(current);
+              return true;
             },
-            loadingBuilder: (_, __, isSliver) {
-              loadingIsSliver = isSliver;
-              return const SizedBox();
-            },
-            emptyBuilder: (_, isSliver) {
-              emptyIsSliver = isSliver;
-              return const SizedBox();
-            },
-            errorBuilder: (_, __, ___, ____, isSliver) {
-              errorIsSliver = isSliver;
-              return const SizedBox();
-            },
-            dataBuilder: (_) => const SizedBox(),
           ),
-        ),
-      );
+        );
 
-      expect(initialIsSliver, true);
+        provider.emit(const LoadingState<String>());
+        await tester.pump();
 
-      provider.emit(const LoadingState<String>());
-      await tester.pump();
-      expect(loadingIsSliver, true);
+        expect(previousList.length, 1);
+        expect(previousList[0], const InitialState<String>());
+        expect(currentList[0], const LoadingState<String>());
 
-      provider.emit(const EmptyState<String>());
-      await tester.pump();
-      expect(emptyIsSliver, true);
+        provider.emit(const DataState<String>('data'));
+        await tester.pump();
 
-      provider.emit(
-        ErrorState<String>(
-          StateError('Error'),
-          StackTrace.current,
-        ),
-      );
-      await tester.pump();
-      expect(errorIsSliver, true);
-    });
+        expect(previousList.length, 2);
+        expect(previousList[1], const LoadingState<String>());
+        expect(currentList[1], const DataState<String>('data'));
 
-    testWidgets('default widgets from provider receive isSliver',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const LoadingState());
-      bool? isSliverPassed;
+        provider.emit(
+          ErrorState<String>(StateError('Error'), StackTrace.current),
+        );
+        await tester.pump();
 
-      await tester.pumpWidget(
-        ViewStateWidgetsProvider(
-          initialStateBuilder: (_) => const SizedBox(),
-          loadingStateBuilder: (_, __, isSliver) {
-            isSliverPassed = isSliver;
-            return const SizedBox();
-          },
-          emptyStateBuilder: (_, __) => const SizedBox(),
-          errorStateBuilder: (_, __, ___, ____, _____) => const SizedBox(),
-          child: Directionality(
-            textDirection: TextDirection.ltr,
-            child: ViewStateConsumer<String>(
-              provider: provider,
-              isSliver: true,
-              dataBuilder: (_) => const SizedBox(),
+        expect(previousList.length, 3);
+        expect(previousList[2], const DataState<String>('data'));
+        expect(currentList[2], isA<ErrorState<String>>());
+      },
+    );
+
+    testWidgets(
+      'default widgets from ViewStateWidgetsProvider receive isSliver',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const LoadingState());
+        bool? isSliverPassed;
+
+        await tester.pumpWidget(
+          ViewStateWidgetsProvider(
+            initialStateBuilder: (_, __) => const SizedBox(),
+            loadingStateBuilder: (_, __, isSliver) {
+              isSliverPassed = isSliver;
+              return const SizedBox();
+            },
+            emptyStateBuilder: (_, __, ___) => const SizedBox(),
+            errorStateBuilder: (_, __, ___) => const SizedBox(),
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: ViewStateConsumer<String>(
+                listenable: provider,
+                isSliver: true,
+                dataBuilder: (_, __, ___) => const SizedBox(),
+              ),
             ),
           ),
-        ),
-      );
+        );
 
-      expect(isSliverPassed, true);
-    });
+        expect(isSliverPassed, true);
+      },
+    );
 
     // =======================================================================
     // SECTION 2: LISTENER TESTS (mirror ViewStateListener)
     // =======================================================================
 
-    testWidgets('calls initialStateListener when state is InitialState',
-        (tester) async {
+    testWidgets('calls initialStateListener when state is InitialState', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool initialCalled = false;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          initialStateListener: () => initialCalled = true,
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          initialStateListener: (_) => initialCalled = true,
           callListenerOnInit: true,
         ),
       );
@@ -590,15 +600,16 @@ void main() {
     testWidgets(
       'does not call listener on init when callListenerOnInit is false, but calls on state change',
       (tester) async {
-        final provider =
-            TestViewStateNotifier<String>(const DataState('initial'));
+        final provider = TestViewStateNotifier<String>(
+          const DataState('initial'),
+        );
         bool initialCalled = false;
 
         await tester.pumpWidget(
           buildConsumer(
             provider: provider,
-            dataBuilder: (_) => const SizedBox(),
-            initialStateListener: () => initialCalled = true,
+            dataBuilder: (_, __, ___) => const SizedBox(),
+            initialStateListener: (_) => initialCalled = true,
             callListenerOnInit: false,
           ),
         );
@@ -615,8 +626,9 @@ void main() {
       },
     );
 
-    testWidgets('calls loadingStateListener with correct parameters',
-        (tester) async {
+    testWidgets('calls loadingStateListener with correct parameters', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       String? capturedMessage;
       double? capturedProgress;
@@ -624,10 +636,10 @@ void main() {
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          loadingStateListener: (message, progress) {
-            capturedMessage = message;
-            capturedProgress = progress;
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          loadingStateListener: (_, details) {
+            capturedMessage = details.message;
+            capturedProgress = details.progress;
           },
         ),
       );
@@ -646,8 +658,8 @@ void main() {
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          dataStateListener: (data) => capturedData = data,
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataStateListener: (_, data) => capturedData = data,
         ),
       );
 
@@ -664,8 +676,8 @@ void main() {
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          emptyStateListener: (message) => capturedMessage = message,
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          emptyStateListener: (_, details) => capturedMessage = details.message,
         ),
       );
 
@@ -675,14 +687,16 @@ void main() {
       expect(capturedMessage, 'No items found');
     });
 
-    testWidgets('calls errorStateListener with correct parameters',
-        (tester) async {
+    testWidgets('calls errorStateListener with correct parameters', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       ErrorInfo? capturedErrorInfo;
       VoidCallback? capturedOnRetry;
       Object? capturedError;
       StackTrace? capturedStackTrace;
-
+      String? capturedMessage;
+      String? capturedCode;
       void onRetry() {}
       final error = Exception('Test error');
       final stackTrace = StackTrace.current;
@@ -695,12 +709,14 @@ void main() {
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-            capturedErrorInfo = errorInfo;
-            capturedOnRetry = onRetry;
-            capturedError = error;
-            capturedStackTrace = stackTrace;
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          errorStateListener: (_, details) {
+            capturedErrorInfo = details.errorInfo;
+            capturedOnRetry = details.onRetry;
+            capturedError = details.error;
+            capturedStackTrace = details.stackTrace;
+            capturedMessage = details.message;
+            capturedCode = details.code;
           },
         ),
       );
@@ -719,41 +735,45 @@ void main() {
       expect(capturedOnRetry, same(onRetry));
       expect(capturedError, same(error));
       expect(capturedStackTrace, same(stackTrace));
-    });
-
-    testWidgets('errorStateListener receives onRetry callback from ErrorState',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      VoidCallback? capturedOnRetry;
-      void expectedOnRetry() {}
-
-      await tester.pumpWidget(
-        buildConsumer(
-          provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          errorStateListener: (_, ___, __, onRetry) {
-            capturedOnRetry = onRetry;
-          },
-        ),
-      );
-
-      provider.emit(
-        ErrorState<String>(
-          StateError('error'),
-          StackTrace.current,
-          onRetry: expectedOnRetry,
-        ),
-      );
-      await tester.pump();
-      expect(capturedOnRetry, expectedOnRetry);
+      expect(capturedMessage, 'Something went wrong');
+      expect(capturedCode, 'test_error');
     });
 
     testWidgets(
-      'errorStateListener receives correct error details and refresh as onRetry when using AsyncViewStateNotifier',
+      'errorStateListener receives onRetry callback from ErrorState',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
+        VoidCallback? capturedOnRetry;
+        void expectedOnRetry() {}
+
+        await tester.pumpWidget(
+          buildConsumer(
+            provider: provider,
+            dataBuilder: (_, __, ___) => const SizedBox(),
+            errorStateListener: (_, details) {
+              capturedOnRetry = details.onRetry;
+            },
+          ),
+        );
+
+        provider.emit(
+          ErrorState<String>(
+            StateError('error'),
+            StackTrace.current,
+            onRetry: expectedOnRetry,
+          ),
+        );
+        await tester.pump();
+        expect(capturedOnRetry, expectedOnRetry);
+      },
+    );
+
+    testWidgets(
+      'errorStateListener receives correct error details and refresh as onRetry when using FutureNotifier',
       (tester) async {
         final exception = Exception('Test error');
-        final provider = MockAsyncViewStateNotifier<String>(
-          fetchDataImpl: () => throw exception,
+        final provider = MockFutureNotifier<String>(
+          buildImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
 
@@ -769,13 +789,13 @@ void main() {
             textDirection: TextDirection.ltr,
             child: _withDefaultWidgetProvider(
               ViewStateConsumer<String>(
-                provider: provider,
-                dataBuilder: (_) => const SizedBox(),
-                errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-                  capturedErrorInfo = errorInfo;
-                  capturedOnRetry = onRetry;
-                  capturedError = error;
-                  capturedStackTrace = stackTrace;
+                listenable: provider,
+                dataBuilder: (_, __, ___) => const SizedBox(),
+                errorStateListener: (_, details) {
+                  capturedErrorInfo = details.errorInfo;
+                  capturedOnRetry = details.onRetry;
+                  capturedError = details.error;
+                  capturedStackTrace = details.stackTrace;
                 },
                 callListenerOnInit: true,
               ),
@@ -797,21 +817,23 @@ void main() {
       },
     );
 
-    testWidgets('does not call listener when emitting the same state twice',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('initial'));
+    testWidgets('does not call listener when emitting the same state twice', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('initial'),
+      );
       int dataListenerCount = 0;
       int builderCallCount = 0;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) {
+          dataBuilder: (_, __, ___) {
             builderCallCount++;
             return const SizedBox();
           },
-          dataStateListener: (_) => dataListenerCount++,
+          dataStateListener: (_, __) => dataListenerCount++,
           callListenerOnInit: false,
         ),
       );
@@ -831,138 +853,159 @@ void main() {
     });
 
     testWidgets(
-        'only the matching listener and builder callbacks are invoked for each state',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
+      'only the matching listener and builder callbacks are invoked for each state',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const InitialState<String>(),
+        );
+        addTearDown(provider.dispose);
 
-      int initialListenerCount = 0;
-      int loadingListenerCount = 0;
-      int dataListenerCount = 0;
-      int emptyListenerCount = 0;
-      int errorListenerCount = 0;
+        final calledBuilders = <String>[];
+        final calledListeners = <String>[];
 
-      bool initialBuilt = false;
-      bool loadingBuilt = false;
-      bool dataBuilt = false;
-      bool emptyBuilt = false;
-      bool errorBuilt = false;
+        void expectContext(BuildContext context) {
+          expect(
+            context
+                .findAncestorWidgetOfExactType<TestLocaleInherited>()
+                ?.locale,
+            'en',
+          );
+        }
 
-      await tester.pumpWidget(
-        buildConsumer(
-          provider: provider,
-          // Builders
-          initialBuilder: (_) {
-            initialBuilt = true;
-            return const SizedBox();
-          },
-          loadingBuilder: (_, __, ___) {
-            loadingBuilt = true;
-            return const SizedBox();
-          },
-          dataBuilder: (_) {
-            dataBuilt = true;
-            return const SizedBox();
-          },
-          emptyBuilder: (_, __) {
-            emptyBuilt = true;
-            return const SizedBox();
-          },
-          errorBuilder: (_, __, ___, ____, _____) {
-            errorBuilt = true;
-            return const SizedBox();
-          },
-          initialStateListener: () => initialListenerCount++,
-          loadingStateListener: (_, __) => loadingListenerCount++,
-          dataStateListener: (_) => dataListenerCount++,
-          emptyStateListener: (_) => emptyListenerCount++,
-          errorStateListener: (_, __, ___, ____) => errorListenerCount++,
-          callListenerOnInit: false,
-        ),
+        await tester.pumpWidget(
+          TestLocaleInherited(
+            locale: 'en',
+            child: buildConsumer(
+              provider: provider,
+
+              // State builders.
+              initialBuilder: (context) {
+                expectContext(context);
+                calledBuilders.add('initial');
+                return const SizedBox();
+              },
+              loadingBuilder: (context, details) {
+                expectContext(context);
+                calledBuilders.add('loading');
+                return const SizedBox();
+              },
+              dataBuilder: (context, data, child) {
+                expectContext(context);
+                calledBuilders.add('data');
+                return const SizedBox();
+              },
+              emptyBuilder: (context, details) {
+                expectContext(context);
+                calledBuilders.add('empty');
+                return const SizedBox();
+              },
+              errorBuilder: (context, details) {
+                expectContext(context);
+                calledBuilders.add('error');
+                return const SizedBox();
+              },
+
+              // State listeners.
+              initialStateListener: (context) {
+                expectContext(context);
+                calledListeners.add('initial');
+              },
+              loadingStateListener: (context, details) {
+                expectContext(context);
+                calledListeners.add('loading');
+              },
+              dataStateListener: (context, data) {
+                expectContext(context);
+                calledListeners.add('data');
+              },
+              emptyStateListener: (context, details) {
+                expectContext(context);
+                calledListeners.add('empty');
+              },
+              errorStateListener: (context, details) {
+                expectContext(context);
+                calledListeners.add('error');
+              },
+
+              callListenerOnInit: false,
+            ),
+          ),
+        );
+
+        // Initial state: initial builder runs, but the listener does not.
+        expect(calledBuilders, ['initial']);
+        expect(calledListeners, isEmpty);
+
+        // Initial -> Loading.
+        provider.emit(const LoadingState<String>());
+        await tester.pump();
+
+        expect(calledBuilders, ['initial', 'loading']);
+        expect(calledListeners, ['loading']);
+
+        // Loading -> Data.
+        provider.emit(const DataState<String>('data'));
+        await tester.pump();
+
+        expect(calledBuilders, ['initial', 'loading', 'data']);
+        expect(calledListeners, ['loading', 'data']);
+
+        // Data -> Empty.
+        provider.emit(const EmptyState<String>());
+        await tester.pump();
+
+        expect(calledBuilders, ['initial', 'loading', 'data', 'empty']);
+        expect(calledListeners, ['loading', 'data', 'empty']);
+
+        // Empty -> Error.
+        provider.emit(
+          ErrorState<String>(StateError('error'), StackTrace.current),
+        );
+        await tester.pump();
+
+        expect(calledBuilders, [
+          'initial',
+          'loading',
+          'data',
+          'empty',
+          'error',
+        ]);
+        expect(calledListeners, ['loading', 'data', 'empty', 'error']);
+
+        // Error -> Initial.
+        provider.emit(const InitialState<String>());
+        await tester.pump();
+
+        expect(calledBuilders, [
+          'initial',
+          'loading',
+          'data',
+          'empty',
+          'error',
+          'initial',
+        ]);
+        expect(calledListeners, [
+          'loading',
+          'data',
+          'empty',
+          'error',
+          'initial',
+        ]);
+      },
+    );
+    testWidgets('callListenerOnInit calls matching listener on init', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('initial'),
       );
-
-      expect(initialBuilt, true);
-      expect(initialListenerCount, 0);
-
-      // ----- Transition to Loading -----
-      provider.emit(const LoadingState<String>());
-      await tester.pump();
-      expect(loadingListenerCount, 1);
-      expect(loadingBuilt, true);
-      expect(initialListenerCount, 0);
-      expect(dataListenerCount, 0);
-      expect(emptyListenerCount, 0);
-      expect(errorListenerCount, 0);
-      expect(dataBuilt, false);
-      expect(emptyBuilt, false);
-      expect(errorBuilt, false);
-
-      // ----- Transition to Data -----
-      provider.emit(const DataState<String>('data'));
-      await tester.pump();
-      expect(dataListenerCount, 1);
-      expect(dataBuilt, true);
-      expect(loadingListenerCount, 1);
-      expect(emptyListenerCount, 0);
-      expect(errorListenerCount, 0);
-      expect(loadingBuilt, true);
-      expect(emptyBuilt, false);
-      expect(errorBuilt, false);
-
-      // ----- Transition to Empty -----
-      provider.emit(const EmptyState<String>());
-      await tester.pump();
-      expect(emptyListenerCount, 1);
-      expect(emptyBuilt, true);
-      expect(dataListenerCount, 1);
-      expect(loadingListenerCount, 1);
-      expect(errorListenerCount, 0);
-      expect(dataBuilt, true);
-      expect(loadingBuilt, true);
-      expect(errorBuilt, false);
-
-      // ----- Transition to Error -----
-      provider.emit(
-        ErrorState<String>(
-          StateError('error'),
-          StackTrace.current,
-        ),
-      );
-      await tester.pump();
-      expect(errorListenerCount, 1);
-      expect(errorBuilt, true);
-      expect(emptyListenerCount, 1);
-      expect(dataListenerCount, 1);
-      expect(loadingListenerCount, 1);
-      expect(emptyBuilt, true);
-      expect(dataBuilt, true);
-      expect(loadingBuilt, true);
-
-      // ----- Transition back to Initial -----
-      provider.emit(const InitialState());
-      await tester.pump();
-      expect(initialListenerCount, 1);
-      expect(initialBuilt, true);
-      expect(errorListenerCount, 1);
-      expect(emptyListenerCount, 1);
-      expect(dataListenerCount, 1);
-      expect(loadingListenerCount, 1);
-      expect(errorBuilt, true);
-      expect(emptyBuilt, true);
-      expect(dataBuilt, true);
-      expect(loadingBuilt, true);
-    });
-
-    testWidgets('callListenerOnInit calls matching listener on init',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('initial'));
       int dataCount = 0;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          dataStateListener: (_) => dataCount++,
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: true,
         ),
       );
@@ -974,17 +1017,19 @@ void main() {
       expect(dataCount, 2);
     });
 
-    testWidgets('callListenerOnInit false does not call on init',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('initial'));
+    testWidgets('callListenerOnInit false does not call on init', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('initial'),
+      );
       int dataCount = 0;
 
       await tester.pumpWidget(
         buildConsumer(
           provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          dataStateListener: (_) => dataCount++,
+          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -996,81 +1041,176 @@ void main() {
       expect(dataCount, 1);
     });
 
-    testWidgets('listenWhen controls whether listener callbacks are triggered',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      int dataCount = 0;
+    testWidgets(
+      'listenWhen controls whether listener callbacks are triggered',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
+        int dataCount = 0;
 
-      bool listenWhen(ViewState<String> previous, ViewState<String> current) {
-        if (current is DataState<String>) {
-          return current.data.length > 3;
+        bool listenWhen(ViewState<String> previous, ViewState<String> current) {
+          if (current is DataState<String>) {
+            return current.data.length > 3;
+          }
+          return true;
         }
-        return true;
-      }
 
-      await tester.pumpWidget(
-        buildConsumer(
-          provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          dataStateListener: (_) => dataCount++,
-          listenWhen: listenWhen,
-          callListenerOnInit: false,
-        ),
-      );
+        await tester.pumpWidget(
+          buildConsumer(
+            provider: provider,
+            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataStateListener: (_, __) => dataCount++,
+            listenWhen: listenWhen,
+            callListenerOnInit: false,
+          ),
+        );
 
-      provider.emit(const DataState<String>('abc'));
-      await tester.pump();
-      expect(dataCount, 0);
+        provider.emit(const DataState<String>('abc'));
+        await tester.pump();
+        expect(dataCount, 0);
 
-      provider.emit(const DataState<String>('abcd'));
-      await tester.pump();
-      expect(dataCount, 1);
+        provider.emit(const DataState<String>('abcd'));
+        await tester.pump();
+        expect(dataCount, 1);
 
-      provider.emit(const DataState<String>('xy'));
-      await tester.pump();
-      expect(dataCount, 1);
-    });
+        provider.emit(const DataState<String>('xy'));
+        await tester.pump();
+        expect(dataCount, 1);
+      },
+    );
 
     testWidgets(
-        'listenWhen receives correct previous and current ViewState objects',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      List<ViewState<String>> previousList = [];
-      List<ViewState<String>> currentList = [];
+      'listenWhen receives correct previous and current ViewState objects',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
+        List<ViewState<String>> previousList = [];
+        List<ViewState<String>> currentList = [];
 
-      await tester.pumpWidget(
-        buildConsumer(
-          provider: provider,
-          dataBuilder: (_) => const SizedBox(),
-          dataStateListener: (_) {},
-          listenWhen: (previous, current) {
-            previousList.add(previous);
-            currentList.add(current);
-            return true;
-          },
-        ),
-      );
+        await tester.pumpWidget(
+          buildConsumer(
+            provider: provider,
+            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataStateListener: (_, __) {},
+            listenWhen: (previous, current) {
+              previousList.add(previous);
+              currentList.add(current);
+              return true;
+            },
+          ),
+        );
 
-      provider.emit(const LoadingState<String>());
-      await tester.pump();
+        provider.emit(const LoadingState<String>());
+        await tester.pump();
 
-      expect(previousList.length, 1);
-      expect(previousList[0], const InitialState<String>());
-      expect(currentList[0], const LoadingState<String>());
+        expect(previousList.length, 1);
+        expect(previousList[0], const InitialState<String>());
+        expect(currentList[0], const LoadingState<String>());
 
-      provider.emit(const DataState<String>('data'));
-      await tester.pump();
+        provider.emit(const DataState<String>('data'));
+        await tester.pump();
 
-      expect(previousList.length, 2);
-      expect(previousList[1], const LoadingState<String>());
-      expect(currentList[1], const DataState<String>('data'));
-    });
+        expect(previousList.length, 2);
+        expect(previousList[1], const LoadingState<String>());
+        expect(currentList[1], const DataState<String>('data'));
+      },
+    );
+
+    testWidgets(
+      'updates localized builder messages and uses the latest locale for listener callbacks',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const InitialState<String>(),
+        );
+        addTearDown(provider.dispose);
+
+        var locale = 'en';
+        late StateSetter changeLocale;
+
+        final builderMessages = <String?>[];
+        final listenerMessages = <String?>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                changeLocale = setState;
+
+                return TestLocaleInherited(
+                  locale: locale,
+                  child: ViewStateWidgetsProvider(
+                    initialStateBuilder: testDefaultInitialStateBuilder,
+                    loadingStateBuilder: testDefaultLoadingStateBuilder,
+                    emptyStateBuilder: testDefaultEmptyStateBuilder,
+                    errorStateBuilder: testDefaultErrorStateBuilder,
+                    messageResolver: testLocaleMessageResolver,
+                    child: ViewStateConsumer<String>(
+                      listenable: provider,
+                      loadingBuilder: (context, details) {
+                        builderMessages.add(details.message);
+                        return Text(details.message ?? '');
+                      },
+                      loadingStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        listenerMessages.add(details.message);
+                      },
+                      dataBuilder: (_, __, ___) => const SizedBox(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        // The first loading event uses English.
+        provider.emit(const LoadingState<String>('profile.loading'));
+        await tester.pump();
+
+        expect(find.text('en:profile.loading'), findsOneWidget);
+        expect(builderMessages, ['en:profile.loading']);
+        expect(listenerMessages, ['en:profile.loading']);
+
+        // Changing locale rebuilds the presentation, not the state listener.
+        changeLocale(() {
+          locale = 'fr';
+        });
+        await tester.pump();
+
+        expect(find.text('en:profile.loading'), findsNothing);
+        expect(find.text('fr:profile.loading'), findsOneWidget);
+        expect(builderMessages, ['en:profile.loading', 'fr:profile.loading']);
+        expect(listenerMessages, ['en:profile.loading']);
+
+        // The next state event uses the new locale in both callbacks.
+        provider.emit(const LoadingState<String>('profile.refreshing'));
+        await tester.pump();
+
+        expect(find.text('fr:profile.refreshing'), findsOneWidget);
+        expect(builderMessages, [
+          'en:profile.loading',
+          'fr:profile.loading',
+          'fr:profile.refreshing',
+        ]);
+        expect(listenerMessages, [
+          'en:profile.loading',
+          'fr:profile.refreshing',
+        ]);
+      },
+    );
 
     // -----------------------------------------------------------------------
     // Safe to trigger side effects (deferred execution)
     // -----------------------------------------------------------------------
-    testWidgets('safe to trigger dialogs inside listener (deferred)',
-        (tester) async {
+    testWidgets('safe to trigger dialogs inside listener (deferred)', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       await tester.pumpWidget(
         MaterialApp(
@@ -1079,9 +1219,9 @@ void main() {
               return Scaffold(
                 body: _withDefaultWidgetProvider(
                   ViewStateConsumer<String>(
-                    provider: provider,
-                    dataBuilder: (_) => const SizedBox(),
-                    dataStateListener: (data) {
+                    listenable: provider,
+                    dataBuilder: (_, __, ___) => const SizedBox(),
+                    dataStateListener: (_, data) {
                       showDialog(
                         context: context,
                         builder: (_) =>
@@ -1101,17 +1241,18 @@ void main() {
       expect(find.byType(AlertDialog), findsOneWidget);
     });
 
-    testWidgets('does not crash when state occurs without matching callback',
-        (tester) async {
+    testWidgets('does not crash when state occurs without matching callback', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
           child: _withDefaultWidgetProvider(
             ViewStateConsumer<String>(
-              provider: provider,
-              dataBuilder: (_) => const SizedBox(),
-              dataStateListener: (_) {},
+              listenable: provider,
+              dataBuilder: (_, __, ___) => const SizedBox(),
+              dataStateListener: (_, __) {},
             ),
           ),
         ),
@@ -1129,17 +1270,18 @@ void main() {
     // SECTION 3: PROVIDER RESOLUTION & RUNTIME CHANGES
     // =======================================================================
 
-    testWidgets('uses explicit provider when provided', (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('explicit'));
+    testWidgets('uses explicit listenable when provided', (tester) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('explicit'),
+      );
       String? capturedData;
 
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateConsumer<String>(
-            provider: provider,
-            dataBuilder: (data) {
+            listenable: provider,
+            dataBuilder: (_, data, ___) {
               capturedData = data;
               return const SizedBox();
             },
@@ -1150,10 +1292,12 @@ void main() {
       expect(capturedData, 'explicit');
     });
 
-    testWidgets('reads provider from context using ViewStateConsumer.of',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('context'));
+    testWidgets('reads listenable from context using ViewStateConsumer.of', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('context'),
+      );
       String? capturedData;
 
       await tester.pumpWidget(
@@ -1162,7 +1306,7 @@ void main() {
           child: ChangeNotifierProvider<TestViewStateNotifier<String>>.value(
             value: provider,
             child: ViewStateConsumer.of<TestViewStateNotifier<String>, String>(
-              dataBuilder: (data) {
+              dataBuilder: (_, data, ___) {
                 capturedData = data;
                 return const SizedBox();
               },
@@ -1173,60 +1317,70 @@ void main() {
 
       expect(capturedData, 'context');
     });
+    test('of returns ViewStateConsumer<T>', () {
+      final ViewStateConsumer<String> consumer =
+          ViewStateConsumer.of<TestViewStateNotifier<String>, String>(
+            dataBuilder: (_, __, ___) => const SizedBox(),
+          );
 
-    testWidgets('switches to new provider when provider parameter changes',
-        (tester) async {
-      final provider1 = TestViewStateNotifier<String>(const DataState('one'));
-      final provider2 = TestViewStateNotifier<String>(const DataState('two'));
-      String? capturedData;
-      int listenerCount1 = 0;
-      int listenerCount2 = 0;
-
-      Widget buildFrame(TestViewStateNotifier<String> provider) {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateConsumer<String>(
-            provider: provider,
-            dataBuilder: (data) {
-              capturedData = data;
-              return const SizedBox();
-            },
-            dataStateListener: (data) {
-              if (provider == provider1) {
-                listenerCount1++;
-              } else if (provider == provider2) {
-                listenerCount2++;
-              }
-            },
-          ),
-        );
-      }
-
-      await tester.pumpWidget(buildFrame(provider1));
-      expect(capturedData, 'one');
-
-      // Trigger listener for provider1
-      provider1.emit(const DataState('one-new'));
-      await tester.pump();
-      expect(listenerCount1, 1);
-
-      // Switch to provider2
-      await tester.pumpWidget(buildFrame(provider2));
-      expect(capturedData, 'two');
-
-      // Listener for provider2 not called yet
-      expect(listenerCount2, 0);
-
-      // Emit from provider2
-      provider2.emit(const DataState('two-new'));
-      await tester.pump();
-      expect(listenerCount2, 1);
-
-      // Emit from provider1 should no longer trigger
-      provider1.emit(const DataState('three'));
-      await tester.pump();
-      expect(listenerCount1, 1); // unchanged
+      expect(consumer, isA<ViewStateConsumer<String>>());
     });
+
+    testWidgets(
+      'switches to new listenable when listenable parameter changes',
+      (tester) async {
+        final provider1 = TestViewStateNotifier<String>(const DataState('one'));
+        final provider2 = TestViewStateNotifier<String>(const DataState('two'));
+        String? capturedData;
+        int listenerCount1 = 0;
+        int listenerCount2 = 0;
+
+        Widget buildFrame(TestViewStateNotifier<String> provider) {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateConsumer<String>(
+              listenable: provider,
+              dataBuilder: (_, data, __) {
+                capturedData = data;
+                return const SizedBox();
+              },
+              dataStateListener: (_, data) {
+                if (provider == provider1) {
+                  listenerCount1++;
+                } else if (provider == provider2) {
+                  listenerCount2++;
+                }
+              },
+            ),
+          );
+        }
+
+        await tester.pumpWidget(buildFrame(provider1));
+        expect(capturedData, 'one');
+
+        // Trigger listener for provider1
+        provider1.emit(const DataState('one-new'));
+        await tester.pump();
+        expect(listenerCount1, 1);
+
+        // Switch to provider2
+        await tester.pumpWidget(buildFrame(provider2));
+        expect(capturedData, 'two');
+
+        // Listener for provider2 not called yet
+        expect(listenerCount2, 0);
+
+        // Emit from provider2
+        provider2.emit(const DataState('two-new'));
+        await tester.pump();
+        expect(listenerCount2, 1);
+
+        // Emit from provider1 should no longer trigger
+        provider1.emit(const DataState('three'));
+        await tester.pump();
+        expect(listenerCount1, 1); // unchanged
+      },
+    );
 
     // =======================================================================
     // SECTION 4: CLEANUP
@@ -1239,8 +1393,8 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateConsumer<String>(
-            provider: provider,
-            dataBuilder: (_) => const SizedBox(),
+            listenable: provider,
+            dataBuilder: (_, __, ___) => const SizedBox(),
           ),
         ),
       );
@@ -1258,26 +1412,28 @@ void main() {
     // SECTION 5: DIAGNOSTICS
     // =======================================================================
 
-    testWidgets('debugFillProperties includes all relevant properties',
-        (tester) async {
+    testWidgets('debugFillProperties includes all relevant properties', (
+      tester,
+    ) async {
       final builder = DiagnosticPropertiesBuilder();
 
       ViewStateConsumer<String>(
-        provider: TestViewStateNotifier<String>(),
-        dataBuilder: (_) => const SizedBox(),
+        listenable: TestViewStateNotifier<String>(),
+        dataBuilder: (_, __, ___) => const SizedBox(),
         initialBuilder: (_) => const SizedBox(),
-        loadingBuilder: (_, __, ___) => const SizedBox(),
+        loadingBuilder: (_, __) => const SizedBox(),
         emptyBuilder: (_, __) => const SizedBox(),
-        errorBuilder: (_, __, ___, ____, _____) => const SizedBox(),
-        initialStateListener: () {},
+        errorBuilder: (_, __) => const SizedBox(),
+        initialStateListener: (_) {},
         loadingStateListener: (_, __) {},
-        emptyStateListener: (_) {},
-        errorStateListener: (_, __, ___, ____) {},
-        dataStateListener: (_) {},
+        emptyStateListener: (_, __) {},
+        errorStateListener: (_, __) {},
+        dataStateListener: (_, __) {},
         rebuildWhen: (_, __) => true,
         listenWhen: (_, __) => true,
         callListenerOnInit: true,
         isSliver: true,
+        child: const SizedBox(),
       ).debugFillProperties(builder);
 
       final description = builder.properties
@@ -1286,12 +1442,13 @@ void main() {
           .toList();
 
       // Inherited from StateConsumer
-      expect(description.any((e) => e.contains('provider')), isTrue);
+      expect(description.any((e) => e.contains('listenable')), isTrue);
       expect(description.any((e) => e.contains('rebuildWhen')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
-        description
-            .any((e) => e.contains('callListenerOnInit') && e.contains('true')),
+        description.any(
+          (e) => e.contains('callListenerOnInit') && e.contains('true'),
+        ),
         isTrue,
       );
 
@@ -1302,14 +1459,20 @@ void main() {
       expect(description.any((e) => e.contains('errorBuilder')), isTrue);
       expect(description.any((e) => e.contains('dataBuilder')), isTrue);
       expect(
-          description.any((e) => e.contains('isSliver') && e.contains('true')),
-          isTrue);
+        description.any((e) => e.contains('isSliver') && e.contains('true')),
+        isTrue,
+      );
+      expect(description.any((e) => e.contains('child')), isTrue);
 
       // Listener fields
       expect(
-          description.any((e) => e.contains('initialStateListener')), isTrue);
+        description.any((e) => e.contains('initialStateListener')),
+        isTrue,
+      );
       expect(
-          description.any((e) => e.contains('loadingStateListener')), isTrue);
+        description.any((e) => e.contains('loadingStateListener')),
+        isTrue,
+      );
       expect(description.any((e) => e.contains('emptyStateListener')), isTrue);
       expect(description.any((e) => e.contains('errorStateListener')), isTrue);
       expect(description.any((e) => e.contains('dataStateListener')), isTrue);

@@ -1,8 +1,22 @@
+// ignore_for_file: invalid_use_of_protected_member
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
+import '../../shared/mocks/view_state_notifiers.dart';
+
 class TestNotifier extends ViewStateNotifier<int> {
   TestNotifier(super.state);
+}
+
+class SpyObserver extends NotifierObserver {
+  ViewState? capturedInitialState;
+
+  @override
+  void onCreate(NotifierBase notifier) {
+    super.onCreate(notifier);
+    capturedInitialState = (notifier as dynamic).state as ViewState?;
+  }
 }
 
 void main() {
@@ -23,10 +37,7 @@ void main() {
 
       final error = StateError('error');
 
-      notifier.state = ErrorState<int>(
-        error,
-        StackTrace.current,
-      );
+      notifier.state = ErrorState<int>(error, StackTrace.current);
       expect(notifier.state, isA<ErrorState<int>>());
 
       notifier.state = const EmptyState<int>();
@@ -39,6 +50,57 @@ void main() {
       notifier.addListener(() => callCount++);
       notifier.state = const DataState<int>(10);
       expect(callCount, 1);
+    });
+
+    test('data returns current data when state is DataState', () {
+      final notifier = TestNotifier(const DataState<int>(42));
+
+      expect(notifier.data, 42);
+    });
+
+    test('data throws StateError when state is not DataState', () {
+      final states = <ViewState<int>>[
+        const InitialState<int>(),
+        const LoadingState<int>(),
+        const EmptyState<int>(),
+        ErrorState<int>(StateError('error'), StackTrace.empty),
+      ];
+
+      for (final state in states) {
+        final notifier = TestNotifier(state);
+
+        expect(
+          () => notifier.data,
+          throwsA(isA<StateError>()),
+          reason: 'Expected StateError for ${state.runtimeType}',
+        );
+      }
+    });
+    test('data delegates to current state', () {
+      final notifier = TestViewStateNotifier<String>(const DataState('hello'));
+
+      expect(notifier.data, 'hello');
+    });
+
+    test('dataOrNull delegates to current state', () {
+      final notifier = TestViewStateNotifier<String>(const DataState('hello'));
+
+      expect(notifier.dataOrNull, 'hello');
+    });
+
+    test('observer captures the initial state on creation', () {
+      final observer = SpyObserver();
+      ProviderKit.configure(observer: observer);
+
+      const initialState = DataState<int>(42);
+      final notifier = TestNotifier(initialState);
+
+      addTearDown(() {
+        notifier.dispose();
+        ProviderKit.resetForTesting();
+      });
+
+      expect(observer.capturedInitialState, initialState);
     });
   });
 }

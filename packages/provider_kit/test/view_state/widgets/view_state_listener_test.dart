@@ -1,11 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
-import '../../shared/mocks/provider_kit.dart';
+import '../../shared/mocks/future_notifier.dart';
 import '../../shared/mocks/view_state_notifiers.dart';
+import '../../shared/view_state_message_resolver_helpers.dart';
 
 void main() {
   group('ViewStateListener', () {
@@ -16,7 +18,7 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
+            listenable: provider,
             child: const SizedBox(key: childKey),
           ),
         ),
@@ -24,19 +26,19 @@ void main() {
       expect(find.byKey(childKey), findsOneWidget);
     });
 
-    testWidgets('throws AssertionError when child is not specified',
-        (tester) async {
+    testWidgets('throws AssertionError when child is not specified', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>();
 
-      await tester.pumpWidget(
-        ViewStateListener<String>(
-          provider: provider,
-        ),
-      );
+      await tester.pumpWidget(ViewStateListener<String>(listenable: provider));
       expect(
         tester.takeException(),
-        isA<AssertionError>()
-            .having((e) => e.message, 'message', contains('child')),
+        isA<AssertionError>().having(
+          (e) => e.message,
+          'message',
+          contains('child'),
+        ),
       );
     });
 
@@ -54,7 +56,7 @@ void main() {
       return Directionality(
         textDirection: TextDirection.ltr,
         child: ViewStateListener<String>(
-          provider: provider,
+          listenable: provider,
           initialStateListener: initialStateListener,
           loadingStateListener: loadingStateListener,
           emptyStateListener: emptyStateListener,
@@ -67,15 +69,16 @@ void main() {
       );
     }
 
-    testWidgets('calls initialStateListener when state is InitialState',
-        (tester) async {
+    testWidgets('calls initialStateListener when state is InitialState', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool initialCalled = false;
 
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          initialStateListener: () => initialCalled = true,
+          initialStateListener: (_) => initialCalled = true,
           callListenerOnInit: true,
         ),
       );
@@ -96,14 +99,15 @@ void main() {
     testWidgets(
       'does not call listener on init when callListenerOnInit is false, but calls on state change',
       (tester) async {
-        final provider =
-            TestViewStateNotifier<String>(const DataState('initial'));
+        final provider = TestViewStateNotifier<String>(
+          const DataState('initial'),
+        );
         bool initialCalled = false;
 
         await tester.pumpWidget(
           buildListener(
             provider: provider,
-            initialStateListener: () => initialCalled = true,
+            initialStateListener: (_) => initialCalled = true,
             callListenerOnInit: false,
           ),
         );
@@ -120,8 +124,9 @@ void main() {
       },
     );
 
-    testWidgets('calls loadingStateListener with correct parameters',
-        (tester) async {
+    testWidgets('calls loadingStateListener with correct parameters', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       String? capturedMessage;
       double? capturedProgress;
@@ -129,9 +134,9 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          loadingStateListener: (message, progress) {
-            capturedMessage = message;
-            capturedProgress = progress;
+          loadingStateListener: (_, details) {
+            capturedMessage = details.message;
+            capturedProgress = details.progress;
           },
         ),
       );
@@ -150,7 +155,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (data) => capturedData = data,
+          dataStateListener: (_, data) => capturedData = data,
         ),
       );
 
@@ -167,7 +172,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          emptyStateListener: (message) => capturedMessage = message,
+          emptyStateListener: (_, details) => capturedMessage = details.message,
         ),
       );
 
@@ -177,8 +182,103 @@ void main() {
       expect(capturedMessage, 'No items found');
     });
 
-    testWidgets('calls errorStateListener with correct parameters',
-        (tester) async {
+    testWidgets(
+      'resolves loading, empty, and error messages before listener callbacks',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const InitialState<String>(),
+        );
+
+        BuildContext? loadingContext;
+        BuildContext? emptyContext;
+        BuildContext? errorContext;
+
+        LoadingStateDetails? loadingDetails;
+        EmptyStateDetails? emptyDetails;
+        ErrorStateDetails? errorDetails;
+
+        const originalErrorInfo = ErrorInfo(
+          message: 'error.network',
+          code: 'network_error',
+        );
+
+        await tester.pumpWidget(
+          ViewStateWidgetsProvider(
+            initialStateBuilder: (_, __) => const SizedBox(),
+            loadingStateBuilder: (_, __, ___) => const SizedBox(),
+            emptyStateBuilder: (_, __, ___) => const SizedBox(),
+            errorStateBuilder: (_, __, ___) => const SizedBox(),
+            messageResolver: (context, message) => 'localized:$message',
+            child: Directionality(
+              textDirection: TextDirection.ltr,
+              child: ViewStateListener<String>(
+                listenable: provider,
+                loadingStateListener: (context, details) {
+                  loadingContext = context;
+                  loadingDetails = details;
+                },
+                emptyStateListener: (context, details) {
+                  emptyContext = context;
+                  emptyDetails = details;
+                },
+                errorStateListener: (context, details) {
+                  errorContext = context;
+                  errorDetails = details;
+                },
+                child: const SizedBox(),
+              ),
+            ),
+          ),
+        );
+
+        // Loading message.
+        provider.emit(const LoadingState<String>('profile.loading'));
+        await tester.pump();
+
+        expect(loadingContext, isA<BuildContext>());
+        expect(loadingDetails!.message, 'localized:profile.loading');
+
+        // Empty message.
+        provider.emit(const EmptyState<String>('profile.empty'));
+        await tester.pump();
+
+        expect(emptyContext, isA<BuildContext>());
+        expect(emptyDetails!.message, 'localized:profile.empty');
+
+        // Error message.
+        final error = StateError('Request failed');
+
+        provider.emit(
+          ErrorState<String>(
+            error,
+            StackTrace.current,
+            errorInfo: originalErrorInfo,
+          ),
+        );
+        await tester.pump();
+
+        expect(errorContext, isA<BuildContext>());
+        expect(errorContext, isA<BuildContext>());
+
+        // Test the new convenience getters.
+        expect(errorDetails!.message, 'localized:error.network');
+        expect(errorDetails!.code, 'network_error');
+
+        // Full error information remains accessible.
+        expect(errorDetails!.errorInfo.message, 'localized:error.network');
+        expect(errorDetails!.errorInfo.code, 'network_error');
+        expect(errorDetails!.error, same(error));
+
+        // Resolution must not mutate the stored error information.
+        final storedState = provider.state as ErrorState<String>;
+        expect(storedState.errorInfo.message, 'error.network');
+        expect(storedState.errorInfo.code, 'network_error');
+      },
+    );
+
+    testWidgets('calls errorStateListener with correct parameters', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       void onRetry() {}
 
@@ -198,11 +298,11 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-            capturedErrorInfo = errorInfo;
-            capturedOnRetry = onRetry;
-            capturedError = error;
-            capturedStackTrace = stackTrace;
+          errorStateListener: (_, details) {
+            capturedErrorInfo = details.errorInfo;
+            capturedOnRetry = details.onRetry;
+            capturedError = details.error;
+            capturedStackTrace = details.stackTrace;
           },
         ),
       );
@@ -224,15 +324,16 @@ void main() {
       expect(capturedStackTrace, same(stackTrace));
     });
 
-    testWidgets('does not call listener when emitting the same state twice',
-        (tester) async {
+    testWidgets('does not call listener when emitting the same state twice', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       int dataCount = 0;
 
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -246,8 +347,9 @@ void main() {
       expect(dataCount, 1); // no second call
     });
 
-    testWidgets('only the matching callback is called for each state',
-        (tester) async {
+    testWidgets('only the matching callback is called for each state', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       int initialCount = 0;
       int loadingCount = 0;
@@ -258,11 +360,11 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          initialStateListener: () => initialCount++,
+          initialStateListener: (_) => initialCount++,
           loadingStateListener: (_, __) => loadingCount++,
-          dataStateListener: (_) => dataCount++,
-          emptyStateListener: (_) => emptyCount++,
-          errorStateListener: (_, __, ___, ____) => errorCount++,
+          dataStateListener: (_, __) => dataCount++,
+          emptyStateListener: (_, __) => emptyCount++,
+          errorStateListener: (_, __) => errorCount++,
           callListenerOnInit: false,
         ),
       );
@@ -288,10 +390,7 @@ void main() {
       expect(loadingCount, 1);
 
       provider.emit(
-        ErrorState<String>(
-          StateError('error'),
-          StackTrace.current,
-        ),
+        ErrorState<String>(StateError('error'), StackTrace.current),
       );
       await tester.pump();
       expect(errorCount, 1);
@@ -308,8 +407,9 @@ void main() {
       expect(loadingCount, 1);
     });
 
-    testWidgets('listenWhen controls whether callbacks are triggered',
-        (tester) async {
+    testWidgets('listenWhen controls whether callbacks are triggered', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       int dataCount = 0;
 
@@ -323,7 +423,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           listenWhen: listenWhen,
           callListenerOnInit: false,
         ),
@@ -342,16 +442,18 @@ void main() {
       expect(dataCount, 1);
     });
 
-    testWidgets('callListenerOnInit calls matching callback on init',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('initial'));
+    testWidgets('callListenerOnInit calls matching callback on init', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('initial'),
+      );
       int dataCount = 0;
 
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: true,
         ),
       );
@@ -363,16 +465,18 @@ void main() {
       expect(dataCount, 2);
     });
 
-    testWidgets('callListenerOnInit false does not call on init',
-        (tester) async {
-      final provider =
-          TestViewStateNotifier<String>(const DataState('initial'));
+    testWidgets('callListenerOnInit false does not call on init', (
+      tester,
+    ) async {
+      final provider = TestViewStateNotifier<String>(
+        const DataState('initial'),
+      );
       int dataCount = 0;
 
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_) => dataCount++,
+          dataStateListener: (_, __) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -385,38 +489,40 @@ void main() {
     });
 
     testWidgets(
-        'safe to trigger dialogs inside listener (executed after state change)',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Builder(
-            builder: (context) {
-              return Scaffold(
-                body: ViewStateListener<String>(
-                  provider: provider,
-                  dataStateListener: (data) {
-                    showDialog(
-                      context: context,
-                      builder: (_) =>
-                          const AlertDialog(title: Text('Data loaded')),
-                    );
-                  },
-                  child: const SizedBox(),
-                ),
-              );
-            },
+      'safe to trigger dialogs inside listener (executed after state change)',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                return Scaffold(
+                  body: ViewStateListener<String>(
+                    listenable: provider,
+                    dataStateListener: (_, data) {
+                      showDialog(
+                        context: context,
+                        builder: (_) =>
+                            const AlertDialog(title: Text('Data loaded')),
+                      );
+                    },
+                    child: const SizedBox(),
+                  ),
+                );
+              },
+            ),
           ),
-        ),
-      );
+        );
 
-      provider.emit(const DataState<String>('hello'));
-      await tester.pump();
-      expect(find.byType(AlertDialog), findsOneWidget);
-    });
+        provider.emit(const DataState<String>('hello'));
+        await tester.pump();
+        expect(find.byType(AlertDialog), findsOneWidget);
+      },
+    );
 
-    testWidgets('calls dataStateListener when explicit provider is passed',
-        (tester) async {
+    testWidgets('calls dataStateListener when explicit listenable is passed', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool dataCalled = false;
 
@@ -424,8 +530,8 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
-            dataStateListener: (_) => dataCalled = true,
+            listenable: provider,
+            dataStateListener: (_, __) => dataCalled = true,
             child: const SizedBox(),
           ),
         ),
@@ -436,8 +542,17 @@ void main() {
       expect(dataCalled, true);
     });
 
-    testWidgets('reads provider from context using ViewStateListener.of',
-        (tester) async {
+    test('of returns ViewStateListener<T>', () {
+      final ViewStateListener<String> listener =
+          ViewStateListener.of<TestViewStateNotifier<String>, String>();
+
+      expect(listener, isA<ViewStateListener<String>>());
+      expect(listener, isA<SingleChildWidget>());
+    });
+
+    testWidgets('reads listenable from context using ViewStateListener.of', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       bool dataCalled = false;
 
@@ -448,7 +563,7 @@ void main() {
             value: provider,
             child: ViewStateListener.of<TestViewStateNotifier<String>, String>(
               // no provider, uses context.read
-              dataStateListener: (_) => dataCalled = true,
+              dataStateListener: (_, __) => dataCalled = true,
               child: const SizedBox(),
             ),
           ),
@@ -467,8 +582,8 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
-            dataStateListener: (_) {},
+            listenable: provider,
+            dataStateListener: (_, __) {},
             child: const SizedBox(),
           ),
         ),
@@ -484,93 +599,95 @@ void main() {
     });
 
     testWidgets(
-        'switches to new provider when provider parameter changes at runtime',
-        (tester) async {
-      final provider1 = TestViewStateNotifier<String>(const InitialState());
-      final provider2 = TestViewStateNotifier<String>(const InitialState());
-      int dataCount1 = 0;
-      int dataCount2 = 0;
+      'switches to new listenable when listenable parameter changes at runtime',
+      (tester) async {
+        final provider1 = TestViewStateNotifier<String>(const InitialState());
+        final provider2 = TestViewStateNotifier<String>(const InitialState());
+        int dataCount1 = 0;
+        int dataCount2 = 0;
 
-      Widget buildFrame(TestViewStateNotifier<String> provider) {
-        return Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateListener<String>(
-            provider: provider,
-            dataStateListener: (data) {
-              if (provider == provider1) {
-                dataCount1++;
-              } else if (provider == provider2) {
-                dataCount2++;
-              }
-            },
-            child: const SizedBox(),
-          ),
-        );
-      }
+        Widget buildFrame(TestViewStateNotifier<String> provider) {
+          return Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateListener<String>(
+              listenable: provider,
+              dataStateListener: (_, data) {
+                if (provider == provider1) {
+                  dataCount1++;
+                } else if (provider == provider2) {
+                  dataCount2++;
+                }
+              },
+              child: const SizedBox(),
+            ),
+          );
+        }
 
-      // Start with provider1
-      await tester.pumpWidget(buildFrame(provider1));
-      provider1.emit(const DataState<String>('a'));
-      await tester.pump();
-      expect(dataCount1, 1);
-      expect(dataCount2, 0);
+        // Start with provider1
+        await tester.pumpWidget(buildFrame(provider1));
+        provider1.emit(const DataState<String>('a'));
+        await tester.pump();
+        expect(dataCount1, 1);
+        expect(dataCount2, 0);
 
-      // Switch to provider2
-      await tester.pumpWidget(buildFrame(provider2));
-      // No state change yet, so counts unchanged
-      expect(dataCount1, 1);
-      expect(dataCount2, 0);
+        // Switch to provider2
+        await tester.pumpWidget(buildFrame(provider2));
+        // No state change yet, so counts unchanged
+        expect(dataCount1, 1);
+        expect(dataCount2, 0);
 
-      // Emit from provider2
-      provider2.emit(const DataState<String>('b'));
-      await tester.pump();
-      expect(dataCount1, 1);
-      expect(dataCount2, 1);
+        // Emit from provider2
+        provider2.emit(const DataState<String>('b'));
+        await tester.pump();
+        expect(dataCount1, 1);
+        expect(dataCount2, 1);
 
-      // Emit from provider1 should no longer trigger (detached)
-      provider1.emit(const DataState<String>('c'));
-      await tester.pump();
-      expect(dataCount1, 1); // unchanged
-      expect(dataCount2, 1);
-    });
+        // Emit from provider1 should no longer trigger (detached)
+        provider1.emit(const DataState<String>('c'));
+        await tester.pump();
+        expect(dataCount1, 1); // unchanged
+        expect(dataCount2, 1);
+      },
+    );
 
     testWidgets(
-        'listenWhen receives correct previous and current ViewState objects',
-        (tester) async {
-      final provider = TestViewStateNotifier<String>(const InitialState());
-      List<ViewState<String>> previousList = [];
-      List<ViewState<String>> currentList = [];
+      'listenWhen receives correct previous and current ViewState objects',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(const InitialState());
+        List<ViewState<String>> previousList = [];
+        List<ViewState<String>> currentList = [];
 
-      await tester.pumpWidget(
-        Directionality(
-          textDirection: TextDirection.ltr,
-          child: ViewStateListener<String>(
-            provider: provider,
-            listenWhen: (previous, current) {
-              previousList.add(previous);
-              currentList.add(current);
-              return true;
-            },
-            dataStateListener: (_) {},
-            child: const SizedBox(),
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: ViewStateListener<String>(
+              listenable: provider,
+              listenWhen: (previous, current) {
+                previousList.add(previous);
+                currentList.add(current);
+                return true;
+              },
+              dataStateListener: (_, __) {},
+              child: const SizedBox(),
+            ),
           ),
-        ),
-      );
+        );
 
-      provider.emit(const LoadingState<String>());
-      await tester.pump();
+        provider.emit(const LoadingState<String>());
+        await tester.pump();
 
-      expect(previousList.length, 1);
-      expect(previousList[0], const InitialState<String>());
-      expect(currentList[0], const LoadingState<String>());
+        expect(previousList.length, 1);
+        expect(previousList[0], const InitialState<String>());
+        expect(currentList[0], const LoadingState<String>());
 
-      provider.emit(const DataState<String>('data'));
-      await tester.pump();
+        provider.emit(const DataState<String>('data'));
+        await tester.pump();
 
-      expect(previousList.length, 2);
-      expect(previousList[1], const LoadingState<String>());
-      expect(currentList[1], const DataState<String>('data'));
-    });
+        expect(previousList.length, 2);
+        expect(previousList[1], const LoadingState<String>());
+        expect(currentList[1], const DataState<String>('data'));
+      },
+    );
 
     testWidgets('errorStateListener receives onRetry callback', (tester) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
@@ -581,9 +698,9 @@ void main() {
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
-            errorStateListener: (_, ___, __, onRetry) {
-              capturedOnRetry = onRetry;
+            listenable: provider,
+            errorStateListener: (_, details) {
+              capturedOnRetry = details.onRetry;
             },
             child: const SizedBox(),
           ),
@@ -601,11 +718,11 @@ void main() {
     });
 
     testWidgets(
-      'errorStateListener receives correct error details and refresh as onRetry when using AsyncViewStateNotifier',
+      'errorStateListener receives correct error details and refresh as onRetry when using FutureNotifier',
       (tester) async {
         final exception = Exception('Test error');
-        final provider = MockAsyncViewStateNotifier<String>(
-          fetchDataImpl: () => throw exception,
+        final provider = MockFutureNotifier<String>(
+          buildImpl: () => throw exception,
         );
         await tester.pumpAndSettle();
 
@@ -620,12 +737,12 @@ void main() {
           Directionality(
             textDirection: TextDirection.ltr,
             child: ViewStateListener<String>(
-              provider: provider,
-              errorStateListener: (errorInfo, error, stackTrace, onRetry) {
-                capturedErrorInfo = errorInfo;
-                capturedOnRetry = onRetry;
-                capturedError = error;
-                capturedStackTrace = stackTrace;
+              listenable: provider,
+              errorStateListener: (_, details) {
+                capturedErrorInfo = details.errorInfo;
+                capturedOnRetry = details.onRetry;
+                capturedError = details.error;
+                capturedStackTrace = details.stackTrace;
               },
               callListenerOnInit: true,
               child: const SizedBox(),
@@ -646,16 +763,17 @@ void main() {
       },
     );
 
-    testWidgets('does not crash when state occurs without matching callback',
-        (tester) async {
+    testWidgets('does not crash when state occurs without matching callback', (
+      tester,
+    ) async {
       final provider = TestViewStateNotifier<String>(const InitialState());
       // Only provide dataStateListener, but we will emit LoadingState
       await tester.pumpWidget(
         Directionality(
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
-            provider: provider,
-            dataStateListener: (_) {},
+            listenable: provider,
+            dataStateListener: (_, __) {},
             child: const SizedBox(),
           ),
         ),
@@ -665,20 +783,162 @@ void main() {
       await tester.pump();
     });
 
+    testWidgets(
+      'uses the latest resolved message when listeners fire after locale changes',
+      (tester) async {
+        final provider = TestViewStateNotifier<String>(
+          const InitialState<String>(),
+        );
+
+        addTearDown(provider.dispose);
+
+        var locale = 'en';
+        late StateSetter changeLocale;
+
+        final loadingMessages = <String?>[];
+        final emptyMessages = <String?>[];
+        final errorMessages = <String?>[];
+
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                changeLocale = setState;
+
+                return TestLocaleInherited(
+                  locale: locale,
+                  child: ViewStateWidgetsProvider(
+                    initialStateBuilder: testDefaultInitialStateBuilder,
+                    loadingStateBuilder: testDefaultLoadingStateBuilder,
+                    emptyStateBuilder: testDefaultEmptyStateBuilder,
+                    errorStateBuilder: testDefaultErrorStateBuilder,
+                    messageResolver: testLocaleMessageResolver,
+                    child: ViewStateListener<String>(
+                      listenable: provider,
+                      loadingStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        loadingMessages.add(details.message);
+                      },
+                      emptyStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        emptyMessages.add(details.message);
+                      },
+                      errorStateListener: (context, details) {
+                        expect(
+                          context
+                              .findAncestorWidgetOfExactType<
+                                TestLocaleInherited
+                              >()
+                              ?.locale,
+                          locale,
+                        );
+                        errorMessages.add(details.errorInfo.message);
+                      },
+                      child: const SizedBox(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        // First event uses English.
+        provider.emit(const LoadingState<String>('profile.loading'));
+        await tester.pump();
+
+        expect(loadingMessages, ['en:profile.loading']);
+
+        // Changing locale alone must not invoke the listener again.
+        changeLocale(() {
+          locale = 'fr';
+        });
+        await tester.pump();
+
+        expect(loadingMessages, ['en:profile.loading']);
+
+        // The next loading event uses the latest locale.
+        provider.emit(const LoadingState<String>('profile.refreshing'));
+        await tester.pump();
+
+        expect(loadingMessages, [
+          'en:profile.loading',
+          'fr:profile.refreshing',
+        ]);
+
+        // The empty-state listener uses the latest locale.
+        changeLocale(() {
+          locale = 'es';
+        });
+        await tester.pump();
+
+        expect(emptyMessages, isEmpty);
+
+        provider.emit(const EmptyState<String>('profile.empty'));
+        await tester.pump();
+
+        expect(emptyMessages, ['es:profile.empty']);
+
+        // The error-state listener uses the latest locale.
+        changeLocale(() {
+          locale = 'de';
+        });
+        await tester.pump();
+
+        expect(errorMessages, isEmpty);
+
+        provider.emit(
+          ErrorState<String>(
+            StateError('Request failed'),
+            StackTrace.current,
+            errorInfo: const ErrorInfo(
+              message: 'error.network',
+              code: 'network_error',
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(errorMessages, ['de:error.network']);
+
+        // Resolving a message must not mutate the stored original message.
+        final storedState = provider.state as ErrorState<String>;
+
+        expect(storedState.errorInfo.message, 'error.network');
+        expect(storedState.errorInfo.code, 'network_error');
+      },
+    );
+
     // -----------------------------------------------------------------------
     // 9. Diagnostics
     // -----------------------------------------------------------------------
-    testWidgets('debugFillProperties includes all relevant properties',
-        (tester) async {
+    testWidgets('debugFillProperties includes all relevant properties', (
+      tester,
+    ) async {
       final builder = DiagnosticPropertiesBuilder();
 
       ViewStateListener<String>(
-        provider: TestViewStateNotifier<String>(),
-        dataStateListener: (_) {},
+        listenable: TestViewStateNotifier<String>(),
+        dataStateListener: (_, __) {},
         loadingStateListener: (_, __) {},
-        emptyStateListener: (_) {},
-        errorStateListener: (_, __, ___, ____) {},
-        initialStateListener: () {},
+        emptyStateListener: (_, __) {},
+        errorStateListener: (_, __) {},
+        initialStateListener: (_) {},
         listenWhen: (_, __) => true,
         callListenerOnInit: true,
         child: const SizedBox(),
@@ -689,18 +949,23 @@ void main() {
           .map((node) => node.toString())
           .toList();
 
-      expect(description.any((e) => e.contains('provider')), isTrue);
+      expect(description.any((e) => e.contains('listenable')), isTrue);
       expect(description.any((e) => e.contains('listenWhen')), isTrue);
       expect(
-        description
-            .any((e) => e.contains('callListenerOnInit') && e.contains('true')),
+        description.any(
+          (e) => e.contains('callListenerOnInit') && e.contains('true'),
+        ),
         isTrue,
       );
 
       expect(
-          description.any((e) => e.contains('initialStateListener')), isTrue);
+        description.any((e) => e.contains('initialStateListener')),
+        isTrue,
+      );
       expect(
-          description.any((e) => e.contains('loadingStateListener')), isTrue);
+        description.any((e) => e.contains('loadingStateListener')),
+        isTrue,
+      );
       expect(description.any((e) => e.contains('emptyStateListener')), isTrue);
       expect(description.any((e) => e.contains('errorStateListener')), isTrue);
       expect(description.any((e) => e.contains('dataStateListener')), isTrue);

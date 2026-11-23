@@ -7,145 +7,778 @@ concurrency:
 on:
   workflow_dispatch:
     inputs:
+      package:
+        description: 'Package to release'
+        required: true
+        type: choice
+        options:
+          - provider_kit
+          - rate_kit
+
       version_bump:
         description: 'Type of version bump'
         required: true
-        default: 'patch'
+        default: patch
         type: choice
         options:
-          - patch   # 0.0.1 → 0.0.2 (bug fixes)
-          - minor   # 0.0.1 → 0.1.0 (new features)
-          - major   # 0.0.1 → 1.0.0 (breaking changes)
-      publish:
-        description: 'Publish to pub.dev?'
-        required: false
-        default: false
-        type: boolean
+          - patch
+          - minor
+          - major
+
       dry_run:
-        description: '🚨 Dry run? (No commits, tags, or actual publish)'
-        required: false
+        description: 'Dry run only?'
+        required: true
         default: true
         type: boolean
 
+permissions:
+  contents: read
+
 jobs:
   release:
-    name: Release Pipeline
+    name: Release ${{ inputs.package }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write   # Required to push commits and tags
-
-    defaults:
-      run:
-        working-directory: packages/provider_kit
+    timeout-minutes: 30
 
     steps:
-      # -------- Setup --------
+      # ------------------------------------------------
+      # Authentication
+      # ------------------------------------------------
+
       - name: 📚 Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          fetch-depth: 0   # Fetch all history for proper merge and tags
+          token: ${{ github.token }}
+          fetch-depth: 0
+          persist-credentials: true
 
-      - name: 👤 Setup Git user
+      - name: 👤 Configure Git user
         run: |
+          set -euo pipefail
+
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      # -------- Merge dev → main (conditional) --------
-      - name: 🔍 Dry‑run preview (would merge commits)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: |
-          echo "🚨 DRY RUN: Would merge dev into main."
-          echo ""
-          echo "📋 Commits that would be merged:"
-          git fetch origin dev
-          git log origin/main..origin/dev --oneline
-          echo ""
-          echo "📁 Files changed (summary):"
-          git diff --stat origin/main..origin/dev
-          echo ""
-          echo "📄 Full diff (code changes):"
-          git diff origin/main..origin/dev
+      # ------------------------------------------------
+      # Guards and package configuration
+      # ------------------------------------------------
 
-      - name: 🔀 Real merge (only when NOT dry‑run)
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+      - name: 🔒 Verify release branch
         run: |
-          git checkout main
-          git merge --no-ff origin/dev -m "chore: release merge dev → main"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          set -euo pipefail
 
-      # -------- GATEKEEPER: Changelog must have Unreleased --------
-      - name: 📝 Verify CHANGELOG.md has Unreleased entries
-        run: |
-          git fetch origin dev
-          if ! git show origin/dev:packages/provider_kit/CHANGELOG.md | grep -q "^## Unreleased"; then
-            echo "❌ ERROR: '## Unreleased' section not found in CHANGELOG.md on dev branch."
-            echo "Please add your release notes under '## Unreleased' before releasing."
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "❌ Release must be run from main."
+            echo "Current ref: $GITHUB_REF"
             exit 1
           fi
-          echo "✅ CHANGELOG.md has an '## Unreleased' section. Proceeding..."
 
-      # -------- Version bump (always, but not committed yet) --------
+      - name: 📦 Resolve package
+        id: package
+        env:
+          PACKAGE: ${{ inputs.package }}
+        run: |
+          set -euo pipefail
+
+          case "$PACKAGE" in
+            provider_kit)
+              echo "path=packages/provider_kit" >> "$GITHUB_OUTPUT"
+              echo "type=flutter" >> "$GITHUB_OUTPUT"
+              ;;
+
+            rate_kit)
+              echo "path=packages/rate_kit" >> "$GITHUB_OUTPUT"
+              echo "type=dart" >> "$GITHUB_OUTPUT"
+              ;;
+
+            *)
+              echo "❌ Unsupported package: $PACKAGE"
+              exit 1
+              ;;
+          esac
+
+      # ------------------------------------------------
+      # Capture exact remote state
+      # ------------------------------------------------
+
+      - name: 📡 Fetch repository state
+        id: repository
+        run: |
+          set -euo pipefail
+
+          git fetch origin main dev --tags
+
+          MAIN_SHA=$(git rev-parse origin/main)
+          DEV_SHA=$(git rev-parse origin/dev)
+
+          echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+          echo "dev_sha=$DEV_SHA" >> "$GITHUB_OUTPUT"
+
+          echo "Main: $MAIN_SHA"
+          echo "Dev : $DEV_SHA"
+
+      - name: 🌿 Checkout exact main
+        run: |
+          set -euo pipefail
+
+          git checkout -B main "${{ steps.repository.outputs.main_sha }}"
+
+      # ------------------------------------------------
+      # Validate current released version and tag
+      # ------------------------------------------------
+
+      - name: 🔎 Read current package version
+        id: current-version
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          VERSION=$(
+            sed -n 's/^version:[[:space:]]*//p' \
+              "$PACKAGE_PATH/pubspec.yaml" |
+              head -n 1
+          )
+
+          if [[ -z "$VERSION" ]]; then
+            echo "❌ Could not determine current package version."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Current version: $VERSION"
+
+      - name: 🏷️ Verify current release tag
+        env:
+          PACKAGE: ${{ inputs.package }}
+          VERSION: ${{ steps.current-version.outputs.version }}
+          MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
+        run: |
+          set -euo pipefail
+
+          TAG="${PACKAGE}-v${VERSION}"
+
+          TAG_SHA=$(git rev-list -n 1 "$TAG" 2>/dev/null || true)
+
+          if [[ -z "$TAG_SHA" ]]; then
+            echo "❌ Current release tag does not exist: $TAG"
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor "$TAG_SHA" "$MAIN_SHA"; then
+            echo "❌ Current release tag is not in main's history: $TAG"
+            exit 1
+          fi
+
+          echo "✅ Current release tag verified: $TAG"
+
+      # ------------------------------------------------
+      # Ensure the selected package has not already been
+      # versioned on dev independently of main.
+      # ------------------------------------------------
+
+      - name: 🔒 Verify package version on dev
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+          MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+        run: |
+          set -euo pipefail
+
+          MAIN_VERSION=$(
+            git show "$MAIN_SHA:$PACKAGE_PATH/pubspec.yaml" |
+            sed -n 's/^version:[[:space:]]*//p' |
+            head -n 1
+          )
+
+          DEV_VERSION=$(
+            git show "$DEV_SHA:$PACKAGE_PATH/pubspec.yaml" |
+            sed -n 's/^version:[[:space:]]*//p' |
+            head -n 1
+          )
+
+          echo "Main version: $MAIN_VERSION"
+          echo "Dev version : $DEV_VERSION"
+
+          if [[ "$MAIN_VERSION" != "$DEV_VERSION" ]]; then
+            echo "❌ Package version differs between main and dev."
+            echo "Merge the previous release synchronization PR into dev first."
+            exit 1
+          fi
+
+          echo "✅ Main and dev package versions match."
+
+      # ------------------------------------------------
+      # Promote ONLY:
+      #   1. selected package from dev
+      #   2. everything outside packages/ from dev
+      #
+      # Other package directories remain untouched.
+      # ------------------------------------------------
+
+      - name: 📦 Promote selected package
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+        run: |
+          set -euo pipefail
+
+          git restore \
+            --source="$DEV_SHA" \
+            --staged \
+            --worktree \
+            -- "$PACKAGE_PATH"
+
+          echo "✅ Selected package promoted from dev."
+
+      - name: 🌳 Promote shared repository changes
+        env:
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+        run: |
+          set -euo pipefail
+
+          git restore \
+            --source="$DEV_SHA" \
+            --staged \
+            --worktree \
+            -- . ':(exclude)packages/**'
+
+          echo "✅ Shared/root changes promoted from dev."
+
+      # ------------------------------------------------
+      # Promotion scope guard
+      # ------------------------------------------------
+
+      - name: 🔒 Validate promotion scope
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+
+            case "$file" in
+              packages/*)
+                if [[ "$file" != "$PACKAGE_PATH/"* ]]; then
+                  echo "❌ Unexpected package change: $file"
+                  echo "Only $PACKAGE_PATH may be promoted."
+                  exit 1
+                fi
+                ;;
+
+              *)
+                ;;
+            esac
+          done < <(git diff --cached --name-only)
+
+          git diff --cached --check
+
+          echo "✅ Promotion scope is valid."
+
+      - name: 🧾 Record promotion state
+        id: promotion-state
+        run: |
+          if git diff --cached --quiet; then
+            echo "has_promotion=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No promotion changes are staged."
+          else
+            echo "has_promotion=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Promotion changes are staged."
+          fi
+
+      # ------------------------------------------------
+      # Toolchains
+      # ------------------------------------------------
+
       - name: 🐦 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.44'
-          channel: 'stable'
+          channel: stable
           cache: true
+          pub-cache: true
 
-      - name: 📈 Bump version in pubspec.yaml
+      - name: 🎯 Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: '3.12.2'
+
+      - name: 🔎 Verify toolchain versions
+        run: |
+          set -euo pipefail
+
+          echo "Flutter:"
+          flutter --version
+
+          echo "Dart:"
+          dart --version
+
+      # ------------------------------------------------
+      # Version bump
+      # ------------------------------------------------
+
+      - name: 📈 Bump package version
         id: bump
         run: |
-          NEW_VERSION=$(dart scripts/bump_version.dart ${{ github.event.inputs.version_bump }})
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "✅ Calculated new version: $NEW_VERSION"
-          echo "📝 Changes made to pubspec.yaml:"
-          git diff pubspec.yaml
+          set -euo pipefail
 
-      # -------- Gatekeeper: tests must pass --------
-      - name: 📦 Install dependencies
+          NEW_VERSION=$(
+            dart tool/bump_version.dart \
+              "${{ steps.package.outputs.path }}" \
+              "${{ inputs.version_bump }}"
+          )
+
+          echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          echo "✅ New version: $NEW_VERSION"
+
+      # ------------------------------------------------
+      # Install dependencies
+      # ------------------------------------------------
+
+      - name: 📦 Install provider_kit dependencies
+        working-directory: packages/provider_kit
         run: flutter pub get
 
-      - name: 🧪 Run tests (GATEKEEPER)
+      - name: 📦 Install rate_kit dependencies
+        working-directory: packages/rate_kit
+        run: dart pub get
+
+      # ------------------------------------------------
+      # Format ALL packages
+      # ------------------------------------------------
+
+      - name: 🎨 Check provider_kit formatting
+        working-directory: packages/provider_kit
+        run: dart format --output=none --set-exit-if-changed .
+
+      - name: 🎨 Check rate_kit formatting
+        working-directory: packages/rate_kit
+        run: dart format --output=none --set-exit-if-changed .
+
+      # ------------------------------------------------
+      # Analyze ALL packages
+      # ------------------------------------------------
+
+      - name: 🔍 Analyze provider_kit
+        working-directory: packages/provider_kit
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: 🔍 Analyze rate_kit
+        working-directory: packages/rate_kit
+        run: dart analyze --fatal-infos --fatal-warnings
+
+      # ------------------------------------------------
+      # Test ALL packages
+      # ------------------------------------------------
+
+      - name: 🧪 Test provider_kit
+        working-directory: packages/provider_kit
         run: flutter test
 
-      - name: 🚀 Pre‑flight check (dry‑run publish)
-        run: flutter pub publish --dry-run || echo "⚠️ Dry-run had warnings (expected before commit). Continuing..."
+      - name: 🧪 Test rate_kit
+        working-directory: packages/rate_kit
+        run: dart test
 
-      # -------- Commit, tag, publish (only if NOT dry‑run) --------
-      - name: 💾 Commit version bump (dry‑run preview)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: |
-          echo "🚨 DRY RUN: Would commit pubspec.yaml, CHANGELOG.md, and README.md as version ${{ steps.bump.outputs.new_version }}"
-          echo "Changes that would be committed:"
-          git diff pubspec.yaml CHANGELOG.md README.md
+      # ------------------------------------------------
+      # Final release validation
+      # ------------------------------------------------
 
-      - name: 💾 Commit version bump (real)
-        if: ${{ github.event.inputs.dry_run == 'false' }}
+      - name: 🔒 Validate release state
+        env:
+          MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+          PACKAGE: ${{ inputs.package }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
         run: |
-          git add pubspec.yaml CHANGELOG.md README.md
-          git commit -m "chore: bump version to ${{ steps.bump.outputs.new_version }}"
-          git push origin main
+          set -euo pipefail
 
-      - name: 🏷️ Create Git tag (dry‑run preview)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: |
-          echo "🚨 DRY RUN: Would create and push tag provider_kit-v${{ steps.bump.outputs.new_version }}"
+          git diff --check
 
-      - name: 🏷️ Create Git tag (real)
-        if: ${{ github.event.inputs.dry_run == 'false' }}
-        run: |
-          git tag provider_kit-v${{ steps.bump.outputs.new_version }}
-          git push origin provider_kit-v${{ steps.bump.outputs.new_version }}
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
 
-      - name: 📦 Publish to pub.dev (dry‑run preview)
-        if: ${{ github.event.inputs.dry_run == 'true' }}
-        run: |
-          echo "🚨 DRY RUN: Would publish version ${{ steps.bump.outputs.new_version }} to pub.dev"
+            case "$file" in
+              packages/*)
+                if [[ "$file" != "$PACKAGE_PATH/"* ]]; then
+                  echo "❌ Unexpected package change: $file"
+                  exit 1
+                fi
+                ;;
 
-      - name: 📦 Publish to pub.dev (real)
-        if: ${{ github.event.inputs.dry_run == 'false' && github.event.inputs.publish == 'true' }}
+              *)
+                ;;
+            esac
+          done < <(git diff --name-only "$MAIN_SHA")
+
+          TAG="${PACKAGE}-v${NEW_VERSION}"
+
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "❌ Local target tag already exists: $TAG"
+            exit 1
+          fi
+
+          if git ls-remote \
+            --exit-code \
+            --tags \
+            origin \
+            "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "❌ Remote target tag already exists: $TAG"
+            exit 1
+          fi
+
+          echo "✅ Final release validation passed."
+
+      # ------------------------------------------------
+      # Dry run
+      # ------------------------------------------------
+
+      - name: 🚨 Dry-run preview
+        if: inputs.dry_run
+        env:
+          MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+          PACKAGE: ${{ inputs.package }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
         run: |
-          mkdir -p ~/.pub-cache
-          echo '${{ secrets.PUB_DEV_CREDENTIALS }}' > ~/.pub-cache/credentials.json
-          flutter pub publish --force
+          set -euo pipefail
+
+          TAG="${PACKAGE}-v${NEW_VERSION}"
+
+          echo "========================================"
+          echo "DRY RUN"
+          echo "========================================"
+          echo "Package : $PACKAGE"
+          echo "Current : ${{ steps.current-version.outputs.version }}"
+          echo "New     : $NEW_VERSION"
+          echo "Tag     : $TAG"
+          echo ""
+
+          echo "Selected package changes from dev:"
+          git diff --stat "$MAIN_SHA" "$DEV_SHA" -- "$PACKAGE_PATH"
+
+          echo ""
+          echo "Shared/root changes from dev:"
+          git diff --stat "$MAIN_SHA" "$DEV_SHA" -- . ':(exclude)packages/**'
+
+          echo ""
+          echo "Final release diff:"
+          git diff --stat "$MAIN_SHA"
+
+          echo ""
+          echo "✅ All release checks passed."
+          echo "✅ No commit was created."
+          echo "✅ No tag was created."
+          echo "✅ No remote push was performed."
+          echo "✅ No synchronization PR was created."
+
+      # ------------------------------------------------
+      # Real release: commit promotion changes if any
+      # ------------------------------------------------
+
+      - name: 💾 Commit promoted changes
+        if: ${{ !inputs.dry_run && steps.promotion-state.outputs.has_promotion == 'true' }}
+        env:
+          PACKAGE: ${{ inputs.package }}
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+        run: |
+          set -euo pipefail
+
+          git commit \
+            -m "chore(${PACKAGE}): promote changes from dev @ ${DEV_SHA}"
+
+      # ------------------------------------------------
+      # Record the exact base for the version bump commit
+      # ------------------------------------------------
+
+      - name: 🧾 Record version bump base
+        if: ${{ !inputs.dry_run }}
+        id: bump-base
+        run: |
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------
+      # Real release: version bump commit
+      # ------------------------------------------------
+
+      - name: 💾 Commit version bump
+        if: ${{ !inputs.dry_run }}
+        id: release-commit
+        env:
+          PACKAGE: ${{ inputs.package }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          git add "$PACKAGE_PATH"
+
+          if git diff --cached --quiet; then
+            echo "❌ No version bump changes found."
+            exit 1
+          fi
+
+          git commit \
+            -m "chore(${PACKAGE}): bump version to ${NEW_VERSION}"
+
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      # ------------------------------------------------
+      # Create tag locally
+      # ------------------------------------------------
+
+      - name: 🏷️ Create release tag
+        if: ${{ !inputs.dry_run }}
+        env:
+          PACKAGE: ${{ inputs.package }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+        run: |
+          set -euo pipefail
+
+          TAG="${PACKAGE}-v${NEW_VERSION}"
+
+          git tag -a "$TAG" \
+            -m "Release ${PACKAGE} ${NEW_VERSION}" \
+            -m "Source dev commit: ${DEV_SHA}"
+
+          echo "✅ Created local tag: $TAG"
+
+      # ------------------------------------------------
+      # Remote race protection
+      # ------------------------------------------------
+
+      - name: 🔒 Verify remote state before push
+        if: ${{ !inputs.dry_run }}
+        env:
+          EXPECTED_MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
+          EXPECTED_DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+        run: |
+          set -euo pipefail
+
+          git fetch origin main dev --tags
+
+          CURRENT_MAIN_SHA=$(git rev-parse origin/main)
+          CURRENT_DEV_SHA=$(git rev-parse origin/dev)
+
+          if [[ "$CURRENT_MAIN_SHA" != "$EXPECTED_MAIN_SHA" ]]; then
+            echo "❌ main changed while the release was running."
+            exit 1
+          fi
+
+          if [[ "$CURRENT_DEV_SHA" != "$EXPECTED_DEV_SHA" ]]; then
+            echo "❌ dev changed while the release was running."
+            exit 1
+          fi
+
+          echo "✅ main and dev are unchanged."
+
+      # ------------------------------------------------
+      # Create a fresh GitHub App token immediately before
+      # remote mutation so the 1-hour token lifetime starts
+      # as late as possible.
+      # ------------------------------------------------
+
+      - name: 🔐 Create fresh release GitHub App token
+        if: ${{ !inputs.dry_run }}
+        id: mutation-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # ------------------------------------------------
+      # Push main + release tag atomically
+      # ------------------------------------------------
+
+      - name: 🚀 Atomically push main and release tag
+        if: ${{ !inputs.dry_run }}
+        id: release-push
+        env:
+          PACKAGE: ${{ inputs.package }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          MUTATION_TOKEN: ${{ steps.mutation-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          TAG="${PACKAGE}-v${NEW_VERSION}"
+
+          GIT_CONFIG_COUNT=1 \
+          GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
+          GIT_CONFIG_VALUE_0="AUTHORIZATION: bearer ${MUTATION_TOKEN}" \
+          git push --atomic origin \
+            "HEAD:refs/heads/main" \
+            "$TAG:refs/tags/$TAG"
+
+          echo "✅ main and $TAG pushed atomically."
+
+      # ------------------------------------------------
+      # Prepare sync branch AFTER successful release.
+      # It starts from the EXACT dev snapshot used by the
+      # release, so newer dev work cannot be included.
+      # ------------------------------------------------
+
+      - name: 🌿 Prepare dev synchronization branch
+        if: |
+          !inputs.dry_run &&
+          steps.release-push.outcome == 'success'
+        id: sync
+        env:
+          PACKAGE: ${{ inputs.package }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+          RELEASE_SHA: ${{ steps.release-commit.outputs.sha }}
+        run: |
+          set -euo pipefail
+
+          SYNC_BRANCH="chore/release-sync/${PACKAGE}-v${NEW_VERSION}"
+
+          echo "branch=$SYNC_BRANCH" >> "$GITHUB_OUTPUT"
+
+          git fetch origin dev
+
+          if git ls-remote \
+            --exit-code \
+            --heads \
+            origin \
+            "refs/heads/$SYNC_BRANCH" >/dev/null 2>&1; then
+            echo "❌ Synchronization branch already exists: $SYNC_BRANCH"
+            exit 1
+          fi
+
+          git checkout -B "$SYNC_BRANCH" "$DEV_SHA"
+
+          # The release commit contains ONLY the version bump metadata.
+          # Applying it to the exact dev snapshot reproduces the release
+          # metadata without bringing any other main changes back to dev.
+          git cherry-pick --no-commit "$RELEASE_SHA"
+
+          # The released Unreleased section has now become the versioned
+          # section. Create a fresh, empty Unreleased section for future work.
+          CHANGELOG="$PACKAGE_PATH/CHANGELOG.md"
+
+          if grep -Eq '^##[[:space:]]+Unreleased[[:space:]]*$' "$CHANGELOG"; then
+            echo "❌ Sync changelog already contains an Unreleased section."
+            exit 1
+          fi
+
+          TMP_CHANGELOG=$(mktemp)
+
+          {
+            printf '## Unreleased\n\n'
+            cat "$CHANGELOG"
+          } > "$TMP_CHANGELOG"
+
+          mv "$TMP_CHANGELOG" "$CHANGELOG"
+
+          git add "$CHANGELOG"
+
+          if git diff --cached --quiet; then
+            echo "❌ Synchronization branch has no changes."
+            exit 1
+          fi
+
+          git diff --cached --check
+
+          git commit \
+            -m "chore(${PACKAGE}): sync release ${NEW_VERSION} to dev"
+
+          echo "✅ Synchronization branch prepared: $SYNC_BRANCH"
+
+      # ------------------------------------------------
+      # Push sync branch and create PR
+      # ------------------------------------------------
+
+      - name: 🚀 Push synchronization branch
+        if: |
+          !inputs.dry_run &&
+          steps.release-push.outcome == 'success'
+        id: sync-push
+        env:
+          SYNC_BRANCH: ${{ steps.sync.outputs.branch }}
+          MUTATION_TOKEN: ${{ steps.mutation-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          GIT_CONFIG_COUNT=1 \
+          GIT_CONFIG_KEY_0=http.https://github.com/.extraheader \
+          GIT_CONFIG_VALUE_0="AUTHORIZATION: bearer ${MUTATION_TOKEN}" \
+          git push origin \
+            "refs/heads/$SYNC_BRANCH:refs/heads/$SYNC_BRANCH"
+
+          echo "✅ Synchronization branch pushed."
+
+      - name: 🔁 Create synchronization PR
+        if: |
+          !inputs.dry_run &&
+          steps.release-push.outcome == 'success' &&
+          steps.sync-push.outcome == 'success'
+        id: sync-pr
+        env:
+          GH_TOKEN: ${{ steps.mutation-token.outputs.token }}
+          PACKAGE: ${{ inputs.package }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          SYNC_BRANCH: ${{ steps.sync.outputs.branch }}
+        run: |
+          set -euo pipefail
+
+          PR_BODY="$(printf \
+            '## Release synchronization\n\nSynchronizes the %s release metadata for version %s back to `dev`.\n\nThis PR contains only the release metadata generated by the automated release.\n\nAn empty `## Unreleased` section is added for future work.'\n            "$PACKAGE"\n            "$NEW_VERSION"\n          )"
+
+          PR_URL=$(gh pr create \
+            --base dev \
+            --head "$SYNC_BRANCH" \
+            --title "chore(${PACKAGE}): sync release ${NEW_VERSION} to dev" \
+            --body "$PR_BODY")
+
+          echo "url=$PR_URL" >> "$GITHUB_OUTPUT"
+
+          echo "✅ Synchronization PR created: $PR_URL"
+
+      # ------------------------------------------------
+      # Manual publishing instructions
+      # ------------------------------------------------
+
+      - name: 📋 Release summary
+        if: |
+          always() &&
+          !inputs.dry_run &&
+          steps.release-push.outcome == 'success'
+        env:
+          PACKAGE: ${{ inputs.package }}
+          NEW_VERSION: ${{ steps.bump.outputs.new_version }}
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
+          PACKAGE_TYPE: ${{ steps.package.outputs.type }}
+        run: |
+          echo "========================================"
+          echo "Release summary"
+          echo "========================================"
+          echo "Package : $PACKAGE"
+          echo "Version : $NEW_VERSION"
+          echo "Tag     : ${PACKAGE}-v${NEW_VERSION}"
+          echo "Main + tag: ✅ pushed atomically"
+          echo ""
+
+          if [[ "${{ steps.sync.outcome }}" == "success" &&
+                "${{ steps.sync-push.outcome }}" == "success" &&
+                "${{ steps.sync-pr.outcome }}" == "success" ]]; then
+            echo "Sync PR  : ✅ ${{ steps.sync-pr.outputs.url }}"
+          else
+            echo "Sync PR  : ❌ not created successfully"
+            echo "Action   : inspect the failed synchronization step and create/fix the PR manually"
+          fi
+
+          echo ""
+          echo "Publish manually:"
+          echo ""
+          echo "cd $PACKAGE_PATH"
+
+          if [[ "$PACKAGE_TYPE" == "flutter" ]]; then
+            echo "flutter pub publish"
+          else
+            echo "dart pub publish"
+          fi

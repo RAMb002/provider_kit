@@ -16,7 +16,5 @@ import 'package:provider_kit/src/errors/error_info.dart';
 ///   );
 /// };
 /// ```
-typedef ErrorInfoMapper = ErrorInfo Function(
-  Object error,
-  StackTrace stackTrace,
-);
+typedef ErrorInfoMapper =
+    ErrorInfo Function(Object error, StackTrace stackTrace);

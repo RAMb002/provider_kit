@@ -6,12 +6,36 @@ coverage:
   round: down
 
   status:
-    project:
-      default:
-        target: 100%
-        threshold: 0%
+    project: false
+    patch: false
 
 comment:
-  layout: "reach,diff,tree"
+  layout: "reach,diff,flags,tree"
   behavior: default
   require_changes: false
+
+flag_management:
+  individual_flags:
+    - name: provider_kit
+      paths:
+        - packages/provider_kit/**
+      carryforward: false
+      statuses:
+        - type: project
+          target: 100%
+          threshold: 0%
+        - type: patch
+          target: 100%
+          threshold: 0%
+
+    - name: rate_kit
+      paths:
+        - packages/rate_kit/**
+      carryforward: false
+      statuses:
+        - type: project
+          target: 100%
+          threshold: 0%
+        - type: patch
+          target: 100%
+          threshold: 0%
