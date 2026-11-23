@@ -87,7 +87,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   final RebuildWhen<T>? rebuildWhen;
 
   /// {@template provider_kit.state_builder.child}
-  /// An optional widget that is passed to [builder] and is not rebuilt when the
+  /// An optional widget that is passed to `builder` and is not rebuilt when the
   /// state changes.
   /// {@endtemplate}
   final Widget? child;

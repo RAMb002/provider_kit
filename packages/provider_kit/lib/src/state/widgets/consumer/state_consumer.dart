@@ -20,7 +20,7 @@ part 'state_consumer_select.dart';
 /// - Use [StateConsumer.select] to select a nested StateListenable from a provider.
 /// - Use [StateConsumer.multi] to combine state from multiple listenables.
 ///
-/// The [listener] callback is called when the state changes and [listenWhen]
+/// The `listener` callback is called when the state changes and [listenWhen]
 /// allows the change. The builder is called when the state changes and
 /// [rebuildWhen] allows the rebuild.
 ///

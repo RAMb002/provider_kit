@@ -233,7 +233,7 @@ abstract class ViewStateConsumer<T> extends StatefulWidget {
   /// - **[callListenerOnInit]** — Determines whether the listener is called
   ///   after initialization.
   /// - **[isSliver]** — Whether the default state widgets from
-  ///   [ViewStateWidgetsProvider] should use sliver-compatible layouts.
+  ///   `ViewStateWidgetsProvider` should use sliver-compatible layouts.
   ///   Defaults to `false`.
   /// - **[child]** — An optional prebuilt widget passed to [dataBuilder] for
   ///   reuse.

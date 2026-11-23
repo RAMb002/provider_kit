@@ -259,11 +259,11 @@ part 'mutation_state.dart';
 /// }
 /// ```
 ///
-/// A widget can rebuild many times. Creating the mutation during [build]
+/// A widget can rebuild many times. Creating the mutation during `build`
 /// would create a new instance on each rebuild, causing the previous mutation
 /// state to be lost.
 ///
-/// Instead, keep the mutation outside the widget's [build] method and provide
+/// Instead, keep the mutation outside the widget's `build` method and provide
 /// the same instance to the widget that needs to observe it.
 ///
 /// ### Managing mutations with NotifierResourcesMixin

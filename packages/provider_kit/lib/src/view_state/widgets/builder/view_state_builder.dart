@@ -252,7 +252,7 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   /// - **[rebuildWhen]** — Controls whether the widget rebuilds when the
   ///   combined state changes.
   /// - **[isSliver]** — Whether the default state widgets from
-  ///   [ViewStateWidgetsProvider] should use sliver-compatible layouts.
+  ///   `ViewStateWidgetsProvider` should use sliver-compatible layouts.
   ///   Defaults to `false`.
   /// - **[child]** — An optional prebuilt widget passed to [dataBuilder] for
   ///   reuse.

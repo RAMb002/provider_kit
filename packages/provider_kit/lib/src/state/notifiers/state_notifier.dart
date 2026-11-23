@@ -25,7 +25,7 @@ import 'package:provider_kit/src/state/state_notifier_base.dart';
 /// ### Global Observer
 ///
 /// All notifiers (including [StateNotifier]) report their lifecycle events to the
-/// global observer stored in [NotifierBase.observer]. To add logging or analytics,
+/// global observer stored in `NotifierBase.observer`. To add logging or analytics,
 /// assign a custom [NotifierObserver] implementation:
 ///
 /// ```dart
