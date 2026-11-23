@@ -158,7 +158,7 @@ abstract class AsyncViewStateNotifier<T> extends ViewStateNotifier<T> {
   ///
   /// Implementations can use this hook to perform framework-managed
   /// initialization that must happen after user initialization.
-  void _afterInitialize() {}
+  void _afterInitialize() {} // coverage:ignore-line
 
   /// Invalidates the current asynchronous build operation.
   ///

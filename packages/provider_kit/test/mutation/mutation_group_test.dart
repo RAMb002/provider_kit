@@ -190,6 +190,42 @@ void main() {
         group.dispose();
       });
 
+      test(
+        'resetting a kept-alive success mutation schedules automatic disposal',
+        () async {
+          final group = MutationGroup<int>(
+            keepAliveStates: {KeepAliveState.success},
+          );
+          addTearDown(group.dispose);
+
+          final mutation = group('key');
+
+          await mutation.run(() async => 42);
+
+          // The successful state is retained by the keep-alive policy.
+          expect(mutation.isSuccess, isTrue);
+          expect(mutation.mounted, isTrue);
+
+          // Reset changes SuccessState to IdleState.
+          mutation.reset();
+
+          expect(mutation.isIdle, isTrue);
+
+          // Disposal is scheduled, not performed synchronously.
+          expect(mutation.mounted, isTrue);
+
+          await Future<void>.delayed(Duration.zero);
+
+          expect(mutation.mounted, isFalse);
+
+          // The disposed mutation must also be removed from the cache.
+          final replacement = group('key');
+
+          expect(identical(replacement, mutation), isFalse);
+          expect(replacement.mounted, isTrue);
+        },
+      );
+
       test('error mutation is automatically disposed by default', () async {
         final group = MutationGroup<int>();
         final mutation = group('key');

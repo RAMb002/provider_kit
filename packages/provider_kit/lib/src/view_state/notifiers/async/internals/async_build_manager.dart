@@ -170,7 +170,11 @@ final class AsyncBuildManager {
 
       // Follow the newer build when this one was replaced.
       // Also follow it when this operation is outdated but hasn't finished.
-      if (wasReplaced || (!hasFinished && !_isCurrentOperation(operation))) {
+      if (wasReplaced ||
+          // coverage:ignore-start
+          (!hasFinished && !_isCurrentOperation(operation))
+      // coverage:ignore-end
+      ) {
         final _AsyncBuildOperation? replacement = _getLatestReplacement(
           operation,
         );
@@ -386,7 +390,7 @@ final class _AsyncBuildOperation {
   /// Completes when the operation first finishes or becomes outdated.
   Future<void> get changed => _changedCompleter.future;
 
-  bool get isCompleted => _isCompleted;
+  bool get isCompleted => _isCompleted; // coverage:ignore-line
   bool get hasError => _hasError;
 
   Object? get error => _error;

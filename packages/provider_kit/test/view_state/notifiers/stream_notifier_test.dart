@@ -2170,6 +2170,52 @@ void main() {
         await _within(notifier.requestRebuild(), 'rebuild after disposal');
         expect(notifier.buildCount, 1);
       });
+      test(
+        'disposal during synchronous listen setup cancels the subscription',
+        () async {
+          final cancelled = Completer<void>();
+          final controllers = <StreamController<String>>[];
+
+          late TestStreamNotifier<String> notifier;
+
+          notifier = TestStreamNotifier<String>(
+            buildImpl: (_) {
+              late final StreamController<String> controller;
+
+              controller = StreamController<String>(
+                sync: true,
+                onListen: () {
+                  // Dispose before StreamController.listen() returns.
+                  notifier.dispose();
+                },
+                onCancel: () {
+                  if (!cancelled.isCompleted) {
+                    cancelled.complete();
+                  }
+                },
+              );
+
+              controllers.add(controller);
+              return controller.stream;
+            },
+          );
+
+          _addCleanup(notifier, controllers);
+
+          await notifier.waitForBuildStart(1);
+
+          await _within(
+            cancelled.future,
+            'subscription cancellation after synchronous disposal',
+          );
+
+          await _flushPendingTasks();
+
+          // ignore: invalid_use_of_protected_member
+          expect(notifier.mounted, isFalse);
+          expect(controllers.single.hasListener, isFalse);
+        },
+      );
     });
   });
 }

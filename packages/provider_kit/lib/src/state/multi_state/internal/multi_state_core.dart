@@ -128,10 +128,6 @@ final class _MultiStateCore<T> {
     _hasBuilt = true;
   }
 
-  /// Returns the currently subscribed dependencies.
-  Iterable<StateListenable> get dependencies =>
-      _dependencySubscription.dependencies;
-
   /// Releases all resources owned by this core.
   void dispose() {
     _dependencySubscription.dispose();

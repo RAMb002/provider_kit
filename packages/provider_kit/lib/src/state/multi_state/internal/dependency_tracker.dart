@@ -15,8 +15,6 @@ part of '../multi_state.dart';
 /// Provider identity dependencies are used to detect when a provided
 /// [StateListenable] instance is replaced.
 final class _DependencyTracker {
-  _DependencyTracker._();
-
   static final List<_DependencyScope> _scopes = <_DependencyScope>[];
 
   /// Whether a dependency-collecting callback is currently being evaluated.

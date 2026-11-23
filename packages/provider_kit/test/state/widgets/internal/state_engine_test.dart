@@ -674,6 +674,51 @@ void main() {
         expect(source.listenerCount, 0);
       });
 
+      testWidgets('uses the current listenable state when a builder is added', (
+        tester,
+      ) async {
+        final source = _TestListenable<int>(0);
+        final buildStates = <int>[];
+
+        var showBuilder = false;
+        late StateSetter updateConfiguration;
+
+        await tester.pumpWidget(
+          _host(
+            StatefulBuilder(
+              builder: (_, setState) {
+                updateConfiguration = setState;
+
+                return _engine<_TestListenable<int>, int>(
+                  listenable: source,
+                  builder: showBuilder
+                      ? (_, state, __) {
+                          buildStates.add(state);
+                          return Text('$state');
+                        }
+                      : null,
+                  child: const Text('Listener only'),
+                );
+              },
+            ),
+          ),
+        );
+
+        expect(find.text('Listener only'), findsOneWidget);
+
+        // Update the listenable while no builder is configured.
+        source.emit(42);
+
+        // Add a builder to the existing StateEngine.
+        updateConfiguration(() => showBuilder = true);
+        await tester.pump();
+
+        expect(buildStates, [42]);
+        expect(find.text('42'), findsOneWidget);
+
+        await tester.pumpWidget(const SizedBox());
+      });
+
       testWidgets(
         'does not replay the initial callback when callListenerOnInit is enabled later',
         (tester) async {

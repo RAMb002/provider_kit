@@ -371,6 +371,25 @@ void main() {
           expect(result, 'fallback');
         },
       );
+
+      test(
+        'falls back to orElse for EmptyState when emptyState callback is absent',
+        () {
+          final ViewState<String> state = EmptyState('No data');
+
+          var fallbackCalled = false;
+
+          final result = state.maybeWhen(
+            orElse: () {
+              fallbackCalled = true;
+              return 'fallback';
+            },
+          );
+
+          expect(result, 'fallback');
+          expect(fallbackCalled, isTrue);
+        },
+      );
     });
 
     // -------------------------------------------------------------------------

@@ -11,9 +11,6 @@ final class _DependencySubscription {
 
   Set<StateListenable> _dependencies = Set<StateListenable>.identity();
 
-  /// The currently subscribed dependencies.
-  Iterable<StateListenable> get dependencies => _dependencies;
-
   /// Synchronizes the active subscriptions with [nextDependencies].
   ///
   /// Returns `true` when the dependency set changed.

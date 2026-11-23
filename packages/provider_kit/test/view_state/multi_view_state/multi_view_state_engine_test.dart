@@ -966,6 +966,71 @@ void main() {
           second.dispose();
         },
       );
+
+      testWidgets(
+        'schedules rebuild when a Provider dependency is added without changing combined state',
+        (tester) async {
+          final trigger = TestViewStateNotifier<bool>(
+            const DataState<bool>(false),
+          );
+
+          final owner = _StringViewStateOwner('provider');
+
+          final buildValues = <int>[];
+          final listenerValues = <int>[];
+
+          await tester.pumpWidget(
+            _host(
+              ChangeNotifierProvider<_StringViewStateOwner>.value(
+                value: owner,
+                child: _engine<int>(
+                  listenables: () {
+                    if (trigger.watch.data) {
+                      // Dynamically add both the Provider identity dependency
+                      // and its nested ViewStateNotifier dependency.
+                      final providerState =
+                          of<_StringViewStateOwner>().notifier.watch;
+
+                      assert(providerState is DataState<String>);
+                    }
+
+                    return 0;
+                  },
+                  builder: (_, state, __, ___) {
+                    buildValues.add(state);
+                    return Text('$state');
+                  },
+                  listener: (_, state, __) {
+                    listenerValues.add(state);
+                  },
+                ),
+              ),
+            ),
+          );
+
+          expect(buildValues, [0]);
+          expect(listenerValues, isEmpty);
+
+          // This causes _handleChange to collect dependencies again.
+          trigger.emit(const DataState<bool>(true));
+          await tester.pump();
+
+          // The dependency addition must schedule a rebuild.
+          expect(buildValues, [0, 0]);
+
+          // The combined state hasn't changed, so no listener event is delivered.
+          expect(listenerValues, isEmpty);
+
+          expect(owner.notifier.hasListeners, isTrue);
+
+          await tester.pumpWidget(const SizedBox());
+
+          expect(owner.notifier.hasListeners, isFalse);
+
+          trigger.dispose();
+          owner.disposeResources();
+        },
+      );
       testWidgets(
         'works with ListenableProvider.value and rebinds when the Provider instance changes',
         (tester) async {

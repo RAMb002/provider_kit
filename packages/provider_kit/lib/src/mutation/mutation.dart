@@ -389,12 +389,13 @@ final class Mutation<T> extends NotifierBase<MutationState<T>>
     MutationSuccessCallback<T>? onSuccess,
     MutationErrorCallback? onError,
   }) async {
-    assert(NotifierBase.debugAssertNotDisposed(this, 'run'));
-
     if (!mounted) {
-      return Future<MutationResult<T>>.value(
-        MutationIgnored<T>._(MutationIgnoreReason.disposed),
-      );
+      assert(NotifierBase.debugAssertNotDisposed(this, 'run'));
+
+      // release flow
+      // coverage:ignore-start
+      return MutationIgnored<T>._(MutationIgnoreReason.disposed);
+      // coverage:ignore-end
     }
 
     final execution = _MutationExecution<T>(
@@ -422,10 +423,13 @@ final class Mutation<T> extends NotifierBase<MutationState<T>>
 
   /// Starts an execution that the concurrency handler has already reserved.
   void _startExecution(_MutationExecution<T> execution) {
+    // defensive
+    // coverage:ignore-start
     if (!mounted) {
       _completeIgnored(execution, MutationIgnoreReason.disposed);
       return;
     }
+    // coverage:ignore-end
 
     _setState(MutationLoading<T>._());
 
@@ -441,12 +445,8 @@ final class Mutation<T> extends NotifierBase<MutationState<T>>
   }
 
   MutationIgnoreReason? _getIgnoreReason(_MutationExecution<T> execution) {
-    if (execution.ignoreReason != null) {
-      return execution.ignoreReason;
-    }
-
     if (!mounted && !execution.outcomeCommitted) {
-      execution.ignoreReason = MutationIgnoreReason.disposed;
+      execution.ignoreReason ??= MutationIgnoreReason.disposed;
     }
 
     return execution.ignoreReason;

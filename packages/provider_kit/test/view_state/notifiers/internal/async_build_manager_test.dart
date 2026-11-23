@@ -491,6 +491,50 @@ void main() {
     });
 
     test(
+      'completes a pending rebuild when its invalidator disposes the manager',
+      () async {
+        final manager = AsyncBuildManager();
+        addTearDown(manager.dispose);
+
+        var executionCount = 0;
+
+        // Simulate re-entrant disposal during rebuild invalidation.
+        manager.bindOperationInvalidator(manager.dispose);
+
+        final rebuildFuture = manager.rebuild((_, _) async {
+          executionCount++;
+        });
+
+        await rebuildFuture.timeout(_testTimeout);
+
+        // Allow the scheduled rebuild microtask to execute.
+        await Future<void>.delayed(Duration.zero);
+
+        expect(executionCount, 0);
+      },
+    );
+
+    test(
+      'does not start an initial operation when its invalidator disposes the manager',
+      () async {
+        final manager = AsyncBuildManager();
+        addTearDown(manager.dispose);
+
+        var executionCount = 0;
+
+        // Simulate disposal between the initial lifecycle check and start.
+        manager.bindOperationInvalidator(manager.dispose);
+
+        await manager
+            .startInitial((_, _) async {
+              executionCount++;
+            })
+            .timeout(_testTimeout);
+
+        expect(executionCount, 0);
+      },
+    );
+    test(
       'propagates an error when an operation completed before invalidation',
       () async {
         final manager = AsyncBuildManager();

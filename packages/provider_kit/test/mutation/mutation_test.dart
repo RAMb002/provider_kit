@@ -751,11 +751,11 @@ void main() {
         expect(mutation.mounted, isFalse);
       });
 
-      test('run and reset assert after disposal', () {
+      test('run and reset assert after disposal', () async {
         final runMutation = Mutation<int>()..dispose();
         final resetMutation = Mutation<int>()..dispose();
 
-        expect(
+        await expectLater(
           () => runMutation.run(() async => 1),
           throwsA(isA<AssertionError>()),
         );
@@ -867,6 +867,38 @@ void main() {
       },
     );
 
+    test(
+      'does not start an execution when disposed during the loading notification',
+      () async {
+        final mutation = Mutation<int>();
+        addTearDown(mutation.dispose);
+
+        final observer = _DisposeOnLoadingObserver(mutation);
+        ProviderKit.configure(observer: observer);
+
+        var actionStarted = false;
+        var successCallbackCalled = false;
+
+        final result = await mutation.run(
+          () async {
+            actionStarted = true;
+            return 42;
+          },
+          onSuccess: (_) {
+            successCallbackCalled = true;
+          },
+        );
+
+        expect(observer.disposeTriggered, isTrue);
+        expectIgnored(result, MutationIgnoreReason.disposed);
+
+        expect(actionStarted, isFalse);
+        expect(successCallbackCalled, isFalse);
+        expect(mutation.mounted, isFalse);
+        expect(mutation.state, isA<MutationIdle<int>>());
+      },
+    );
+
     group('error information', () {
       test(
         'resolves error information once for state and execution result',
@@ -964,6 +996,26 @@ class _ResetOnLoadingObserver extends NotifierObserver {
         change.nextState is MutationLoading<int>) {
       resetTriggered = true;
       mutation.reset();
+    }
+
+    super.onChange(notifier, change);
+  }
+}
+
+class _DisposeOnLoadingObserver extends NotifierObserver {
+  _DisposeOnLoadingObserver(this.mutation);
+
+  final Mutation<int> mutation;
+
+  bool disposeTriggered = false;
+
+  @override
+  void onChange(NotifierBase notifier, Change change) {
+    if (!disposeTriggered &&
+        identical(notifier, mutation) &&
+        change.nextState is MutationLoading<int>) {
+      disposeTriggered = true;
+      mutation.dispose();
     }
 
     super.onChange(notifier, change);

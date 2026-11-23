@@ -19,6 +19,33 @@ class OnChangeNotifier extends StateNotifier<int> {
   }
 }
 
+class ThrowingEquality {
+  @override
+  bool operator ==(Object other) {
+    throw StateError('Test error');
+  }
+
+  @override
+  int get hashCode => 0;
+}
+
+class ThrowingEqualityNotifier extends StateNotifier<ThrowingEquality> {
+  ThrowingEqualityNotifier(super.state);
+
+  int onErrorCallCount = 0;
+  Object? receivedError;
+  StackTrace? receivedStackTrace;
+
+  @override
+  void onError(Object error, StackTrace stackTrace) {
+    super.onError(error, stackTrace);
+
+    onErrorCallCount++;
+    receivedError = error;
+    receivedStackTrace = stackTrace;
+  }
+}
+
 // A helper notifier that sets state in dispose (bad practice, but we test it).
 class BadDisposeNotifier extends StateNotifier<int> {
   BadDisposeNotifier(super.state);
@@ -102,6 +129,28 @@ void main() {
 
       expect(notifier.onChangeCallCount, 1);
       expect(notifier.state, 2);
+    });
+
+    test('dispatches error when state equality comparison throws', () {
+      final initialState = ThrowingEquality();
+      final notifier = ThrowingEqualityNotifier(initialState);
+      addTearDown(notifier.dispose);
+
+      expect(
+        () => notifier.state = ThrowingEquality(),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'Test error',
+          ),
+        ),
+      );
+
+      expect(notifier.onErrorCallCount, 1);
+      expect(notifier.receivedError, isA<StateError>());
+      expect(notifier.receivedStackTrace, isNotNull);
+      expect(identical(notifier.state, initialState), isTrue);
     });
 
     // -----------------------------------------------------------------------

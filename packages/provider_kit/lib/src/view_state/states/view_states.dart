@@ -316,13 +316,9 @@ sealed class ViewState<T> {
   /// final value = state.data;
   /// ```
   T get data {
-    final state = this;
-    if (state is DataState<T>) {
-      return state.data;
-    }
     throw StateError(
       'Data is only available when the current state is a DataState. '
-      'Current state: ${state.runtimeType}.',
+      'Current state: $runtimeType.',
     );
   }
 }

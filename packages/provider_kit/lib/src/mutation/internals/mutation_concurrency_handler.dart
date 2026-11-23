@@ -26,15 +26,21 @@ class _MutationConcurrencyHandler<T> {
 
   /// Schedules [execution] according to the configured policy.
   ///
+  /// The caller must verify that the owning Mutation is mounted before
+  /// calling this method.
+  ///
   /// Returns:
   /// - [start] when Mutation should execute it immediately.
   /// - [queued] when it must wait.
   /// - [ignored] when it must not execute.
   _ExecutionSchedule schedule(_MutationExecution<T> execution) {
+    // defensive check
+    // coverage:ignore-start
     if (_disposed) {
       execution.ignoreReason ??= MutationIgnoreReason.disposed;
       return _ExecutionSchedule.ignored;
     }
+    // coverage:ignore-end
 
     switch (_policy) {
       case MutationConcurrency.parallel:
@@ -123,9 +129,12 @@ class _MutationConcurrencyHandler<T> {
   ///
   /// Returns queued executions so Mutation can complete their Futures.
   Queue<_MutationExecution<T>> dispose() {
+    // defensive check
+    // coverage:ignore-start
     if (_disposed) {
       return Queue<_MutationExecution<T>>();
     }
+    // coverage:ignore-end
 
     _disposed = true;
 

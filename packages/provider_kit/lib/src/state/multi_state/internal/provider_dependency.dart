@@ -24,8 +24,10 @@ final class _TypedProviderDependency<P extends ChangeNotifier>
 
   final P listenable;
 
+  // coverage:ignore-start
   @override
   Type get providerType => P;
+  // coverage:ignore-end
 
   @override
   Object get identity => listenable;

@@ -7,10 +7,6 @@ class ListenerQueue {
 
   bool _pending = false;
 
-  bool get isPending => _pending;
-
-  bool get isEmpty => _callbacks.isEmpty;
-
   void begin() {
     _pending = true;
   }
