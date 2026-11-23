@@ -1,7 +1,7 @@
 [![Build](https://github.com/RAMb002/provider_kit/actions/workflows/build.yml/badge.svg)](https://github.com/RAMb002/provider_kit/actions/workflows/build.yml)
 <a href="https://codecov.io/gh/RAMb002/provider_kit"><img src="https://codecov.io/gh/RAMb002/provider_kit/branch/main/graph/badge.svg" alt="codecov">
 [![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/license/bsd-2-clause/)
-
+[![Widgetbook](https://img.shields.io/badge/Widgetbook-Live%20Demo-blue?logo=flutter)](https://RAMb002.github.io/provider_kit/widgetbook/)
 
 <p align="center">
   <img src="https://github.com/user-attachments/assets/76d037a7-16b0-4d77-92f0-18fa7d815ba9"
