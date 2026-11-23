@@ -376,14 +376,14 @@ class LoadingState<T> extends ViewState<T> {
 /// {@template provider_kit.view_state.empty_state}
 /// Represents the empty state of a view.
 ///
-/// [message] optionally describes why no data is available. It may be
+/// [EmptyState.message] optionally describes why no data is available. It may be
 /// literal text or a localization key. ProviderKit's view-state widgets
 /// resolve the message for display using the configured
 /// `ViewStateWidgetsProvider.messageResolver`.
 ///
-/// [onRefresh] optionally provides a callback to refresh the operation
+/// [EmptyState.onRefresh] optionally provides a callback to refresh the operation
 /// that produced this empty state. When omitted, view-state widgets can
-/// fall back to the associated asynchronous notifier's [refresh] method
+/// fall back to the associated asynchronous notifier's `refresh` method
 /// when available.
 /// {@endtemplate}
 
@@ -394,7 +394,7 @@ class EmptyState<T> extends ViewState<T> {
   /// Called to refresh the operation that produced this empty state.
   ///
   /// When `null`, view-state widgets can fall back to the associated
-  /// asynchronous notifier's [refresh] method when available.
+  /// asynchronous notifier's `refresh` method when available.
   final VoidCallback? onRefresh;
 
   /// {@macro provider_kit.view_state.empty_state}
@@ -447,19 +447,19 @@ class DataState<T> extends ViewState<T> {
 /// {@template provider_kit.view_state.error_state}
 /// Represents a failed state of a view.
 ///
-/// [error] contains the original error, [stackTrace] contains its associated
-/// stack trace, and [errorInfo] contains the information used to describe
+/// [ErrorState.error] contains the original error, [ErrorState.stackTrace] contains its associated
+/// stack trace, and [ErrorState.errorInfo] contains the information used to describe
 /// the error.
 ///
-/// If [errorInfo] is not provided, it is generated using the configured
-/// [ErrorInfoMapper]. If no custom mapper is configured, the error's string
+/// If [ErrorState.errorInfo] is not provided, it is generated using the configured
+/// `ErrorInfoMapper`. If no custom mapper is configured, the error's string
 /// representation is used as the default message.
 ///
-/// [errorInfo.message] may contain literal text or a localization key.
+/// [ErrorInfo.message] may contain literal text or a localization key.
 /// ProviderKit's view-state widgets resolve it for display using the
 /// configured `ViewStateWidgetsProvider.messageResolver`.
 ///
-/// [onRetry] optionally provides a callback to retry the failed operation.
+/// [ErrorState.onRetry] optionally provides a callback to retry the failed operation.
 /// When omitted, supported view-state widgets fall back to the associated
 /// asynchronous notifier's `refresh` method when available.
 /// {@endtemplate}

@@ -1,3 +1,11 @@
+/// ProviderKit is a Flutter toolkit built on `ChangeNotifier` and
+/// `Listenable`. It provides reusable notifiers, reactive widgets, and
+/// lifecycle utilities for building simple, predictable, and maintainable
+/// applications.
+///
+/// It works alongside the `provider` package for dependency injection
+/// and accessing notifiers from the widget tree.
+
 library provider_kit;
 
 export 'src/base/index.dart';

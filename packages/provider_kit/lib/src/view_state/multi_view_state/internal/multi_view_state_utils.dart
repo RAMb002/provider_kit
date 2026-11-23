@@ -90,8 +90,8 @@ part of '../../../state/multi_state/multi_state.dart';
 /// if the first loading notifier's message and the aggregated loading progress
 /// remain unchanged.
 ///
-/// After ProviderKit detects a combined-state change, [listenWhen] and
-/// [rebuildWhen] are evaluated as additional user-defined filters.
+/// After ProviderKit detects a combined-state change, `listenWhen` and
+/// `rebuildWhen` are evaluated as additional user-defined filters.
 /// {@endtemplate}
 
 @internal

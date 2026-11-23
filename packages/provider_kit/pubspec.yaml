@@ -4,6 +4,13 @@ version: 0.4.0
 repository: https://github.com/RAMb002/provider_kit
 issue_tracker: https://github.com/RAMb002/provider_kit/issues
 
+topics:
+  - flutter
+  - state-management
+  - provider
+  - change-notifier
+  - async
+
 platforms:
   android:
   ios:
@@ -28,5 +35,3 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   fake_async: ^1.3.3
-
-flutter:

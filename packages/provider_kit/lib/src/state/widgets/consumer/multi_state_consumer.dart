@@ -60,8 +60,8 @@ abstract class MultiStateConsumerBase<T> extends StateConsumer<T> {
 
   /// {@macro provider_kit.multi_state.listenables_param}
   ///
-  /// The returned value becomes the combined state passed to [builder],
-  /// [listener], [rebuildWhen], and [listenWhen].
+  /// The returned value becomes the combined state passed to `builder`,
+  /// `listener`, [rebuildWhen], and [listenWhen].
   final MultiStateListenables<T> listenables;
 
   /// Builds the widget tree from the current combined state.

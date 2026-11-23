@@ -71,7 +71,7 @@ abstract class MultiStateListenerBase<T> extends StateListener<T> {
   /// object.
   /// {@endtemplate}
   ///
-  /// The returned value becomes the combined state passed to [listener] and
+  /// The returned value becomes the combined state passed to `listener` and
   /// [listenWhen].
   final MultiStateListenables<T> listenables;
 

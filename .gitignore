@@ -27,9 +27,9 @@ migrate_working_dir/
 **/pubspec.lock
 
 # Generated files
-build/
-coverage/
-doc/api/
+**/build/
+**/coverage/
+**/doc/api/
 
 # Flutter generated files
 .flutter-plugins

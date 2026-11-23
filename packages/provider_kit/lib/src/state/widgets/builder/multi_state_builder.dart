@@ -51,7 +51,7 @@ abstract class MultiStateBuilderBase<T> extends StateBuilder<T> {
 
   /// {@macro provider_kit.multi_state.listenables_param}
   ///
-  /// The returned value becomes the combined state passed to [builder] and
+  /// The returned value becomes the combined state passed to `builder` and
   /// [rebuildWhen].
   final MultiStateListenables<T> listenables;
 

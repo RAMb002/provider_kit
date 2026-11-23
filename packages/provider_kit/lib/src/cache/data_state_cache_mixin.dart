@@ -1,7 +1,7 @@
 import 'package:provider_kit/src/view_state/notifiers/view_state_notifier.dart';
 import 'package:provider_kit/src/view_state/states/view_states.dart';
 
-/// A mixin that lets you save a [DataState] and restore it later.
+/// A mixin that lets you cache a [DataState] and restore it later.
 ///
 /// This is useful when you temporarily change your data, such as when
 /// filtering or searching, but want to keep the original data available.
@@ -11,52 +11,23 @@ import 'package:provider_kit/src/view_state/states/view_states.dart';
 ///
 /// The cached state and data are stored by reference. No deep copy is created.
 ///
-/// ### ViewStateNotifier
+/// With `FutureNotifier`, you can cache the original data inside
+/// `FutureNotifier.build` before returning it.
 ///
 /// ```dart
-/// class MoviesProvider extends ViewStateNotifier<List<Movie>>
+/// class MoviesNotifier extends FutureNotifier<List<Movie>>
 ///     with DataStateCacheMixin<List<Movie>> {
 ///
-///   void filter(String query) {
-///     final currentState = state;
-///     if (currentState is! DataState<List<Movie>>) {
-///       return;
-///     }
-///     if (cachedDataState == null) {
-///       cacheDataState(currentState);
-///     }
+///   MoviesNotifier(this._repository);
 ///
-///     final filteredMovies = currentState.data
-///         .where((movie) => movie.title.contains(query))
-///         .toList();
-///
-///     state = DataState(filteredMovies);
-///   }
-///
-///   void clearFilter() {
-///     final originalState = cachedDataState;
-///
-///     if (originalState != null) {
-///       state = originalState;
-///       clearDataStateCache();
-///     }
-///   }
-/// }
-/// ```
-///
-/// ### FutureNotifier
-///
-/// With [FutureNotifier], you can cache the original data directly
-/// inside [fetchData] before returning it.
-///
-/// ```dart
-/// class MoviesProvider extends FutureNotifier<List<Movie>>
-///     with DataStateCacheMixin<List<Movie>> {
+///   final MovieRepository _repository;
 ///
 ///   @override
-///   Future<List<Movie>> fetchData() async {
-///     final movies = await repository.getMovies();
+///   Future<List<Movie>> build() async {
+///     final movies = await _repository.getMovies();
+///
 ///     cacheDataState(DataState(movies));
+///
 ///     return movies;
 ///   }
 ///

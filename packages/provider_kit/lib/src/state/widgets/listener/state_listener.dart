@@ -23,7 +23,7 @@ part 'state_listener_select.dart';
 /// - Use [StateListener.select] to select a nested StateListenable from a provider.
 /// - Use [StateListener.multi] to listen to and combine state from multiple listenables.
 ///
-/// When the state changes, [listenWhen] determines whether [listener] is called.
+/// When the state changes, [listenWhen] determines whether `listener` is called.
 /// The optional [callListenerOnInit] can be used to invoke
 /// the listener once after initialization.
 ///
