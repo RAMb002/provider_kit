@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
+import '../../shared/mocks/notifiers.dart';
+
 /// A notifier that counts `onChange` calls.
 class OnChangeNotifier extends StateNotifier<int> {
   OnChangeNotifier(super.state);
@@ -67,18 +69,18 @@ void main() {
     // 1. Basic state management
     // -----------------------------------------------------------------------
     test('initial state is set correctly', () {
-      final notifier = StateNotifier<int>(42);
+      final notifier = TestStateNotifier<int>(42);
       expect(notifier.state, 42);
     });
 
     test('setting state updates the state', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       notifier.state = 10;
       expect(notifier.state, 10);
     });
 
     test('setting same state does not notify listeners (equality check)', () {
-      final notifier = StateNotifier<int>(5);
+      final notifier = TestStateNotifier<int>(5);
       int listenerCallCount = 0;
       notifier.addListener(() => listenerCallCount++);
 
@@ -93,7 +95,7 @@ void main() {
     // 2. Listener notification
     // -----------------------------------------------------------------------
     test('listeners are notified when state changes', () {
-      final notifier = StateNotifier<int>(1);
+      final notifier = TestStateNotifier<int>(1);
       int callCount = 0;
       notifier.addListener(() => callCount++);
 
@@ -105,7 +107,7 @@ void main() {
     });
 
     test('listener can be removed', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       int callCount = 0;
       void listener() => callCount++;
       notifier.addListener(listener);
@@ -157,7 +159,7 @@ void main() {
     // 5. toString
     // -----------------------------------------------------------------------
     test('toString returns a meaningful description', () {
-      final notifier = StateNotifier<String>('hello');
+      final notifier = TestStateNotifier<String>('hello');
       expect(notifier.toString(), contains('StateNotifier'));
       expect(notifier.toString(), contains('hello'));
     });
@@ -169,7 +171,7 @@ void main() {
       test(
         'setting state after dispose throws FlutterError in debug mode',
         () {
-          final notifier = StateNotifier<int>(0);
+          final notifier = TestStateNotifier<int>(0);
           notifier.dispose();
           expect(() => notifier.state = 1, throwsFlutterError);
           expect(notifier.state, 0);
@@ -180,7 +182,7 @@ void main() {
       test(
         'notifyListeners after dispose throws FlutterError in debug mode',
         () {
-          final notifier = StateNotifier<int>(0);
+          final notifier = TestStateNotifier<int>(0);
           notifier.dispose();
           expect(() => notifier.notifyListeners(), throwsFlutterError);
         },
@@ -188,7 +190,7 @@ void main() {
       );
 
       test('dispose can be called multiple times', () {
-        final notifier = StateNotifier<int>(0);
+        final notifier = TestStateNotifier<int>(0);
 
         expect(() {
           notifier.dispose();
@@ -208,7 +210,7 @@ void main() {
         'setting state after dispose (via async callback) does not recurse',
         () async {
           final completer = Completer<int>();
-          final notifier = StateNotifier<int>(0);
+          final notifier = TestStateNotifier<int>(0);
 
           Future.delayed(Duration.zero, () {});
 

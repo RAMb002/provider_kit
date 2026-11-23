@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
+import '../shared/mocks/notifiers.dart';
+
 // -----------------------------------------------------------------------------
 // Spy observer (copied from state_notifier_test)
 // -----------------------------------------------------------------------------
@@ -184,7 +186,7 @@ void main() {
   });
   group('lifecycle', () {
     test('mounted returns true before dispose, false after', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       expect(notifier.mounted, isTrue);
 
       notifier.dispose();
@@ -192,7 +194,7 @@ void main() {
     });
 
     test('debugAssertNotDisposed throws with operation hint when disposed', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       notifier.dispose();
 
       expect(
@@ -208,7 +210,7 @@ void main() {
     });
 
     test('debugAssertNotDisposed does not throw when not disposed', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       addTearDown(notifier.dispose);
 
       expect(
@@ -222,7 +224,7 @@ void main() {
 
       ProviderKit.configure(observer: spy);
 
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       notifier.dispose();
 
       expect(spy.onDisposeCalls, 1);
@@ -231,7 +233,7 @@ void main() {
     });
 
     test('dispose can be called multiple times safely', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       notifier.dispose();
       expect(notifier.dispose, returnsNormally);
     });
@@ -269,7 +271,7 @@ void main() {
   });
   group('NotifierBase observer integration', () {
     test('default observer does nothing (no‑op)', () {
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       addTearDown(notifier.dispose);
       expect(() => notifier.state = 1, returnsNormally);
     });
@@ -278,7 +280,7 @@ void main() {
       final spy = SpyObserver();
       ProviderKit.configure(observer: spy);
 
-      final notifier = StateNotifier<int>(99);
+      final notifier = TestStateNotifier<int>(99);
 
       expect(spy.onCreateCalls, 1);
       expect(spy.lastOnCreateTarget, notifier);
@@ -290,7 +292,7 @@ void main() {
       final spy = SpyObserver();
       ProviderKit.configure(observer: spy);
 
-      final notifier = StateNotifier<int>(1);
+      final notifier = TestStateNotifier<int>(1);
       notifier.state = 2;
 
       expect(spy.onChangeCalls, 1);
@@ -430,7 +432,7 @@ void main() {
       final spy = SpyObserver();
       ProviderKit.configure(observer: spy);
 
-      final notifier = StateNotifier<int>(10);
+      final notifier = TestStateNotifier<int>(10);
       notifier.state = 20;
       notifier.dispose();
 
@@ -597,7 +599,7 @@ void main() {
 
       ProviderKit.configure(observer: observer);
 
-      final notifier = StateNotifier<int>(1);
+      final notifier = TestStateNotifier<int>(1);
       addTearDown(notifier.dispose);
 
       expect(() => notifier.state = 2, returnsNormally);
@@ -705,7 +707,7 @@ void main() {
 
       ProviderKit.configure(observer: observer);
 
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       addTearDown(notifier.dispose);
 
       expect(notifier.dispose, returnsNormally);
@@ -733,7 +735,7 @@ void main() {
 
       ProviderKit.configure(observer: observer);
 
-      final notifier = StateNotifier<int>(0);
+      final notifier = TestStateNotifier<int>(0);
       addTearDown(notifier.dispose);
 
       expect(notifier.mounted, isTrue);

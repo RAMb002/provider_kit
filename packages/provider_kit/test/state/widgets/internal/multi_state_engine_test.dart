@@ -1202,7 +1202,7 @@ void main() {
       testWidgets(
         'filters listener notifications while rebuilding for collection-state changes',
         (tester) async {
-          final provider = StateNotifier<List<String>>(['initial']);
+          final provider = TestStateNotifier<List<String>>(['initial']);
 
           final buildStates = <List<String>>[];
           final listenerStates = <List<String>>[];
