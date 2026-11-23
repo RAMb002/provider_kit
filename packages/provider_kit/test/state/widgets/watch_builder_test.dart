@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
+import '../../shared/mocks/notifiers.dart';
+
 void main() {
   Widget wrap(Widget child) {
     return Directionality(textDirection: TextDirection.ltr, child: child);
@@ -768,7 +770,7 @@ void main() {
     // PROVIDER DEPENDENCY
 
     testWidgets('resolves and watches a provider using of', (tester) async {
-      final counter = StateNotifier<int>(5);
+      final counter = TestStateNotifier<int>(5);
       final states = <int>[];
 
       await tester.pumpWidget(
@@ -800,8 +802,8 @@ void main() {
     });
 
     testWidgets('resolves multiple provider types using of', (tester) async {
-      final first = StateNotifier<int>(10);
-      final second = StateNotifier<String>('initial');
+      final first = TestStateNotifier<int>(10);
+      final second = TestStateNotifier<String>('initial');
 
       await tester.pumpWidget(
         wrap(
@@ -841,8 +843,8 @@ void main() {
     testWidgets('rebinds provider dependency when provider instance changes', (
       tester,
     ) async {
-      final first = StateNotifier<int>(1);
-      final second = StateNotifier<int>(5);
+      final first = TestStateNotifier<int>(1);
+      final second = TestStateNotifier<int>(5);
 
       var activeProvider = first;
       late StateSetter updateProvider;
