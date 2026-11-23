@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
+import '../shared/mocks/notifiers.dart';
+
 void main() {
   group('DebugNotifierObserver', () {
     late DebugNotifierObserver observer;
@@ -11,7 +13,7 @@ void main() {
 
     setUp(() {
       observer = DebugNotifierObserver();
-      notifier = StateNotifier<int>(0);
+      notifier = TestStateNotifier<int>(0);
       logs = [];
 
       originalDebugPrint = debugPrint;

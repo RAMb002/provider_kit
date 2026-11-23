@@ -3,7 +3,7 @@ import 'package:provider_kit/provider_kit.dart';
 /// Mock StateNotifier with string state for basic testing
 /// **Reusable for:** StateListener, StateBuilder, StateConsumer tests
 class TestStateNotifier<T> extends StateNotifier<T> {
-  TestStateNotifier({required T initialState}) : super(initialState);
+  TestStateNotifier(super.initialState);
 
   void updateState(T newState) {
     state = newState;

@@ -1190,7 +1190,7 @@ void main() {
       testWidgets('resolves the provider itself when no selector is supplied', (
         tester,
       ) async {
-        final provider = StateNotifier<int>(10);
+        final provider = TestStateNotifier<int>(10);
         final buildStates = <int>[];
         final listenerStates = <int>[];
 
@@ -1312,7 +1312,7 @@ void main() {
       testWidgets(
         'maintains a single provider-resolved subscription across parent rebuilds',
         (tester) async {
-          final provider = StateNotifier<int>(0);
+          final provider = TestStateNotifier<int>(0);
           final listenerStates = <int>[];
           var parentBuildCount = 0;
           late StateSetter rebuild;
