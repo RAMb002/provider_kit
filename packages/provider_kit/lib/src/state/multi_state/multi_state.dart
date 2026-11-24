@@ -1,7 +1,4 @@
-library provider_kit_multi_state;
-
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/src/base/state_listenable.dart';
@@ -27,8 +24,8 @@ part 'internal/dependency_collection.dart';
 part 'internal/dependency_scope.dart';
 part 'internal/dependency_subscription.dart';
 part 'internal/dependency_tracker.dart';
-part 'internal/multi_state_engine.dart';
 part 'internal/multi_state_core.dart';
+part 'internal/multi_state_engine.dart';
 part 'internal/provider_dependency.dart';
 part 'internal/provider_lookup.dart';
 part 'widgets/watch_builder.dart';

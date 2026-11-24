@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -67,8 +67,8 @@ void main() {
     test('of returns StateConsumer<T>', () {
       final StateConsumer<int> consumer =
           StateConsumer.of<CounterProvider, int>(
-            builder: (_, __, ___) => const SizedBox(),
-            listener: (_, __) => {},
+            builder: (_, _, _) => const SizedBox(),
+            listener: (_, _) => {},
           );
 
       expect(consumer, isA<StateConsumer<int>>());
@@ -119,7 +119,7 @@ void main() {
                   return const Text('Static Performance Child');
                 },
               ),
-              listener: (_, __) {},
+              listener: (_, _) {},
               builder: (context, state, child) {
                 builderBuildCount++;
                 return Column(children: [Text('State: $state'), child!]);
@@ -158,7 +158,7 @@ void main() {
             listenable: provider,
             listenWhen: (_, current) => current.isOdd,
             rebuildWhen: (_, current) => current.isEven,
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               builderStates.add(state);
               return Text('State: $state');
             },
@@ -200,7 +200,7 @@ void main() {
               value: provider,
               child: StateConsumer.select<_SelectableCounterProvider, int>(
                 selector: (notifier) => notifier.selected,
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   builderStates.add(state);
                   return Text('$state');
                 },
@@ -286,7 +286,7 @@ void main() {
                 value: currentProvider,
                 child: StateConsumer.of<CounterProvider, int>(
                   listener: (_, state) => states.add(state),
-                  builder: (_, state, __) => Text('$state'),
+                  builder: (_, state, _) => Text('$state'),
                   child: const SizedBox(),
                 ),
               );
@@ -363,8 +363,8 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateConsumer.of<CounterProvider, int>(
-        builder: (_, __, ___) => const SizedBox(),
-        listener: (_, __) {},
+        builder: (_, _, _) => const SizedBox(),
+        listener: (_, _) {},
       ).debugFillProperties(builder);
 
       final description = builder.properties
@@ -381,8 +381,8 @@ void main() {
 
       StateConsumer.select<CounterProvider, int>(
         selector: (provider) => provider,
-        builder: (_, __, ___) => const SizedBox(),
-        listener: (_, __) {},
+        builder: (_, _, _) => const SizedBox(),
+        listener: (_, _) {},
       ).debugFillProperties(builder);
 
       final description = builder.properties

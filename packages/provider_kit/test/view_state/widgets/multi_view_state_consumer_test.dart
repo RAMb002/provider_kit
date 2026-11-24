@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/view_state_notifiers.dart';
@@ -30,13 +30,11 @@ void main() {
 
     Widget withDefaultProviderWidget(Widget child) {
       return ViewStateWidgetsProvider(
-        initialStateBuilder: (_, __) => const SizedBox(key: _defaultInitialKey),
-        loadingStateBuilder: (_, __, ___) =>
+        initialStateBuilder: (_, _) => const SizedBox(key: _defaultInitialKey),
+        loadingStateBuilder: (_, _, _) =>
             const SizedBox(key: _defaultLoadingKey),
-        emptyStateBuilder: (_, __, ___) =>
-            const SizedBox(key: _defaultEmptyKey),
-        errorStateBuilder: (_, __, ___) =>
-            const SizedBox(key: _defaultErrorKey),
+        emptyStateBuilder: (_, _, _) => const SizedBox(key: _defaultEmptyKey),
+        errorStateBuilder: (_, _, _) => const SizedBox(key: _defaultErrorKey),
         child: child,
       );
     }
@@ -102,7 +100,7 @@ void main() {
       await tester.pumpWidget(
         buildConsumer(
           providers: () => provider.watch,
-          dataBuilder: (_, state, __) {
+          dataBuilder: (_, state, _) {
             builderCalled = true;
 
             expect(state, same(provider.state));
@@ -152,7 +150,7 @@ void main() {
               return Column(
                 children: [
                   Text('${state.first.data}-${state.second.data}'),
-                  if (child != null) child,
+                  ?child,
                 ],
               );
             },
@@ -194,7 +192,7 @@ void main() {
       await tester.pumpWidget(
         buildConsumer<List<ViewState<String>>>(
           providers: () => [provider1.watch, provider2.watch],
-          dataBuilder: (_, state, __) {
+          dataBuilder: (_, state, _) {
             expect(state, hasLength(2));
             expect(state[0], same(provider1.state));
             expect(state[1], same(provider2.state));
@@ -422,7 +420,7 @@ void main() {
                         errorMessage = details.message;
                         errorCode = details.code;
                       },
-                      dataBuilder: (_, __, ___) => const SizedBox(),
+                      dataBuilder: (_, _, _) => const SizedBox(),
                     ),
                   ),
                 );
@@ -563,7 +561,7 @@ void main() {
               capturedListenerMessage = details.message;
               capturedListenerCode = details.code;
             },
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
             isSliver: true,
           ),
         );
@@ -628,7 +626,7 @@ void main() {
               capturedListenerMessage = details.message;
               capturedListenerProgress = details.progress;
             },
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
             isSliver: true,
           ),
         );
@@ -675,7 +673,7 @@ void main() {
             emptyStateListener: (_, details) {
               capturedListenerMessage = details.message;
             },
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
             isSliver: true,
           ),
         );
@@ -706,8 +704,8 @@ void main() {
         await tester.pumpWidget(
           buildConsumer(
             providers: () => provider.watch,
-            loadingBuilder: (_, __) => const SizedBox(),
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            loadingBuilder: (_, _) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
             loadingStateListener: (_, details) {
               capturedMessage = details.message;
               capturedProgress = details.progress;
@@ -737,7 +735,7 @@ void main() {
       await tester.pumpWidget(
         buildConsumer(
           providers: () => provider.watch,
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
           withDefaultProvider: true,
         ),
       );
@@ -777,17 +775,17 @@ void main() {
 
         await tester.pumpWidget(
           ViewStateWidgetsProvider(
-            initialStateBuilder: (_, __) => const SizedBox(),
-            loadingStateBuilder: (_, __, isSliver) {
+            initialStateBuilder: (_, _) => const SizedBox(),
+            loadingStateBuilder: (_, _, isSliver) {
               capturedIsSliver = isSliver;
               return const SizedBox();
             },
-            emptyStateBuilder: (_, __, ___) => const SizedBox(),
-            errorStateBuilder: (_, __, ___) => const SizedBox(),
+            emptyStateBuilder: (_, _, _) => const SizedBox(),
+            errorStateBuilder: (_, _, _) => const SizedBox(),
             child: wrap(
               ViewStateConsumer.multi(
                 listenables: () => provider.watch,
-                dataBuilder: (_, __, ___) => const SizedBox(),
+                dataBuilder: (_, _, _) => const SizedBox(),
                 isSliver: true,
               ),
             ),
@@ -815,7 +813,7 @@ void main() {
               current is DataState<String> && current.data == 'builder-only',
           listenWhen: (_, current) =>
               current is DataState<String> && current.data == 'listener-only',
-          dataBuilder: (_, state, __) {
+          dataBuilder: (_, state, _) {
             builderValues.add(state.data);
             return Text(state.data);
           },
@@ -855,17 +853,17 @@ void main() {
         ViewStateConsumer.multi(
           listenables: () => (value: provider.watch),
           initialBuilder: (_) => const SizedBox(),
-          loadingBuilder: (_, __) => const SizedBox(),
-          emptyBuilder: (_, __) => const SizedBox(),
-          errorBuilder: (_, __) => const SizedBox(),
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          loadingBuilder: (_, _) => const SizedBox(),
+          emptyBuilder: (_, _) => const SizedBox(),
+          errorBuilder: (_, _) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
           initialStateListener: (_) {},
-          loadingStateListener: (_, __) {},
-          emptyStateListener: (_, __) {},
-          errorStateListener: (_, __) {},
-          dataStateListener: (_, __) {},
-          rebuildWhen: (_, __) => true,
-          listenWhen: (_, __) => true,
+          loadingStateListener: (_, _) {},
+          emptyStateListener: (_, _) {},
+          errorStateListener: (_, _) {},
+          dataStateListener: (_, _) {},
+          rebuildWhen: (_, _) => true,
+          listenWhen: (_, _) => true,
           callListenerOnInit: true,
           isSliver: true,
           child: const SizedBox(),

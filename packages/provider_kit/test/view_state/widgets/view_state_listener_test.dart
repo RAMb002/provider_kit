@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -204,10 +204,10 @@ void main() {
 
         await tester.pumpWidget(
           ViewStateWidgetsProvider(
-            initialStateBuilder: (_, __) => const SizedBox(),
-            loadingStateBuilder: (_, __, ___) => const SizedBox(),
-            emptyStateBuilder: (_, __, ___) => const SizedBox(),
-            errorStateBuilder: (_, __, ___) => const SizedBox(),
+            initialStateBuilder: (_, _) => const SizedBox(),
+            loadingStateBuilder: (_, _, _) => const SizedBox(),
+            emptyStateBuilder: (_, _, _) => const SizedBox(),
+            errorStateBuilder: (_, _, _) => const SizedBox(),
             messageResolver: (context, message) => 'localized:$message',
             child: Directionality(
               textDirection: TextDirection.ltr,
@@ -333,7 +333,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_, __) => dataCount++,
+          dataStateListener: (_, _) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -361,10 +361,10 @@ void main() {
         buildListener(
           provider: provider,
           initialStateListener: (_) => initialCount++,
-          loadingStateListener: (_, __) => loadingCount++,
-          dataStateListener: (_, __) => dataCount++,
-          emptyStateListener: (_, __) => emptyCount++,
-          errorStateListener: (_, __) => errorCount++,
+          loadingStateListener: (_, _) => loadingCount++,
+          dataStateListener: (_, _) => dataCount++,
+          emptyStateListener: (_, _) => emptyCount++,
+          errorStateListener: (_, _) => errorCount++,
           callListenerOnInit: false,
         ),
       );
@@ -423,7 +423,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_, __) => dataCount++,
+          dataStateListener: (_, _) => dataCount++,
           listenWhen: listenWhen,
           callListenerOnInit: false,
         ),
@@ -453,7 +453,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_, __) => dataCount++,
+          dataStateListener: (_, _) => dataCount++,
           callListenerOnInit: true,
         ),
       );
@@ -476,7 +476,7 @@ void main() {
       await tester.pumpWidget(
         buildListener(
           provider: provider,
-          dataStateListener: (_, __) => dataCount++,
+          dataStateListener: (_, _) => dataCount++,
           callListenerOnInit: false,
         ),
       );
@@ -531,7 +531,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            dataStateListener: (_, __) => dataCalled = true,
+            dataStateListener: (_, _) => dataCalled = true,
             child: const SizedBox(),
           ),
         ),
@@ -563,7 +563,7 @@ void main() {
             value: provider,
             child: ViewStateListener.of<TestViewStateNotifier<String>, String>(
               // no provider, uses context.read
-              dataStateListener: (_, __) => dataCalled = true,
+              dataStateListener: (_, _) => dataCalled = true,
               child: const SizedBox(),
             ),
           ),
@@ -583,7 +583,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            dataStateListener: (_, __) {},
+            dataStateListener: (_, _) {},
             child: const SizedBox(),
           ),
         ),
@@ -667,7 +667,7 @@ void main() {
                 currentList.add(current);
                 return true;
               },
-              dataStateListener: (_, __) {},
+              dataStateListener: (_, _) {},
               child: const SizedBox(),
             ),
           ),
@@ -773,7 +773,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateListener<String>(
             listenable: provider,
-            dataStateListener: (_, __) {},
+            dataStateListener: (_, _) {},
             child: const SizedBox(),
           ),
         ),
@@ -934,12 +934,12 @@ void main() {
 
       ViewStateListener<String>(
         listenable: TestViewStateNotifier<String>(),
-        dataStateListener: (_, __) {},
-        loadingStateListener: (_, __) {},
-        emptyStateListener: (_, __) {},
-        errorStateListener: (_, __) {},
+        dataStateListener: (_, _) {},
+        loadingStateListener: (_, _) {},
+        emptyStateListener: (_, _) {},
+        errorStateListener: (_, _) {},
         initialStateListener: (_) {},
-        listenWhen: (_, __) => true,
+        listenWhen: (_, _) => true,
         callListenerOnInit: true,
         child: const SizedBox(),
       ).debugFillProperties(builder);

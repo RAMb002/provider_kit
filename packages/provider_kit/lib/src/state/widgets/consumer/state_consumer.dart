@@ -268,7 +268,7 @@ abstract class StateConsumer<T> extends StatefulWidget {
   ///   child: SomeWidget(),
   /// )
   /// ```
-  static of<P extends StateListenable<T>, T>({
+  static StateConsumer<T> of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     required ListenerCallback<T> listener,
@@ -302,7 +302,7 @@ abstract class StateConsumer<T> extends StatefulWidget {
   ///   child: const MyPage(),
   /// );
   /// ```
-  static select<P extends ChangeNotifier, T>({
+  static StateConsumer<T> select<P extends ChangeNotifier, T>({
     Key? key,
     required SelectStateListenable<P, T> selector,
     required StateWidgetBuilder<T> builder,

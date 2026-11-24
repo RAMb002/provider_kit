@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart';
 import 'package:provider_kit/src/state/widgets/listener/state_listener.dart';
 
@@ -22,7 +22,7 @@ void main() {
       await tester.pumpWidget(
         StateListener.multi(
           listenables: () => provider.watch,
-          listener: (_, __) {},
+          listener: (_, _) {},
         ),
       );
 
@@ -43,7 +43,7 @@ void main() {
       await tester.pumpWidget(
         StateListener.multi(
           listenables: () => provider.watch,
-          listener: (_, __) {},
+          listener: (_, _) {},
           child: const SizedBox(key: targetKey),
         ),
       );
@@ -218,7 +218,7 @@ void main() {
 
       final widget = StateListener.multi(
         listenables: () => [provider.watch],
-        listener: (_, __) {},
+        listener: (_, _) {},
         listenWhen: (previous, current) => previous != current,
         callListenerOnInit: true,
         child: const SizedBox(),

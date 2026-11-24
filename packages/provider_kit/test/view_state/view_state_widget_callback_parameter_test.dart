@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 import '../shared/mocks/view_state_notifiers.dart';
@@ -27,10 +27,10 @@ void main() {
     }) {
       return wrap(
         ViewStateWidgetsProvider(
-          initialStateBuilder: (_, __) => const SizedBox(),
-          loadingStateBuilder: (_, __, ___) => const SizedBox(),
-          emptyStateBuilder: (_, __, ___) => const SizedBox(),
-          errorStateBuilder: (_, __, ___) => const SizedBox(),
+          initialStateBuilder: (_, _) => const SizedBox(),
+          loadingStateBuilder: (_, _, _) => const SizedBox(),
+          emptyStateBuilder: (_, _, _) => const SizedBox(),
+          errorStateBuilder: (_, _, _) => const SizedBox(),
           child: ViewStateConsumer<T>(
             listenable: provider,
             initialBuilder: initialBuilder,
@@ -70,7 +70,7 @@ void main() {
             capturedContext = context;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -97,7 +97,7 @@ void main() {
             capturedContext = context;
             listenerCalls++;
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -130,7 +130,7 @@ void main() {
             capturedDetails = details;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -160,7 +160,7 @@ void main() {
             capturedContext = context;
             capturedDetails = details;
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -193,7 +193,7 @@ void main() {
           loadingStateListener: (_, details) {
             capturedListenerProgress = details.progress;
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -226,7 +226,7 @@ void main() {
             capturedDetails = details;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -255,7 +255,7 @@ void main() {
             capturedContext = context;
             capturedDetails = details;
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -303,7 +303,7 @@ void main() {
             capturedDetails = details;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -361,7 +361,7 @@ void main() {
             capturedContext = context;
             capturedDetails = details;
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -443,7 +443,7 @@ void main() {
             capturedContext = context;
             capturedData = data;
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 

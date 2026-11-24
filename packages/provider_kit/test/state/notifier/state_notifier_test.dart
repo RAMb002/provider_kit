@@ -64,6 +64,7 @@ class BadDisposeNotifier extends StateNotifier<int> {
 // -----------------------------------------------------------------------------
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('StateNotifier', () {
     // -----------------------------------------------------------------------
     // 1. Basic state management
@@ -168,16 +169,12 @@ void main() {
     // 6. Dispose behaviour with pending state changes
     // -----------------------------------------------------------------------
     group('dispose behaviour', () {
-      test(
-        'setting state after dispose throws FlutterError in debug mode',
-        () {
-          final notifier = TestStateNotifier<int>(0);
-          notifier.dispose();
-          expect(() => notifier.state = 1, throwsFlutterError);
-          expect(notifier.state, 0);
-        },
-        skip: kReleaseMode,
-      );
+      test('setting state after dispose throws FlutterError in debug mode', () {
+        final notifier = TestStateNotifier<int>(0);
+        notifier.dispose();
+        expect(() => notifier.state = 1, throwsFlutterError);
+        expect(notifier.state, 0);
+      }, skip: kReleaseMode);
 
       test(
         'notifyListeners after dispose throws FlutterError in debug mode',

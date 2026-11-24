@@ -146,7 +146,7 @@ void main() {
                 collectionCount++;
                 return field.watch;
               },
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 states.add(state);
                 return Text('$state');
               },
@@ -180,7 +180,7 @@ void main() {
                   collectionCount++;
                   return (first.watch, second.watch);
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -226,7 +226,7 @@ void main() {
           _host(
             _engine<List<int>>(
               listenables: () => [first.watch, second.watch, third.watch],
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },
@@ -271,7 +271,7 @@ void main() {
             _host(
               _engine<List<int>>(
                 listenables: () => [first.watch, second.watch],
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -332,7 +332,7 @@ void main() {
             _host(
               _engine<List<int>>(
                 listenables: () => [first.watch, second.watch],
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -385,7 +385,7 @@ void main() {
           _host(
             _engine<({int first, int second})>(
               listenables: () => (first: first.watch, second: second.watch),
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },
@@ -436,7 +436,7 @@ void main() {
                 first: first.watch,
                 second: second.watch.isEven,
               ),
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },
@@ -507,7 +507,7 @@ void main() {
           _host(
             _engine<int>(
               listenables: () => selector.watch ? first.watch : second.watch,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },
@@ -552,7 +552,7 @@ void main() {
 
                   return providerB.watch;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -622,7 +622,7 @@ void main() {
                     listenables: () => [
                       for (final field in activeFields) field.watch,
                     ],
-                    builder: (_, state, __) {
+                    builder: (_, state, _) {
                       buildStates.add(state);
                       return const SizedBox();
                     },
@@ -849,7 +849,7 @@ void main() {
                       rebuildTransitions.add((previous, current));
                       return false;
                     },
-                    builder: (_, state, __) {
+                    builder: (_, state, _) {
                       buildStates.add(state);
                       return Text('$state');
                     },
@@ -933,7 +933,7 @@ void main() {
                   trigger.watch;
                   return value.watch;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -983,7 +983,7 @@ void main() {
               listenables: () => field.watch,
               listenWhen: (_, current) => current.isOdd,
               rebuildWhen: (_, current) => current.isEven,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },
@@ -1027,7 +1027,7 @@ void main() {
                   rebuildTransitions.add((previous, current));
                   return current.isEven;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return Text('$state');
                 },
@@ -1091,7 +1091,7 @@ void main() {
                   rebuildTransitions.add((previous, current));
                   return true;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -1163,8 +1163,8 @@ void main() {
             _host(
               _engine<List<int>>(
                 listenables: () => [first.watch, second.watch],
-                listenWhen: (_, __) => true,
-                builder: (_, state, __) {
+                listenWhen: (_, _) => true,
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -1214,7 +1214,7 @@ void main() {
                 listenWhen: (previous, current) {
                   return previous.first.length != current.first.length;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -1277,7 +1277,7 @@ void main() {
                   listenWhenCallCount++;
                   return current[0].isEven && current[1].isEven;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -1346,7 +1346,7 @@ void main() {
           _host(
             _engine<int>(
               listenables: () => field.watch,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },
@@ -1381,11 +1381,11 @@ void main() {
             _host(
               _engine<List<int>>(
                 listenables: () => [first.watch, second.watch],
-                listenWhen: (_, __) {
+                listenWhen: (_, _) {
                   listenWhenCallCount++;
                   return false;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -1681,7 +1681,7 @@ void main() {
             _host(
               _engine<int>(
                 listenables: () => field.watch,
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return Text('$state');
                 },
@@ -1786,7 +1786,7 @@ void main() {
                   rebuildTransitions.add((previous, current));
                   return current == 2;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return const SizedBox();
                 },
@@ -1918,7 +1918,7 @@ void main() {
                 return Column(children: [child!, Text('State: $state')]);
               },
               child: StatefulBuilder(
-                builder: (_, __) {
+                builder: (_, _) {
                   childBuildCount++;
                   return const Text('Child');
                 },
@@ -1967,7 +1967,7 @@ void main() {
                   collectionCount++;
                   return field.watch;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return Text('$state');
                 },
@@ -2039,7 +2039,7 @@ void main() {
                     rebuildTransitions.add((previous, current));
                     return true;
                   },
-                  builder: (_, state, __) {
+                  builder: (_, state, _) {
                     buildStates.add(state);
                     return const SizedBox();
                   },
@@ -2135,7 +2135,7 @@ void main() {
                   listenables: () => [
                     for (final field in activeFields) field.watch,
                   ],
-                  listenWhen: (_, __) => true,
+                  listenWhen: (_, _) => true,
                   listener: (_, state) => listenerStates.add(state),
                   child: const SizedBox(),
                 );
@@ -2258,7 +2258,7 @@ void main() {
                     for (final field in activeFields) field.watch,
                   ],
                   callListenerOnInit: true,
-                  builder: (_, state, __) {
+                  builder: (_, state, _) {
                     buildStates.add(state);
                     return const SizedBox();
                   },
@@ -2375,7 +2375,7 @@ void main() {
                       count: of<CounterProvider>().watch,
                       rating: of<StateField<int>>().watch,
                     ),
-                    builder: (_, state, __) {
+                    builder: (_, state, _) {
                       buildStates.add(state);
                       return const SizedBox();
                     },
@@ -2427,7 +2427,7 @@ void main() {
                 value: notifier,
                 child: StateBuilder<int>.multi(
                   listenables: () => of<_ChangeNotifierWithField>().count.watch,
-                  builder: (_, state, __) {
+                  builder: (_, state, _) {
                     states.add(state);
                     return Text('$state');
                   },
@@ -2468,7 +2468,7 @@ void main() {
               collectionCount++;
               return of<_MediaNotifier>().state;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               states.add(state);
               return Text(state);
             },
@@ -2521,7 +2521,7 @@ void main() {
             collectionCount++;
             return of<_MediaNotifier>().watch;
           },
-          builder: (_, state, __) {
+          builder: (_, state, _) {
             states.add(state);
             return Text(state);
           },
@@ -2581,7 +2581,7 @@ void main() {
             collectionCount++;
             return of<_MediaNotifier>().saveMutation.watch;
           },
-          builder: (_, state, __) {
+          builder: (_, state, _) {
             states.add(state);
             return const SizedBox();
           },
@@ -2677,7 +2677,7 @@ void main() {
               collectionCount++;
               return of<_MediaNotifier>().rating.watch;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               ratings.add(state);
               return Text('$state');
             },
@@ -2732,7 +2732,7 @@ void main() {
             collectionCount++;
             return of<_MediaNotifier>().watch;
           },
-          builder: (_, state, __) {
+          builder: (_, state, _) {
             states.add(state);
             return Text(state);
           },
@@ -2871,7 +2871,7 @@ void main() {
 
               return (rating: media.rating.watch, profile: user.profile.watch);
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               states.add(state);
               return const SizedBox();
             },
@@ -2947,7 +2947,7 @@ void main() {
               collectionCount++;
               return of<_ProxyNotifier>().watch;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               states.add(state);
               return const SizedBox();
             },
@@ -3018,7 +3018,7 @@ void main() {
               collectionCount++;
               return of<_MediaNotifier>().rating.watch;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               ratings.add(state);
               return const SizedBox();
             },
@@ -3032,16 +3032,16 @@ void main() {
                   return Provider<int>.value(
                     value: selection,
                     child: ProxyProvider<int, _MediaSelection>(
-                      update: (_, index, __) => _MediaSelection(index),
+                      update: (_, index, _) => _MediaSelection(index),
                       child:
                           ListenableProxyProvider<
                             _MediaSelection,
                             _MediaNotifier
                           >(
-                            update: (_, selected, __) =>
+                            update: (_, selected, _) =>
                                 selected.index == 0 ? movie : series,
                             // These notifiers are externally owned by this test.
-                            dispose: (_, __) {},
+                            dispose: (_, _) {},
                             child: engine,
                           ),
                     ),
@@ -3099,7 +3099,7 @@ void main() {
               collectionCount++;
               return of<_MediaNotifier>().watch;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               buildStates.add(state);
               return Text(state);
             },
@@ -3150,7 +3150,7 @@ void main() {
             _host(
               _engine<String>(
                 listenables: () => of<_MediaNotifier>().watch,
-                builder: (_, state, __) => Text(state),
+                builder: (_, state, _) => Text(state),
               ),
             ),
           );
@@ -3173,7 +3173,7 @@ void main() {
           _host(
             _engine<int>(
               listenables: () => field.watch,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 states.add(state);
                 return const SizedBox();
               },
@@ -3205,7 +3205,7 @@ void main() {
           _host(
             _engine<int>(
               listenables: () => 0,
-              builder: (_, state, __) => Text('$state'),
+              builder: (_, state, _) => Text('$state'),
             ),
           ),
         );
@@ -3235,7 +3235,7 @@ void main() {
               field.watch;
               throw StateError('Collection failed');
             },
-            builder: (_, state, __) => Text('$state'),
+            builder: (_, state, _) => Text('$state'),
           ),
         );
 

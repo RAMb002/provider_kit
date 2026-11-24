@@ -125,10 +125,10 @@ void main() {
         final ViewState<String> state = InitialState();
         final result = state.when(
           initialState: () => 'initial',
-          loadingState: (_, __) => 'loading',
+          loadingState: (_, _) => 'loading',
           dataState: (_) => 'data',
-          emptyState: (_, __) => 'empty',
-          errorState: (_, __, ___, ____) => 'error',
+          emptyState: (_, _) => 'empty',
+          errorState: (_, _, _, _) => 'error',
         );
         expect(result, 'initial');
       });
@@ -141,8 +141,8 @@ void main() {
             initialState: () => 'initial',
             loadingState: (msg, prog) => '$msg: $prog',
             dataState: (_) => 'data',
-            emptyState: (_, __) => 'empty',
-            errorState: (_, __, ___, ____) => 'error',
+            emptyState: (_, _) => 'empty',
+            errorState: (_, _, _, _) => 'error',
           );
           expect(result, 'Fetching: 0.4');
         },
@@ -152,10 +152,10 @@ void main() {
         final ViewState<String> state = DataState('Payload');
         final result = state.when(
           initialState: () => 'initial',
-          loadingState: (_, __) => 'loading',
+          loadingState: (_, _) => 'loading',
           dataState: (data) => data,
-          emptyState: (_, __) => 'empty',
-          errorState: (_, __, ___, ____) => 'error',
+          emptyState: (_, _) => 'empty',
+          errorState: (_, _, _, _) => 'error',
         );
         expect(result, 'Payload');
       });
@@ -176,7 +176,7 @@ void main() {
 
           final result = state.when(
             initialState: () => 'initial',
-            loadingState: (_, __) => 'loading',
+            loadingState: (_, _) => 'loading',
             dataState: (_) => 'data',
             emptyState: (message, callback) {
               expect(message, 'Nothing here');
@@ -186,7 +186,7 @@ void main() {
 
               return 'empty_matched';
             },
-            errorState: (_, __, ___, ____) => 'error',
+            errorState: (_, _, _, _) => 'error',
           );
 
           expect(result, 'empty_matched');
@@ -211,9 +211,9 @@ void main() {
 
           final result = state.when(
             initialState: () => 'initial',
-            loadingState: (_, __) => 'loading',
+            loadingState: (_, _) => 'loading',
             dataState: (_) => 'data',
-            emptyState: (_, __) => 'empty',
+            emptyState: (_, _) => 'empty',
             errorState: (errorInfo, error, stackTrace, onRetry) {
               expect(errorInfo, same(errorInfo));
               expect(error, same(error));
@@ -317,7 +317,7 @@ void main() {
         expect(
           emptyState.maybeWhen(
             orElse: () => 'fallback',
-            emptyState: (message, __) => message ?? '',
+            emptyState: (message, _) => message ?? '',
           ),
           'No data',
         );
@@ -453,7 +453,7 @@ void main() {
 
         final result = state.whenOrNull(
           dataState: (_) => 'data',
-          errorState: (_, __, ___, ____) => 'error',
+          errorState: (_, _, _, _) => 'error',
         );
 
         expect(result, isNull);

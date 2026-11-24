@@ -67,7 +67,7 @@ void main() {
               transitions.add((previous, current));
               return current.isEven;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               buildStates.add(state);
               return Text('$state');
             },
@@ -136,7 +136,7 @@ void main() {
         listenables: () => provider.watch,
         rebuildWhen: (previous, current) => previous != current,
         child: const SizedBox(),
-        builder: (_, __, ___) => const SizedBox(),
+        builder: (_, _, _) => const SizedBox(),
       );
 
       final builder = DiagnosticPropertiesBuilder();

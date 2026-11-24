@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/future_notifier.dart';
@@ -942,7 +942,7 @@ void main() {
             callListenerOnInit: true,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            onDataBuilder: (_, state, __) {
+            onDataBuilder: (_, state, _) {
               builtState = state;
               return const SizedBox();
             },

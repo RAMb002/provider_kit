@@ -363,7 +363,7 @@ abstract class ViewStateBuilder<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
-  static of<P extends ViewStateNotifier<T>, T>({
+  static ViewStateBuilder<T> of<P extends ViewStateNotifier<T>, T>({
     Key? key,
     required DataStateBuilder<T> dataBuilder,
     InitialStateBuilder? initialBuilder,
