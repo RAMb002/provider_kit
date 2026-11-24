@@ -313,7 +313,7 @@ abstract class ViewStateListener<T> extends SingleChildStatefulWidget {
   ///   child: SomeWidget(),
   /// );
   /// ```
-  static of<P extends ViewStateNotifier<T>, T>({
+  static ViewStateListener<T> of<P extends ViewStateNotifier<T>, T>({
     Key? key,
     InitialStateListener? initialStateListener,
     LoadingStateListener? loadingStateListener,

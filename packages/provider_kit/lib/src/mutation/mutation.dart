@@ -1,6 +1,3 @@
-// ignore_for_file: invalid_use_of_protected_member
-library provider_kit_mutation;
-
 import 'dart:async';
 import 'dart:collection';
 

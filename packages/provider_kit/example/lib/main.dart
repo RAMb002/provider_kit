@@ -1,8 +1,11 @@
+// Explore the interactive ProviderKit Widgetbook:
+// https://RAMb002.github.io/provider_kit/widgetbook/
+
 import 'package:example/widgetbook_catalog/components/state_field_catalog.dart';
 import 'package:example/widgetbook_catalog/mutation_directory.dart';
 import 'package:example/widgets/shared/repositories/movies_repository.dart';
 import 'package:example/widgets/shared/view_state_defaults.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 import 'package:widgetbook/widgetbook.dart';
 
@@ -40,21 +43,25 @@ class ProviderKitWidgetbook extends StatelessWidget {
         ],
         initialRoute:
             "?path=widgets/state-widgets/statebuilder/01-·-direct-listenable",
-        addons: [
-          MaterialThemeAddon(
-            themes: [
-              WidgetbookTheme(
-                name: 'Dark',
-                data: _darkTheme,
-              ),
-            ],
-            initialTheme: WidgetbookTheme(
-              name: 'Dark',
-              data: _darkTheme,
+        appBuilder: (context, child) {
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: _darkTheme,
+            darkTheme: _darkTheme,
+            themeMode: ThemeMode.dark,
+            builder: (context, child) {
+              // Temporary bridge for Widgetbook's legacy Material widgets.
+              // ignore: deprecated_member_use
+              return MaterialUiCompatibilityBridge(
+                child: child!,
+              );
+            },
+            home: Material(
+              color: _darkTheme.scaffoldBackgroundColor,
+              child: child,
             ),
-          ),
-        ],
-        themeMode: ThemeMode.dark,
+          );
+        },
       ),
     );
   }

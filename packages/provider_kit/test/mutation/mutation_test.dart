@@ -281,7 +281,7 @@ void main() {
 
         final future = mutation.run(
           () async => throw StateError('failure'),
-          onError: (_, __) {
+          onError: (_, _) {
             callbackStarted.complete();
             return callbackCompleter.future;
           },
@@ -327,7 +327,7 @@ void main() {
 
           final future = mutation.run(
             () async => throw actionError,
-            onError: (_, __) => throw callbackError,
+            onError: (_, _) => throw callbackError,
           );
 
           await expectLater(future, throwsA(same(callbackError)));
@@ -374,7 +374,7 @@ void main() {
             onSuccess: (_) {
               firstSuccessCount++;
             },
-            onError: (_, __) {
+            onError: (_, _) {
               firstErrorCount++;
             },
           );
@@ -406,7 +406,7 @@ void main() {
 
         final firstFuture = mutation.run(
           () => firstCompleter.future,
-          onError: (_, __) {
+          onError: (_, _) {
             firstErrorCallbackCount++;
           },
         );
@@ -642,7 +642,7 @@ void main() {
 
         final future = mutation.run(
           () => actionCompleter.future,
-          onError: (_, __) {
+          onError: (_, _) {
             errorCallbackCount++;
           },
         );

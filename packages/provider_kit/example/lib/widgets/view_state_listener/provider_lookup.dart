@@ -1,6 +1,6 @@
 import 'package:example/toast.dart';
 import 'package:example/widgets/shared/notifiers/direct_movie_notifier.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 

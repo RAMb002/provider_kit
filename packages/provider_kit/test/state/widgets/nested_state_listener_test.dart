@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -20,13 +20,13 @@ void main() {
           listeners: [
             StateListener<int>(
               listenable: provider1,
-              listener: (_, __) {
+              listener: (_, _) {
                 listener1Calls++;
               },
             ),
             StateListener<int>(
               listenable: provider2,
-              listener: (_, __) {
+              listener: (_, _) {
                 listener2Calls++;
               },
             ),
@@ -89,7 +89,7 @@ void main() {
                 // Explicit StateListener.
                 StateListener<int>(
                   listenable: counterProvider,
-                  listener: (_, __) {
+                  listener: (_, _) {
                     stateListenerCalls++;
                   },
                 ),
@@ -97,14 +97,14 @@ void main() {
                 // StateListener.multi.
                 StateListener.multi(
                   listenables: () => secondProvider.watch,
-                  listener: (_, __) {
+                  listener: (_, _) {
                     secondListenerCalls++;
                   },
                 ),
 
                 // StateListener.of.
                 StateListener.of<CounterProvider, int>(
-                  listener: (_, __) {
+                  listener: (_, _) {
                     ofListenerCalls++;
                   },
                 ),
@@ -112,14 +112,14 @@ void main() {
                 // Explicit ViewStateListener.
                 ViewStateListener<String>(
                   listenable: viewStateProvider,
-                  dataStateListener: (_, __) {
+                  dataStateListener: (_, _) {
                     viewStateListenerCalls++;
                   },
                 ),
 
                 // ViewStateListener.of.
                 ViewStateListener.of<TestViewStateNotifier<String>, String>(
-                  dataStateListener: (_, __) {
+                  dataStateListener: (_, _) {
                     viewStateOfListenerCalls++;
                   },
                 ),
@@ -130,7 +130,7 @@ void main() {
                     first: viewStateMultiProvider1.watch,
                     second: viewStateMultiProvider2.watch,
                   ),
-                  dataStateListener: (_, __) {
+                  dataStateListener: (_, _) {
                     viewStateMultiListenerCalls++;
                   },
                 ),
@@ -194,7 +194,7 @@ void main() {
       await tester.pumpWidget(
         NestedStateListener(
           listeners: [
-            StateListener<int>(listenable: provider, listener: (_, __) {}),
+            StateListener<int>(listenable: provider, listener: (_, _) {}),
           ],
           child: const SizedBox(key: childKey),
         ),
@@ -217,13 +217,13 @@ void main() {
           listeners: [
             StateListener<int>(
               listenable: provider1,
-              listener: (_, __) {
+              listener: (_, _) {
                 listener1Calls++;
               },
             ),
             StateListener<int>(
               listenable: provider2,
-              listener: (_, __) {
+              listener: (_, _) {
                 listener2Calls++;
               },
             ),

@@ -133,7 +133,7 @@ void main() {
               rebuildTransitions.add((previous, current));
               return current.isOdd;
             },
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               buildStates.add(state);
               return Text('$state');
             },
@@ -189,7 +189,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: StateConsumer.multi(
             listenables: () => defaultProvider.watch,
-            builder: (_, state, __) => Text('$state'),
+            builder: (_, state, _) => Text('$state'),
             listener: (_, state) {
               defaultListenerStates.add(state);
             },
@@ -220,7 +220,7 @@ void main() {
           child: StateConsumer.multi(
             listenables: () => initialProvider.watch,
             callListenerOnInit: true,
-            builder: (_, state, __) => Text('$state'),
+            builder: (_, state, _) => Text('$state'),
             listener: (_, state) {
               initialListenerStates.add(state);
             },
@@ -247,8 +247,8 @@ void main() {
 
       final widget = StateConsumer.multi(
         listenables: () => provider.watch,
-        builder: (_, __, ___) => const SizedBox(),
-        listener: (_, __) {},
+        builder: (_, _, _) => const SizedBox(),
+        listener: (_, _) {},
         listenWhen: (previous, current) => previous != current,
         rebuildWhen: (previous, current) => previous != current,
         callListenerOnInit: true,

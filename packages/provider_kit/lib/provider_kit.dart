@@ -6,7 +6,7 @@
 /// It works alongside the `provider` package for dependency injection
 /// and accessing notifiers from the widget tree.
 
-library provider_kit;
+library;
 
 export 'src/base/index.dart';
 export 'src/cache/index.dart';

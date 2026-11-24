@@ -245,7 +245,7 @@ void main() {
         // Observe completion without creating an unhandled derived error.
         initial.then<void>(
           (_) => initialDone = true,
-          onError: (Object _, StackTrace __) {},
+          onError: (Object _, StackTrace _) {},
         );
 
         await _within(executor.started[0].future);

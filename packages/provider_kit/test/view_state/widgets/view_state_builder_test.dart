@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -18,11 +18,10 @@ const _defaultErrorKey = Key('default_error');
 
 Widget _withDefaultProvider(Widget child) {
   return ViewStateWidgetsProvider(
-    initialStateBuilder: (_, __) => const SizedBox(key: _defaultInitialKey),
-    loadingStateBuilder: (_, __, ___) =>
-        const SizedBox(key: _defaultLoadingKey),
-    emptyStateBuilder: (_, __, ___) => const SizedBox(key: _defaultEmptyKey),
-    errorStateBuilder: (_, __, ___) => const SizedBox(key: _defaultErrorKey),
+    initialStateBuilder: (_, _) => const SizedBox(key: _defaultInitialKey),
+    loadingStateBuilder: (_, _, _) => const SizedBox(key: _defaultLoadingKey),
+    emptyStateBuilder: (_, _, _) => const SizedBox(key: _defaultEmptyKey),
+    errorStateBuilder: (_, _, _) => const SizedBox(key: _defaultErrorKey),
     child: child,
   );
 }
@@ -81,7 +80,7 @@ void main() {
       await tester.pumpWidget(
         buildBuilder(
           provider: provider,
-          dataBuilder: (_, data, __) {
+          dataBuilder: (_, data, _) {
             capturedData = data;
             return const SizedBox();
           },
@@ -117,7 +116,7 @@ void main() {
               dataBuilderCallCount++;
               receivedChildren.add(child);
 
-              return Column(children: [Text(data), if (child != null) child]);
+              return Column(children: [Text(data), ?child]);
             },
           ),
         );
@@ -162,7 +161,7 @@ void main() {
             initialBuilt = true;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -187,7 +186,7 @@ void main() {
             capturedProgress = details.progress;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -211,7 +210,7 @@ void main() {
             capturedMessage = details.message;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -255,7 +254,7 @@ void main() {
             capturedCode = details.code;
             return const SizedBox();
           },
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
         ),
       );
 
@@ -278,7 +277,7 @@ void main() {
       await tester.pumpWidget(
         buildBuilder(
           provider: provider,
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
           withDefaultProvider: true,
         ),
       );
@@ -294,7 +293,7 @@ void main() {
       await tester.pumpWidget(
         buildBuilder(
           provider: provider,
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
           withDefaultProvider: true,
         ),
       );
@@ -310,7 +309,7 @@ void main() {
       await tester.pumpWidget(
         buildBuilder(
           provider: provider,
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
           withDefaultProvider: true,
         ),
       );
@@ -328,7 +327,7 @@ void main() {
       await tester.pumpWidget(
         buildBuilder(
           provider: provider,
-          dataBuilder: (_, __, ___) => const SizedBox(),
+          dataBuilder: (_, _, _) => const SizedBox(),
           withDefaultProvider: true,
         ),
       );
@@ -347,7 +346,7 @@ void main() {
             child: ViewStateBuilder<String>(
               listenable: provider,
               // No initialBuilder, no ViewStateWidgetsProvider
-              dataBuilder: (_, __, ___) => const SizedBox(),
+              dataBuilder: (_, _, _) => const SizedBox(),
             ),
           ),
         );
@@ -392,7 +391,7 @@ void main() {
                         loadingBuilderCallCount++;
                         return Text(details.message ?? '');
                       },
-                      dataBuilder: (_, __, ___) => const SizedBox(),
+                      dataBuilder: (_, _, _) => const SizedBox(),
                     ),
                   ),
                 );
@@ -532,7 +531,7 @@ void main() {
                 capturedOnRetry = details.onRetry;
                 return const SizedBox();
               },
-              dataBuilder: (_, __, ___) => const SizedBox(),
+              dataBuilder: (_, _, _) => const SizedBox(),
             ),
           ),
         );
@@ -573,7 +572,7 @@ void main() {
                 capturedOnRetry = details.onRetry;
                 return const SizedBox();
               },
-              dataBuilder: (_, __, ___) => const SizedBox(),
+              dataBuilder: (_, _, _) => const SizedBox(),
             ),
           ),
         );
@@ -603,7 +602,7 @@ void main() {
                 capturedOnRetry = details.onRetry;
                 return const SizedBox();
               },
-              dataBuilder: (_, __, ___) => const SizedBox(),
+              dataBuilder: (_, _, _) => const SizedBox(),
             ),
           ),
         );
@@ -639,7 +638,7 @@ void main() {
               capturedOnRetry = details.onRetry;
               return const SizedBox();
             },
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
           ),
         ),
       );
@@ -674,7 +673,7 @@ void main() {
                   capturedOnRetry = details.onRetry;
                   return const SizedBox();
                 },
-                dataBuilder: (_, __, ___) => const SizedBox(),
+                dataBuilder: (_, _, _) => const SizedBox(),
               ),
             ),
           ),
@@ -723,7 +722,7 @@ void main() {
       await tester.pumpWidget(
         buildBuilder(
           provider: provider,
-          dataBuilder: (_, data, __) {
+          dataBuilder: (_, data, _) {
             buildCount++;
             return const SizedBox();
           },
@@ -762,7 +761,7 @@ void main() {
           buildBuilder(
             withDefaultProvider: true,
             provider: provider,
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
             rebuildWhen: (previous, current) {
               previousList.add(previous);
               currentList.add(current);
@@ -809,19 +808,19 @@ void main() {
         // Override provider's loading builder to capture isSliver.
         await tester.pumpWidget(
           ViewStateWidgetsProvider(
-            initialStateBuilder: (_, __) => const SizedBox(),
-            loadingStateBuilder: (_, __, isSliver) {
+            initialStateBuilder: (_, _) => const SizedBox(),
+            loadingStateBuilder: (_, _, isSliver) {
               isSliverPassed = isSliver;
               return const SizedBox();
             },
-            emptyStateBuilder: (_, __, ___) => const SizedBox(),
-            errorStateBuilder: (_, __, ___) => const SizedBox(),
+            emptyStateBuilder: (_, _, _) => const SizedBox(),
+            errorStateBuilder: (_, _, _) => const SizedBox(),
             child: Directionality(
               textDirection: TextDirection.ltr,
               child: ViewStateBuilder<String>(
                 listenable: provider,
                 isSliver: true,
-                dataBuilder: (_, __, ___) => const SizedBox(),
+                dataBuilder: (_, _, _) => const SizedBox(),
               ),
             ),
           ),
@@ -845,7 +844,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateBuilder<String>(
             listenable: provider,
-            dataBuilder: (_, data, __) {
+            dataBuilder: (_, data, _) {
               capturedData = data;
               return const SizedBox();
             },
@@ -870,7 +869,7 @@ void main() {
           child: ChangeNotifierProvider<TestViewStateNotifier<String>>.value(
             value: provider,
             child: ViewStateBuilder.of<TestViewStateNotifier<String>, String>(
-              dataBuilder: (_, data, __) {
+              dataBuilder: (_, data, _) {
                 capturedData = data;
                 return const SizedBox();
               },
@@ -885,7 +884,7 @@ void main() {
     test('of returns ViewStateBuilder<T>', () {
       final ViewStateBuilder<String> builder =
           ViewStateBuilder.of<TestViewStateNotifier<String>, String>(
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
           );
 
       expect(builder, isA<ViewStateBuilder<String>>());
@@ -906,7 +905,7 @@ void main() {
             textDirection: TextDirection.ltr,
             child: ViewStateBuilder<String>(
               listenable: provider,
-              dataBuilder: (_, data, __) {
+              dataBuilder: (_, data, _) {
                 capturedData = data;
                 return const SizedBox();
               },
@@ -937,7 +936,7 @@ void main() {
           textDirection: TextDirection.ltr,
           child: ViewStateBuilder<String>(
             listenable: provider,
-            dataBuilder: (_, __, ___) => const SizedBox(),
+            dataBuilder: (_, _, _) => const SizedBox(),
           ),
         ),
       );
@@ -961,12 +960,12 @@ void main() {
 
       ViewStateBuilder<String>(
         listenable: TestViewStateNotifier<String>(),
-        dataBuilder: (_, __, ___) => const SizedBox(),
+        dataBuilder: (_, _, _) => const SizedBox(),
         initialBuilder: (_) => const SizedBox(),
-        loadingBuilder: (_, __) => const SizedBox(),
-        emptyBuilder: (_, __) => const SizedBox(),
-        errorBuilder: (_, __) => const SizedBox(),
-        rebuildWhen: (_, __) => true,
+        loadingBuilder: (_, _) => const SizedBox(),
+        emptyBuilder: (_, _) => const SizedBox(),
+        errorBuilder: (_, _) => const SizedBox(),
+        rebuildWhen: (_, _) => true,
         isSliver: true,
         child: const SizedBox(),
       ).debugFillProperties(builder);

@@ -25,6 +25,7 @@ migrate_working_dir/
 .packages
 .pub/
 **/pubspec.lock
+!packages/provider_kit/example/pubspec.lock
 
 # Generated files
 **/build/

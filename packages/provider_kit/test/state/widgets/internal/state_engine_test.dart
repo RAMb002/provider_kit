@@ -177,7 +177,7 @@ void main() {
           _host(
             _engine<_TestListenable<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 states.add(state);
                 return Text('$state');
               },
@@ -214,7 +214,7 @@ void main() {
                 rebuildTransitions.add((previous, current));
                 return true;
               },
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return Text('$state');
               },
@@ -248,7 +248,7 @@ void main() {
           _host(
             _engine<_TestListenable<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildCount++;
                 return Text('$state');
               },
@@ -281,7 +281,7 @@ void main() {
                 rebuild = setState;
                 return _engine<_TestListenable<int>, int>(
                   listenable: active,
-                  builder: (_, state, __) {
+                  builder: (_, state, _) {
                     buildStates.add(state);
                     return Text('$state');
                   },
@@ -398,7 +398,7 @@ void main() {
                 rebuildTransitions.add((previous, current));
                 return current.isOdd;
               },
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return Text('$state');
               },
@@ -440,7 +440,7 @@ void main() {
                   return _engine<_TestListenable<int>, int>(
                     listenable: source,
                     rebuildWhen: (_, current) => current.isEven,
-                    builder: (_, state, __) {
+                    builder: (_, state, _) {
                       buildStates.add(state);
                       return Text('$state');
                     },
@@ -548,7 +548,7 @@ void main() {
           _host(
             _engine<_TestListenable<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return Text('$state');
               },
@@ -578,9 +578,7 @@ void main() {
               listenable: source,
               builder: (_, state, child) {
                 receivedChild = child;
-                return Column(
-                  children: [Text('$state'), if (child != null) child],
-                );
+                return Column(children: [Text('$state'), ?child]);
               },
               child: child,
             ),
@@ -632,7 +630,7 @@ void main() {
                         .add((previous, current));
                     return useUpdated;
                   },
-                  builder: (_, state, __) {
+                  builder: (_, state, _) {
                     (useUpdated ? secondBuildStates : firstBuildStates).add(
                       state,
                     );
@@ -692,7 +690,7 @@ void main() {
                 return _engine<_TestListenable<int>, int>(
                   listenable: source,
                   builder: showBuilder
-                      ? (_, state, __) {
+                      ? (_, state, _) {
                           buildStates.add(state);
                           return Text('$state');
                         }
@@ -787,7 +785,7 @@ void main() {
                   transitions.add((previous, current));
                   return true;
                 },
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return Text('$state');
                 },
@@ -830,7 +828,7 @@ void main() {
           _host(
             _engine<_TestListenable<_EquatableValue>, _EquatableValue>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return Text('${state.value}');
               },
@@ -943,7 +941,7 @@ void main() {
             _engine<StateField<int>, int>(
               listenable: source,
               callListenerOnInit: true,
-              rebuildWhen: (_, __) => false,
+              rebuildWhen: (_, _) => false,
               listenWhen: (previous, current) {
                 previousStates.add(previous);
                 currentStates.add(current);
@@ -1122,7 +1120,7 @@ void main() {
           _host(
             _engine<StateField<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildCount++;
                 if (buildCount == 2) source.state = 2;
                 return Text('$state');
@@ -1157,7 +1155,7 @@ void main() {
           _host(
             _engine<StateField<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 if (state == 1) {
                   source.state = 2;
@@ -1199,7 +1197,7 @@ void main() {
             ChangeNotifierProvider<StateNotifier<int>>.value(
               value: provider,
               child: _engine<StateNotifier<int>, int>(
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   buildStates.add(state);
                   return Text('$state');
                 },
@@ -1233,7 +1231,7 @@ void main() {
             ListenableProvider<_TestListenable<int>>.value(
               value: provider,
               child: _engine<_TestListenable<int>, int>(
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   states.add(state);
                   return Text('$state');
                 },
@@ -1264,7 +1262,7 @@ void main() {
           late StateSetter replaceProvider;
 
           final engine = _engine<_MediaNotifier, String>(
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               buildStates.add(state);
               return Text(state);
             },
@@ -1369,7 +1367,7 @@ void main() {
               value: movie,
               child: _engine<_MovieNotifier, MutationState<void>>(
                 selector: (provider) => provider.saveMutation,
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   mutationStates.add(state);
                   return Text(state.runtimeType.toString());
                 },
@@ -1422,7 +1420,7 @@ void main() {
                     value: active,
                     child: _engine<_PlainSelectableOwner, int>(
                       selector: (provider) => provider.selected,
-                      builder: (_, state, __) {
+                      builder: (_, state, _) {
                         buildStates.add(state);
                         return Text('$state');
                       },
@@ -1490,7 +1488,7 @@ void main() {
 
         final engine = _engine<_MediaNotifier, MutationState<void>>(
           selector: (provider) => provider.saveMutation,
-          builder: (_, state, __) {
+          builder: (_, state, _) {
             buildStates.add(state);
             return const SizedBox();
           },
@@ -1567,7 +1565,7 @@ void main() {
 
         final engine = _engine<_MediaNotifier, int>(
           selector: (provider) => provider.rating,
-          builder: (_, state, __) {
+          builder: (_, state, _) {
             states.add(state);
             return Text('$state');
           },
@@ -1670,7 +1668,7 @@ void main() {
           final listenerStates = <int>[];
 
           final engine = _engine<_ProxyNotifier, int>(
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               buildStates.add(state);
               return Text('$state');
             },
@@ -1732,7 +1730,7 @@ void main() {
 
         final engine = _engine<_MediaNotifier, int>(
           selector: (provider) => provider.rating,
-          builder: (_, state, __) {
+          builder: (_, state, _) {
             states.add(state);
             return Text('$state');
           },
@@ -1746,15 +1744,15 @@ void main() {
                 return Provider<int>.value(
                   value: selection,
                   child: ProxyProvider<int, _MediaSelection>(
-                    update: (_, index, __) => _MediaSelection(index),
+                    update: (_, index, _) => _MediaSelection(index),
                     child:
                         ListenableProxyProvider<
                           _MediaSelection,
                           _MediaNotifier
                         >(
-                          update: (_, selected, __) =>
+                          update: (_, selected, _) =>
                               selected.index == 0 ? movie : series,
-                          dispose: (_, __) {},
+                          dispose: (_, _) {},
                           child: engine,
                         ),
                   ),
@@ -1796,7 +1794,7 @@ void main() {
         await tester.pumpWidget(
           _host(
             _engine<_MovieNotifier, String>(
-              builder: (_, state, __) => Text(state),
+              builder: (_, state, _) => Text(state),
             ),
           ),
         );
@@ -1839,7 +1837,7 @@ void main() {
           _host(
             _engine<_TestListenable<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return Text('$state');
               },
@@ -1912,7 +1910,7 @@ void main() {
           _host(
             _engine<_TestListenable<int>, int>(
               listenable: source,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildStates.add(state);
                 return const SizedBox();
               },

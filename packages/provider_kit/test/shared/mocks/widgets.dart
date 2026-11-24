@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class StateChangeDuringInit extends StatefulWidget {
   const StateChangeDuringInit({super.key, required this.onInit});

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/view_state_notifiers.dart';
@@ -111,16 +111,16 @@ void main() {
             initialStateListener: (_) {
               initialCalls++;
             },
-            loadingStateListener: (_, __) {
+            loadingStateListener: (_, _) {
               loadingCalls++;
             },
-            emptyStateListener: (_, __) {
+            emptyStateListener: (_, _) {
               emptyCalls++;
             },
-            errorStateListener: (_, __) {
+            errorStateListener: (_, _) {
               errorCalls++;
             },
-            dataStateListener: (_, __) {
+            dataStateListener: (_, _) {
               dataCalls++;
             },
           ),
@@ -548,11 +548,11 @@ void main() {
         ViewStateListener.multi(
           listenables: singleProvider(provider),
           initialStateListener: (_) {},
-          loadingStateListener: (_, __) {},
-          emptyStateListener: (_, __) {},
-          errorStateListener: (_, __) {},
-          dataStateListener: (_, __) {},
-          listenWhen: (_, __) => true,
+          loadingStateListener: (_, _) {},
+          emptyStateListener: (_, _) {},
+          errorStateListener: (_, _) {},
+          dataStateListener: (_, _) {},
+          listenWhen: (_, _) => true,
           callListenerOnInit: true,
           child: const SizedBox(),
         ).debugFillProperties(diagnostics);

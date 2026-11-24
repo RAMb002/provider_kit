@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -21,7 +21,7 @@ void main() {
           home: ChangeNotifierProvider<TestCounterNotifier>.value(
             value: notifier,
             child: Consumer<TestCounterNotifier>(
-              builder: (_, provider, __) {
+              builder: (_, provider, _) {
                 return Text('${provider.state}');
               },
             ),
@@ -54,7 +54,7 @@ void main() {
             value: notifier,
             child: Selector<TestCounterNotifier, int>(
               selector: (_, provider) => provider.state,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildCount++;
 
                 return Text('$state');
@@ -125,7 +125,7 @@ void main() {
             value: notifier,
             child: Selector<TestCounterNotifier, int>(
               selector: (_, provider) => provider.state,
-              builder: (_, state, __) {
+              builder: (_, state, _) {
                 buildCount++;
 
                 return Text('Selected: $state');

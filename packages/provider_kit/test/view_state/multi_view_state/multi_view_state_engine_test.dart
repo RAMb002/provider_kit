@@ -1,7 +1,7 @@
 // ignore_for_file: invalid_use_of_protected_member
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 import 'package:provider_kit/src/state/multi_state/multi_state.dart';
@@ -130,7 +130,7 @@ void main() {
                 collectionCount++;
                 return provider.watch;
               },
-              builder: (_, state, aggregate, __) {
+              builder: (_, state, aggregate, _) {
                 buildStates.add(state.data);
                 aggregateStatuses.add(aggregate.status);
                 return Text(state.data);
@@ -177,7 +177,7 @@ void main() {
                 // that aggregation follows the latest dependency order.
                 return 0;
               },
-              listener: (_, __, aggregate) {
+              listener: (_, _, aggregate) {
                 loadingMessages.add(aggregate.loadingMessage);
               },
               child: const SizedBox(),
@@ -223,11 +223,11 @@ void main() {
                 collectionCount++;
                 return [first.watch, second.watch];
               },
-              builder: (_, state, __, ___) {
+              builder: (_, state, _, _) {
                 buildValues.add([for (final item in state) item.data]);
                 return const SizedBox();
               },
-              listener: (_, state, __) {
+              listener: (_, state, _) {
                 listenerValues.add([for (final item in state) item.data]);
               },
             ),
@@ -280,11 +280,11 @@ void main() {
                 collectionCount++;
                 return (first: provider.watch, second: provider.watch);
               },
-              builder: (_, __, ___, ____) {
+              builder: (_, _, _, _) {
                 buildCount++;
                 return const SizedBox();
               },
-              listener: (_, __, ___) => listenerCount++,
+              listener: (_, _, _) => listenerCount++,
             ),
           ),
         );
@@ -329,11 +329,11 @@ void main() {
                   final useSecond = selector.watch.data;
                   return useSecond ? second.watch : first.watch;
                 },
-                builder: (_, state, __, ___) {
+                builder: (_, state, _, _) {
                   buildValues.add(state.data);
                   return Text(state.data);
                 },
-                listener: (_, state, __) => listenerValues.add(state.data),
+                listener: (_, state, _) => listenerValues.add(state.data),
               ),
             ),
           );
@@ -397,11 +397,11 @@ void main() {
                       collectionCount++;
                       return active.watch;
                     },
-                    builder: (_, state, __, ___) {
+                    builder: (_, state, _, _) {
                       buildValues.add(state.data);
                       return Text(state.data);
                     },
-                    listener: (_, state, __) => listenerValues.add(state.data),
+                    listener: (_, state, _) => listenerValues.add(state.data),
                   );
                 },
               ),
@@ -459,11 +459,11 @@ void main() {
                     collectionCount++;
                     return provider.watch;
                   },
-                  builder: (_, state, __, ___) {
+                  builder: (_, state, _, _) {
                     buildValues.add(state.data);
                     return Text(state.data);
                   },
-                  listener: (_, state, __) => listenerValues.add(state.data),
+                  listener: (_, state, _) => listenerValues.add(state.data),
                 );
               },
             ),
@@ -506,7 +506,7 @@ void main() {
           _host(
             _engine<ViewState<String>>(
               listenables: () => provider.watch,
-              listener: (_, state, __) => listenerValues.add(state.data),
+              listener: (_, state, _) => listenerValues.add(state.data),
               child: const SizedBox(),
             ),
           ),
@@ -537,7 +537,7 @@ void main() {
             _engine<ViewState<String>>(
               listenables: () => provider.watch,
               callListenerOnInit: true,
-              listener: (_, __, aggregate) {
+              listener: (_, _, aggregate) {
                 listenerSnapshots.add((
                   aggregate.loadingMessage,
                   aggregate.loadingProgress,
@@ -578,7 +578,7 @@ void main() {
             _engine<ViewState<String>>(
               listenables: () => provider.watch,
               callListenerOnInit: true,
-              listener: (_, state, __) {
+              listener: (_, state, _) {
                 listenerValues.add(state.data);
 
                 if (state.data == 'initial') {
@@ -614,11 +614,11 @@ void main() {
               _engine<ViewState<String>>(
                 listenables: () => provider.watch,
                 callListenerOnInit: true,
-                builder: (_, __, aggregate, child) {
+                builder: (_, _, aggregate, child) {
                   buildStatuses.add(aggregate.status);
                   return child!;
                 },
-                listener: (_, __, aggregate) {
+                listener: (_, _, aggregate) {
                   listenerSnapshots.add((
                     aggregate.status,
                     aggregate.loadingMessage,
@@ -668,11 +668,11 @@ void main() {
           _host(
             _engine<ViewState<String>>(
               listenables: () => provider.watch,
-              builder: (_, state, __, ___) {
+              builder: (_, state, _, _) {
                 buildValues.add(state.data);
                 return Text(state.data);
               },
-              listener: (_, state, __) {
+              listener: (_, state, _) {
                 listenerValues.add(state.data);
                 if (state.data == 'first update') {
                   provider.emit(const DataState<String>('second update'));
@@ -713,7 +713,7 @@ void main() {
           _host(
             _engine<ViewState<String>>(
               listenables: () => provider.watch,
-              listener: (_, state, __) => listenerValues.add(state.data),
+              listener: (_, state, _) => listenerValues.add(state.data),
               child: const Text('Listener child'),
             ),
           ),
@@ -751,11 +751,11 @@ void main() {
                         first: of<_StringViewStateOwner>().notifier.watch,
                         second: of<_IntViewStateOwner>().notifier.watch,
                       ),
-                      builder: (_, state, __, ___) {
+                      builder: (_, state, _, _) {
                         buildValues.add((state.first.data, state.second.data));
                         return const SizedBox();
                       },
-                      listener: (_, state, __) {
+                      listener: (_, state, _) {
                         listenerValues.add((
                           state.first.data,
                           state.second.data,
@@ -812,11 +812,11 @@ void main() {
               collectionCount++;
               return of<TestViewStateNotifier<String>>().watch;
             },
-            builder: (_, state, __, ___) {
+            builder: (_, state, _, _) {
               buildStates.add(state.data);
               return Text(state.data);
             },
-            listener: (_, state, __) {
+            listener: (_, state, _) {
               listenerStates.add(state.data);
             },
           );
@@ -908,11 +908,11 @@ void main() {
 
           final engine = _engine<ViewState<String>>(
             listenables: () => of<TestViewStateNotifier<String>>().watch,
-            builder: (_, state, __, ___) {
+            builder: (_, state, _, _) {
               buildStates.add(state.data);
               return Text(state.data);
             },
-            listener: (_, state, __) {
+            listener: (_, state, _) {
               listenerStates.add(state.data);
             },
           );
@@ -996,11 +996,11 @@ void main() {
 
                     return 0;
                   },
-                  builder: (_, state, __, ___) {
+                  builder: (_, state, _, _) {
                     buildValues.add(state);
                     return Text('$state');
                   },
-                  listener: (_, state, __) {
+                  listener: (_, state, _) {
                     listenerValues.add(state);
                   },
                 ),
@@ -1055,11 +1055,11 @@ void main() {
               collectionCount++;
               return of<TestViewStateNotifier<String>>().watch;
             },
-            builder: (_, state, __, ___) {
+            builder: (_, state, _, _) {
               buildStates.add(state.data);
               return Text(state.data);
             },
-            listener: (_, state, __) {
+            listener: (_, state, _) {
               listenerStates.add(state.data);
             },
           );
@@ -1150,11 +1150,11 @@ void main() {
               collectionCount++;
               return of<_ProxyViewStateNotifier>().watch;
             },
-            builder: (_, state, __, ___) {
+            builder: (_, state, _, _) {
               buildStates.add(state.data);
               return Text(state.data);
             },
-            listener: (_, state, __) {
+            listener: (_, state, _) {
               listenerStates.add(state.data);
             },
           );
@@ -1257,11 +1257,11 @@ void main() {
               collectionCount++;
               return of<TestViewStateNotifier<String>>().watch;
             },
-            builder: (_, state, __, ___) {
+            builder: (_, state, _, _) {
               buildStates.add(state.data);
               return Text(state.data);
             },
-            listener: (_, state, __) {
+            listener: (_, state, _) {
               listenerStates.add(state.data);
             },
           );
@@ -1275,16 +1275,16 @@ void main() {
                   return Provider<int>.value(
                     value: selection,
                     child: ProxyProvider<int, _ViewStateSelection>(
-                      update: (_, index, __) => _ViewStateSelection(index),
+                      update: (_, index, _) => _ViewStateSelection(index),
                       child:
                           ListenableProxyProvider<
                             _ViewStateSelection,
                             TestViewStateNotifier<String>
                           >(
-                            update: (_, selected, __) =>
+                            update: (_, selected, _) =>
                                 selected.index == 0 ? first : second,
                             // The notifiers are externally owned by this test.
-                            dispose: (_, __) {},
+                            dispose: (_, _) {},
                             child: engine,
                           ),
                     ),
@@ -1380,11 +1380,11 @@ void main() {
                     profile: of<TestViewStateNotifier<int>>().watch,
                   );
                 },
-                builder: (_, state, __, ___) {
+                builder: (_, state, _, _) {
                   buildValues.add((state.media.data, state.profile.data));
                   return const SizedBox();
                 },
-                listener: (_, state, __) {
+                listener: (_, state, _) {
                   listenerValues.add((state.media.data, state.profile.data));
                 },
               );
@@ -1497,11 +1497,11 @@ void main() {
               collectionCount++;
               return of<_StringViewStateOwner>().notifier.watch;
             },
-            builder: (_, state, __, ___) {
+            builder: (_, state, _, _) {
               buildValues.add(state.data);
               return Text(state.data);
             },
-            listener: (_, state, __) => listenerValues.add(state.data),
+            listener: (_, state, _) => listenerValues.add(state.data),
           );
 
           await tester.pumpWidget(
@@ -1554,7 +1554,7 @@ void main() {
             _host(
               _engine<ViewState<String>>(
                 listenables: () => of<_StringViewStateOwner>().notifier.watch,
-                builder: (_, __, ___, ____) => const SizedBox(),
+                builder: (_, _, _, _) => const SizedBox(),
               ),
             ),
           );
@@ -1576,7 +1576,7 @@ void main() {
           _host(
             _engine<ViewState<String>>(
               listenables: () => provider.watch,
-              builder: (_, __, ___, ____) => const SizedBox(),
+              builder: (_, _, _, _) => const SizedBox(),
             ),
           ),
         );
@@ -1596,7 +1596,7 @@ void main() {
           _host(
             _engine<ViewState<String>>(
               listenables: () => const DataState<String>('data'),
-              builder: (_, __, ___, ____) => const SizedBox(),
+              builder: (_, _, _, _) => const SizedBox(),
             ),
           ),
         );
@@ -1613,7 +1613,7 @@ void main() {
             _host(
               _engine<String>(
                 listenables: () => field.watch,
-                builder: (_, __, ___, ____) => const SizedBox(),
+                builder: (_, _, _, _) => const SizedBox(),
               ),
             ),
           );
@@ -1644,7 +1644,7 @@ void main() {
                 field.watch;
                 throw StateError('Collection failed');
               },
-              builder: (_, __, ___, ____) => const SizedBox(),
+              builder: (_, _, _, _) => const SizedBox(),
             ),
           ),
         );

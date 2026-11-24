@@ -57,7 +57,7 @@ void main() {
       test('invokes succeeded callback and passes data', () {
         final result = fixtures.succeeded.when(
           succeeded: (data) => 'success:$data',
-          errored: (_, __, ___) => 'unexpected error',
+          errored: (_, _, _) => 'unexpected error',
           ignored: (_) => 'unexpected ignored',
         );
 
@@ -83,7 +83,7 @@ void main() {
       test('invokes ignored callback with its reason', () {
         final result = fixtures.ignored.when(
           succeeded: (_) => 'unexpected success',
-          errored: (_, __, ___) => 'unexpected error',
+          errored: (_, _, _) => 'unexpected error',
           ignored: (reason) => 'ignored:$reason',
         );
 
@@ -128,7 +128,7 @@ void main() {
         }
 
         final successResult = fixtures.succeeded.maybeWhen(
-          errored: (_, __, ___) => 'error',
+          errored: (_, _, _) => 'error',
           orElse: fallback,
         );
 
@@ -182,7 +182,7 @@ void main() {
       test('returns null when no callback matches', () {
         expect(
           fixtures.succeeded.whenOrNull(
-            errored: (_, __, ___) => 'error',
+            errored: (_, _, _) => 'error',
             ignored: (_) => 'ignored',
           ),
           isNull,
@@ -199,7 +199,7 @@ void main() {
         expect(
           fixtures.ignored.whenOrNull(
             succeeded: (_) => 'success',
-            errored: (_, __, ___) => 'error',
+            errored: (_, _, _) => 'error',
           ),
           isNull,
         );
@@ -411,7 +411,7 @@ void main() {
           code: 'test_error',
         );
 
-        ProviderKit.configure(errorInfoMapper: (_, __) => errorInfo);
+        ProviderKit.configure(errorInfoMapper: (_, _) => errorInfo);
 
         final error = StateError('failure');
         final stackTrace = StackTrace.current;
@@ -427,7 +427,7 @@ void main() {
       test('errored results with different errors are not equal', () async {
         const errorInfo = ErrorInfo(message: 'failure');
 
-        ProviderKit.configure(errorInfoMapper: (_, __) => errorInfo);
+        ProviderKit.configure(errorInfoMapper: (_, _) => errorInfo);
 
         final stackTrace = StackTrace.current;
 
@@ -449,7 +449,7 @@ void main() {
         () async {
           const errorInfo = ErrorInfo(message: 'failure');
 
-          ProviderKit.configure(errorInfoMapper: (_, __) => errorInfo);
+          ProviderKit.configure(errorInfoMapper: (_, _) => errorInfo);
 
           final error = StateError('same error');
           final firstStackTrace = StackTrace.current;
@@ -473,7 +473,7 @@ void main() {
         var mapperCallCount = 0;
 
         ProviderKit.configure(
-          errorInfoMapper: (_, __) {
+          errorInfoMapper: (_, _) {
             mapperCallCount++;
 
             return ErrorInfo(message: 'mapped error $mapperCallCount');

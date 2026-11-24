@@ -226,7 +226,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   },
   /// );
   /// ```
-  static of<P extends StateListenable<T>, T>({
+  static StateBuilder<T> of<P extends StateListenable<T>, T>({
     Key? key,
     required StateWidgetBuilder<T> builder,
     RebuildWhen<T>? rebuildWhen,
@@ -251,7 +251,7 @@ abstract class StateBuilder<T> extends StatefulWidget {
   ///   child: const MyPage(),
   /// );
   /// ```
-  static select<P extends ChangeNotifier, T>({
+  static StateBuilder<T> select<P extends ChangeNotifier, T>({
     Key? key,
     required SelectStateListenable<P, T> selector,
     required StateWidgetBuilder<T> builder,

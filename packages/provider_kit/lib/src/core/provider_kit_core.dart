@@ -1,5 +1,3 @@
-library provider_kit_core;
-
 import 'package:flutter/foundation.dart';
 import 'package:provider_kit/src/errors/error_info.dart';
 import 'package:provider_kit/src/errors/error_info_mapper.dart';

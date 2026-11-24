@@ -1,8 +1,8 @@
 // ignore_for_file: invalid_use_of_protected_member
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -58,7 +58,7 @@ void main() {
 
               source.watch;
 
-              return Column(children: [if (child != null) child]);
+              return Column(children: [?child]);
             },
           ),
         ),
@@ -746,9 +746,7 @@ void main() {
 
                 final value = source.watch;
 
-                return Column(
-                  children: [Text('$value'), if (child != null) child],
-                );
+                return Column(children: [Text('$value'), ?child]);
               },
             ),
           ),
@@ -865,9 +863,7 @@ void main() {
                       final state = of<StateNotifier<int>>().watch;
                       states.add(state);
 
-                      return Column(
-                        children: [Text('$state'), if (child != null) child],
-                      );
+                      return Column(children: [Text('$state'), ?child]);
                     },
                     child: TextButton(
                       key: const Key('swap_provider'),
