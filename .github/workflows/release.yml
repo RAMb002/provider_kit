@@ -209,110 +209,36 @@ jobs:
           echo "✅ Main and dev package versions match."
 
       # ------------------------------------------------
-      # Promote ONLY:
-      #   1. selected package from dev
-      #   2. everything outside packages/ from dev
-      #
-      # Other package directories remain untouched.
-      # ------------------------------------------------
-
-      - name: 📦 Promote selected package
-        env:
-          PACKAGE_PATH: ${{ steps.package.outputs.path }}
-          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
-        run: |
-          set -euo pipefail
-
-          git restore \
-            --source="$DEV_SHA" \
-            --staged \
-            --worktree \
-            -- "$PACKAGE_PATH"
-
-          echo "✅ Selected package promoted from dev."
-
-      - name: 🌳 Promote shared repository changes
-        env:
-          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
-        run: |
-          set -euo pipefail
-
-          git restore \
-            --source="$DEV_SHA" \
-            --staged \
-            --worktree \
-            -- . ':(exclude)packages/**'
-
-          echo "✅ Shared/root changes promoted from dev."
-
-      # ------------------------------------------------
-      # Promotion scope guard
-      # ------------------------------------------------
-
-      - name: 🔒 Validate promotion scope
-        env:
-          PACKAGE_PATH: ${{ steps.package.outputs.path }}
-        run: |
-          set -euo pipefail
-
-          while IFS= read -r file; do
-            [[ -z "$file" ]] && continue
-
-            case "$file" in
-              packages/*)
-                if [[ "$file" != "$PACKAGE_PATH/"* ]]; then
-                  echo "❌ Unexpected package change: $file"
-                  echo "Only $PACKAGE_PATH may be promoted."
-                  exit 1
-                fi
-                ;;
-
-              *)
-                ;;
-            esac
-          done < <(git diff --cached --name-only)
-
-          git diff --cached --check
-
-          echo "✅ Promotion scope is valid."
-
-      - name: 🧾 Record promotion state
-        id: promotion-state
-        run: |
-          if git diff --cached --quiet; then
-            echo "has_promotion=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️ No promotion changes are staged."
-          else
-            echo "has_promotion=true" >> "$GITHUB_OUTPUT"
-            echo "✅ Promotion changes are staged."
-          fi
-
-      # ------------------------------------------------
       # Toolchains
       # ------------------------------------------------
 
       - name: 🐦 Setup Flutter
+        if: steps.package.outputs.type == 'flutter'
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44'
           channel: stable
           cache: true
           pub-cache: true
 
       - name: 🎯 Setup Dart
+        if: steps.package.outputs.type == 'dart'
         uses: dart-lang/setup-dart@v1
         with:
-          sdk: '3.12.2'
+          sdk: stable
 
       - name: 🔎 Verify toolchain versions
         run: |
           set -euo pipefail
 
-          echo "Flutter:"
-          flutter --version
-
-          echo "Dart:"
-          dart --version
+          if [[ "${{ steps.package.outputs.type }}" == "flutter" ]]; then
+            echo "Flutter:"
+            flutter --version
+            echo "Bundled Dart:"
+            dart --version
+          else
+            echo "Dart:"
+            dart --version
+          fi
 
       # ------------------------------------------------
       # Version bump
@@ -336,48 +262,50 @@ jobs:
       # Install dependencies
       # ------------------------------------------------
 
-      - name: 📦 Install provider_kit dependencies
-        working-directory: packages/provider_kit
+      - name: 📦 Install Flutter dependencies
+        if: steps.package.outputs.type == 'flutter'
+        working-directory: ${{ steps.package.outputs.path }}
         run: flutter pub get
 
-      - name: 📦 Install rate_kit dependencies
-        working-directory: packages/rate_kit
+      - name: 📦 Install Dart dependencies
+        if: steps.package.outputs.type == 'dart'
+        working-directory: ${{ steps.package.outputs.path }}
         run: dart pub get
 
       # ------------------------------------------------
-      # Format ALL packages
+      # Format selected package
       # ------------------------------------------------
 
-      - name: 🎨 Check provider_kit formatting
-        working-directory: packages/provider_kit
-        run: dart format --output=none --set-exit-if-changed .
-
-      - name: 🎨 Check rate_kit formatting
-        working-directory: packages/rate_kit
+      - name: 🎨 Check formatting
+        working-directory: ${{ steps.package.outputs.path }}
         run: dart format --output=none --set-exit-if-changed .
 
       # ------------------------------------------------
-      # Analyze ALL packages
+      # Analyze
       # ------------------------------------------------
 
-      - name: 🔍 Analyze provider_kit
-        working-directory: packages/provider_kit
+      - name: 🔍 Analyze Flutter package
+        if: steps.package.outputs.type == 'flutter'
+        working-directory: ${{ steps.package.outputs.path }}
         run: flutter analyze --fatal-infos --fatal-warnings
 
-      - name: 🔍 Analyze rate_kit
-        working-directory: packages/rate_kit
+      - name: 🔍 Analyze Dart package
+        if: steps.package.outputs.type == 'dart'
+        working-directory: ${{ steps.package.outputs.path }}
         run: dart analyze --fatal-infos --fatal-warnings
 
       # ------------------------------------------------
-      # Test ALL packages
+      # Test
       # ------------------------------------------------
 
-      - name: 🧪 Test provider_kit
-        working-directory: packages/provider_kit
+      - name: 🧪 Test Flutter package
+        if: steps.package.outputs.type == 'flutter'
+        working-directory: ${{ steps.package.outputs.path }}
         run: flutter test
 
-      - name: 🧪 Test rate_kit
-        working-directory: packages/rate_kit
+      - name: 🧪 Test Dart package
+        if: steps.package.outputs.type == 'dart'
+        working-directory: ${{ steps.package.outputs.path }}
         run: dart test
 
       # ------------------------------------------------
@@ -418,14 +346,28 @@ jobs:
             exit 1
           fi
 
-          if git ls-remote \
+          set +e
+          git ls-remote \
             --exit-code \
             --tags \
             origin \
-            "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "❌ Remote target tag already exists: $TAG"
-            exit 1
-          fi
+            "refs/tags/$TAG" >/dev/null
+          STATUS=$?
+          set -e
+
+          case "$STATUS" in
+            0)
+              echo "❌ Remote target tag already exists: $TAG"
+              exit 1
+              ;;
+            2)
+              echo "✅ Remote target tag does not exist."
+              ;;
+            *)
+              echo "❌ Failed to check remote tag. Git exited with status $STATUS."
+              exit "$STATUS"
+              ;;
+          esac
 
           echo "✅ Final release validation passed."
 
@@ -437,7 +379,6 @@ jobs:
         if: inputs.dry_run
         env:
           MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
-          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
           PACKAGE: ${{ inputs.package }}
           PACKAGE_PATH: ${{ steps.package.outputs.path }}
           NEW_VERSION: ${{ steps.bump.outputs.new_version }}
@@ -455,12 +396,12 @@ jobs:
           echo "Tag     : $TAG"
           echo ""
 
-          echo "Selected package files:"
-          git diff --name-status "$MAIN_SHA" "$DEV_SHA" -- "$PACKAGE_PATH"
+          echo "Source main commit: $MAIN_SHA"
+          echo "Selected package: $PACKAGE"
 
           echo ""
-          echo "Shared/root files:"
-          git diff --name-status "$MAIN_SHA" "$DEV_SHA" -- . ':(exclude)packages/**'
+          echo "Changes produced by this release:"
+          git diff --name-status "$MAIN_SHA"
 
           echo ""
           echo "Final release diff:"
@@ -472,21 +413,6 @@ jobs:
           echo "✅ No tag was created."
           echo "✅ No remote push was performed."
           echo "✅ No synchronization PR was created."
-
-      # ------------------------------------------------
-      # Real release: commit promotion changes if any
-      # ------------------------------------------------
-
-      - name: 💾 Commit promoted changes
-        if: ${{ !inputs.dry_run && steps.promotion-state.outputs.has_promotion == 'true' }}
-        env:
-          PACKAGE: ${{ inputs.package }}
-          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
-        run: |
-          set -euo pipefail
-
-          git commit \
-            -m "chore(${PACKAGE}): promote changes from dev @ ${DEV_SHA}"
 
       # ------------------------------------------------
       # Real release: version bump commit
@@ -526,7 +452,7 @@ jobs:
         env:
           PACKAGE: ${{ inputs.package }}
           NEW_VERSION: ${{ steps.bump.outputs.new_version }}
-          DEV_SHA: ${{ steps.repository.outputs.dev_sha }}
+          MAIN_SHA: ${{ steps.repository.outputs.main_sha }}
         run: |
           set -euo pipefail
 
@@ -534,7 +460,7 @@ jobs:
 
           git tag -a "$TAG" \
             -m "Release ${PACKAGE} ${NEW_VERSION}" \
-            -m "Source dev commit: ${DEV_SHA}"
+            -m "Source main commit: ${MAIN_SHA}"
 
           echo "✅ Created local tag: $TAG"
 
@@ -613,8 +539,9 @@ jobs:
 
       # ------------------------------------------------
       # Prepare sync branch AFTER successful release.
-      # It starts from the EXACT dev snapshot used by the
-      # release, so newer dev work cannot be included.
+      # It starts from the exact dev snapshot captured at the beginning.
+      # Existing unreleased dev work is preserved.
+      # Commits pushed after the snapshot are not included in this PR.
       # ------------------------------------------------
 
       - name: 🌿 Prepare dev synchronization branch
@@ -637,51 +564,63 @@ jobs:
 
           git fetch origin dev
 
-          if git ls-remote \
+          set +e
+          git ls-remote \
             --exit-code \
             --heads \
             origin \
-            "refs/heads/$SYNC_BRANCH" >/dev/null 2>&1; then
-            echo "❌ Synchronization branch already exists: $SYNC_BRANCH"
-            exit 1
-          fi
+            "refs/heads/$SYNC_BRANCH" >/dev/null
+          STATUS=$?
+          set -e
 
+          case "$STATUS" in
+            0)
+              echo "❌ Synchronization branch already exists: $SYNC_BRANCH"
+              exit 1
+              ;;
+            2)
+              echo "✅ Synchronization branch does not exist."
+              ;;
+            *)
+              echo "❌ Failed to check remote synchronization branch. Git exited with status $STATUS."
+              exit "$STATUS"
+              ;;
+          esac
+
+          # Start from the exact dev snapshot used by this release.
           git checkout -B "$SYNC_BRANCH" "$DEV_SHA"
 
-          # The release commit contains ONLY the version bump metadata.
-          # Applying it to the exact dev snapshot reproduces the release
-          # metadata without bringing any other main changes back to dev.
-          git cherry-pick --no-commit "$RELEASE_SHA"
+          # Merge main's release changes into dev without discarding newer dev work
+          git merge --no-ff --no-edit "$RELEASE_SHA"
 
           # The released Unreleased section has now become the versioned
           # section. Create a fresh, empty Unreleased section for future work.
           CHANGELOG="$PACKAGE_PATH/CHANGELOG.md"
 
-          if grep -Eq '^##[[:space:]]+Unreleased[[:space:]]*$' "$CHANGELOG"; then
-            echo "❌ Sync changelog already contains an Unreleased section."
-            exit 1
+          if ! grep -Eq '^##[[:space:]]+Unreleased[[:space:]]*$' "$CHANGELOG"; then
+            TMP_CHANGELOG=$(mktemp)
+
+            {
+              printf '## Unreleased\n\n'
+              cat "$CHANGELOG"
+            } > "$TMP_CHANGELOG"
+
+            mv "$TMP_CHANGELOG" "$CHANGELOG"
+          else
+            echo "ℹ️ Preserving the existing Unreleased section from dev."
           fi
-
-          TMP_CHANGELOG=$(mktemp)
-
-          {
-            printf '## Unreleased\n\n'
-            cat "$CHANGELOG"
-          } > "$TMP_CHANGELOG"
-
-          mv "$TMP_CHANGELOG" "$CHANGELOG"
 
           git add "$CHANGELOG"
 
-          if git diff --cached --quiet; then
-            echo "❌ Synchronization branch has no changes."
-            exit 1
-          fi
-
           git diff --cached --check
 
-          git commit \
-            -m "chore(${PACKAGE}): sync release ${NEW_VERSION} to dev"
+          if ! git diff --cached --quiet; then
+            git commit \
+              -m "chore(${PACKAGE}): sync release ${NEW_VERSION} to dev"
+          else
+            echo "ℹ️ No additional changelog update needed."
+            echo "The merge commit already contains the synchronization."
+          fi
 
           echo "✅ Synchronization branch prepared: $SYNC_BRANCH"
 
@@ -692,7 +631,8 @@ jobs:
       - name: 🚀 Push synchronization branch
         if: |
           !inputs.dry_run &&
-          steps.release-push.outcome == 'success'
+          steps.release-push.outcome == 'success' &&
+          steps.sync.outcome == 'success'
         id: sync-push
         env:
           SYNC_BRANCH: ${{ steps.sync.outputs.branch }}
@@ -726,7 +666,7 @@ jobs:
           set -euo pipefail
 
           PR_BODY="$(printf \
-            '## Release synchronization\n\nSynchronizes the %s release metadata for version %s back to `dev`.\n\nThis PR contains only the release metadata generated by the automated release.\n\nAn empty `## Unreleased` section is added for future work.' \
+            '## Release synchronization\n\nBrings all changes from `main` into `dev`, including the %s release metadata for version %s.\n\nThis includes code, documentation, workflow, and shared repository changes on `main` that are not yet in `dev`.\n\nAn empty `## Unreleased` section is added for future work.' \
             "$PACKAGE" \
             "$NEW_VERSION"
           )"

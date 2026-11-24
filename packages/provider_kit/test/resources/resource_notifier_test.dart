@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   group('ResourceNotifier', () {
     test('extends ChangeNotifier', () {
       final notifier = _TestResourceNotifier();

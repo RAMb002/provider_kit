@@ -1,0 +1,146 @@
+
+name: Build package
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        description: Package name
+        required: true
+        type: string
+
+      path:
+        description: Package directory
+        required: true
+        type: string
+
+      type:
+        description: Package type (flutter or dart)
+        required: true
+        type: string
+
+    secrets:
+      CODECOV_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ inputs.package }}
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------------------
+      # Checkout
+      # ------------------------------------------------
+
+      - name: 📚 Checkout repository
+        uses: actions/checkout@v7
+
+      # ------------------------------------------------
+      # Setup SDK
+      # ------------------------------------------------
+
+      - name: 🐦 Setup Flutter
+        if: inputs.type == 'flutter'
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+          pub-cache: true
+
+      - name: 🎯 Setup Dart
+        if: inputs.type == 'dart'
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: 🔎 Verify Flutter version
+        if: inputs.type == 'flutter'
+        run: flutter --version
+
+      - name: 🔎 Verify Dart version
+        if: inputs.type == 'dart'
+        run: dart --version
+
+      # ------------------------------------------------
+      # Cache Dart pub dependencies
+      # ------------------------------------------------
+
+      - name: 💾 Cache Dart dependencies
+        if: inputs.type == 'dart'
+        uses: actions/cache@v6
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-dart-pub-${{ inputs.package }}-${{ hashFiles(format('{0}/pubspec.yaml', inputs.path)) }}
+          restore-keys: |
+            ${{ runner.os }}-dart-pub-${{ inputs.package }}-
+
+      # ------------------------------------------------
+      # Install dependencies
+      # ------------------------------------------------
+
+      - name: 📦 Install Flutter dependencies
+        if: inputs.type == 'flutter'
+        working-directory: ${{ inputs.path }}
+        run: flutter pub get
+
+      - name: 📦 Install Dart dependencies
+        if: inputs.type == 'dart'
+        working-directory: ${{ inputs.path }}
+        run: dart pub get
+
+      # ------------------------------------------------
+      # Format
+      # ------------------------------------------------
+
+      - name: 🎨 Check formatting
+        working-directory: ${{ inputs.path }}
+        run: dart format --output=none --set-exit-if-changed .
+
+      # ------------------------------------------------
+      # Analyze
+      # ------------------------------------------------
+
+      - name: 🔍 Analyze Flutter package
+        if: inputs.type == 'flutter'
+        working-directory: ${{ inputs.path }}
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: 🔍 Analyze Dart package
+        if: inputs.type == 'dart'
+        working-directory: ${{ inputs.path }}
+        run: dart analyze --fatal-infos --fatal-warnings
+
+      # ------------------------------------------------
+      # Tests + coverage
+      # ------------------------------------------------
+
+      - name: 🧪 Test Flutter package
+        if: inputs.type == 'flutter'
+        working-directory: ${{ inputs.path }}
+        run: flutter test --coverage
+
+      - name: 🧰 Install Dart coverage tooling
+        if: inputs.type == 'dart'
+        run: dart pub global activate coverage 1.15.1
+
+      - name: 🧪 Test Dart package with coverage
+        if: inputs.type == 'dart'
+        working-directory: ${{ inputs.path }}
+        run: dart pub global run coverage:test_with_coverage
+
+      # ------------------------------------------------
+      # Codecov
+      # ------------------------------------------------
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ${{ inputs.path }}/coverage/lcov.info
+          flags: ${{ inputs.package }}
+          disable_search: true
+          fail_ci_if_error: true

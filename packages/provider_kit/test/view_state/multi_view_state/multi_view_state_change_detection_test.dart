@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 import '../../shared/mocks/view_state_notifiers.dart';
@@ -957,11 +957,11 @@ void main() {
             providers: () => provider.watch,
             onBuild: () => buildCount++,
             onListen: () => listenerCount++,
-            listenWhen: (_, __) {
+            listenWhen: (_, _) {
               listenWhenCalls++;
               return false;
             },
-            rebuildWhen: (_, __) {
+            rebuildWhen: (_, _) {
               rebuildWhenCalls++;
               return false;
             },
@@ -1011,8 +1011,8 @@ void main() {
           providers: () => provider.watch,
           onBuild: () => buildCount++,
           onListen: () => listenerCount++,
-          listenWhen: (_, __) => allowListen,
-          rebuildWhen: (_, __) => allowBuild,
+          listenWhen: (_, _) => allowListen,
+          rebuildWhen: (_, _) => allowBuild,
         ),
       );
 
@@ -1117,7 +1117,7 @@ Widget _buildConsumer<T>({
         onBuild();
         return const SizedBox();
       },
-      loadingBuilder: (_, __) {
+      loadingBuilder: (_, _) {
         onBuild();
         return const SizedBox();
       },
@@ -1129,12 +1129,12 @@ Widget _buildConsumer<T>({
         onBuild();
         return onErrorBuilder?.call(context, details) ?? const SizedBox();
       },
-      dataBuilder: (_, __, ___) {
+      dataBuilder: (_, _, _) {
         onBuild();
         return const SizedBox();
       },
       initialStateListener: (_) => onListen(),
-      loadingStateListener: (_, __) => onListen(),
+      loadingStateListener: (_, _) => onListen(),
       emptyStateListener: (context, details) {
         onListen();
         onEmptyListener?.call(context, details);
@@ -1143,7 +1143,7 @@ Widget _buildConsumer<T>({
         onListen();
         onErrorListener?.call(context, details);
       },
-      dataStateListener: (_, __) => onListen(),
+      dataStateListener: (_, _) => onListen(),
       listenWhen: listenWhen,
       rebuildWhen: rebuildWhen,
     ),

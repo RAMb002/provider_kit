@@ -2,7 +2,7 @@ import 'package:example/widgets/shared/view_state_widgets/empty_state_widget.dar
 import 'package:example/widgets/shared/view_state_widgets/error_state_widget.dart';
 import 'package:example/widgets/shared/view_state_widgets/initial_state_widget.dart';
 import 'package:example/widgets/shared/view_state_widgets/loading_state_widget.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 /// Provides the default UI for ProviderKit View States

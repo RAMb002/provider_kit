@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 class CounterFieldNotifier extends ChangeNotifier {

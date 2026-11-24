@@ -1,3 +1,4 @@
+
 name: Build
 
 concurrency:
@@ -19,130 +20,94 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
-  build:
-    name: ${{ matrix.package }}
+  # ------------------------------------------------
+  # Detect changed packages
+  # ------------------------------------------------
+
+  changes:
+    name: Detect changed packages
     runs-on: ubuntu-latest
 
-    strategy:
-      fail-fast: false
-
-      matrix:
-        include:
-          - package: provider_kit
-            path: packages/provider_kit
-            type: flutter
-            flutter_version: '3.44'
-
-          - package: rate_kit
-            path: packages/rate_kit
-            type: dart
-            dart_version: '3.12.2'
+    outputs:
+      provider_kit: ${{ steps.filter.outputs.provider_kit || steps.manual.outputs.provider_kit }}
+      rate_kit: ${{ steps.filter.outputs.rate_kit || steps.manual.outputs.rate_kit }}
 
     steps:
-      # ------------------------------------------------
-      # Checkout
-      # ------------------------------------------------
-
       - name: 📚 Checkout repository
         uses: actions/checkout@v7
-
-      # ------------------------------------------------
-      # Setup SDK
-      # ------------------------------------------------
-
-      - name: 🐦 Setup Flutter
-        if: matrix.type == 'flutter'
-        uses: subosito/flutter-action@v2
         with:
-          flutter-version: ${{ matrix.flutter_version }}
-          channel: stable
-          cache: true
-          pub-cache: true
+          fetch-depth: 0
 
-      - name: 🎯 Setup Dart
-        if: matrix.type == 'dart'
-        uses: dart-lang/setup-dart@v1
+      - name: 🔎 Detect package changes
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        uses: dorny/paths-filter@v4
         with:
-          sdk: ${{ matrix.dart_version }}
+          base: ${{ github.event.pull_request.base.ref || github.ref }}
+          filters: |
+            provider_kit:
+              - 'packages/provider_kit/**'
+              - '.github/workflows/**'
+              - '.gitignore'
+              - 'analysis_options.yaml'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'tool/**'
 
-      # ------------------------------------------------
-      # Cache Dart pub dependencies
-      # ------------------------------------------------
+            rate_kit:
+              - 'packages/rate_kit/**'
+              - '.github/workflows/**'
+              - '.gitignore'
+              - 'analysis_options.yaml'
+              - 'pubspec.yaml'
+              - 'pubspec.lock'
+              - 'tool/**'
 
-      - name: 💾 Cache Dart dependencies
-        if: matrix.type == 'dart'
-        uses: actions/cache@v5
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-dart-pub-${{ matrix.package }}-${{ hashFiles(format('{0}/pubspec.yaml', matrix.path)) }}
-          restore-keys: |
-            ${{ runner.os }}-dart-pub-${{ matrix.package }}-
+      # Manual dispatch always builds both packages.
+      - name: 🔧 Enable all packages for manual run
+        id: manual
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          echo "provider_kit=true" >> "$GITHUB_OUTPUT"
+          echo "rate_kit=true" >> "$GITHUB_OUTPUT"
 
-      # ------------------------------------------------
-      # Install dependencies
-      # ------------------------------------------------
+  # ------------------------------------------------
+  # ProviderKit
+  # ------------------------------------------------
 
-      - name: 📦 Install Flutter dependencies
-        if: matrix.type == 'flutter'
-        working-directory: ${{ matrix.path }}
-        run: flutter pub get
+  provider_kit:
+    name: Build ProviderKit
+    needs: changes
+    if: needs.changes.outputs.provider_kit == 'true'
 
-      - name: 📦 Install Dart dependencies
-        if: matrix.type == 'dart'
-        working-directory: ${{ matrix.path }}
-        run: dart pub get
+    uses: ./.github/workflows/build_package.yml
 
-      # ------------------------------------------------
-      # Format
-      # ------------------------------------------------
+    with:
+      package: provider_kit
+      path: packages/provider_kit
+      type: flutter
 
-      - name: 🎨 Check formatting
-        working-directory: ${{ matrix.path }}
-        run: dart format --output=none --set-exit-if-changed .
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-      # ------------------------------------------------
-      # Analyze
-      # ------------------------------------------------
+  # ------------------------------------------------
+  # RateKit
+  # ------------------------------------------------
 
-      - name: 🔍 Analyze Flutter package
-        if: matrix.type == 'flutter'
-        working-directory: ${{ matrix.path }}
-        run: flutter analyze --fatal-infos --fatal-warnings
+  rate_kit:
+    name: Build RateKit
+    needs: changes
+    if: needs.changes.outputs.rate_kit == 'true'
 
-      - name: 🔍 Analyze Dart package
-        if: matrix.type == 'dart'
-        working-directory: ${{ matrix.path }}
-        run: dart analyze --fatal-infos --fatal-warnings
+    uses: ./.github/workflows/build_package.yml
 
-      # ------------------------------------------------
-      # Tests + coverage
-      # ------------------------------------------------
+    with:
+      package: rate_kit
+      path: packages/rate_kit
+      type: dart
 
-      - name: 🧪 Test Flutter package
-        if: matrix.type == 'flutter'
-        working-directory: ${{ matrix.path }}
-        run: flutter test --coverage
-
-      - name: 🧰 Install Dart coverage tooling
-        if: matrix.type == 'dart'
-        run: dart pub global activate coverage 1.15.1
-
-      - name: 🧪 Test Dart package with coverage
-        if: matrix.type == 'dart'
-        working-directory: ${{ matrix.path }}
-        run: dart pub global run coverage:test_with_coverage
-
-      # ------------------------------------------------
-      # Codecov
-      # ------------------------------------------------
-
-      - name: 📊 Upload coverage to Codecov
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ matrix.path }}/coverage/lcov.info
-          flags: ${{ matrix.package }}
-          disable_search: true
-          fail_ci_if_error: true
+    secrets:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

@@ -1,5 +1,5 @@
 import 'package:example/widgets/shared/notifiers/feedback_notifier.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 /// Demonstrates passing a locally owned Mutation directly to StateBuilder.

@@ -13,7 +13,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (_) => 'success',
-          error: (_, __, ___) => 'error',
+          error: (_, _, _) => 'error',
         );
 
         expect(result, 'idle');
@@ -31,7 +31,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (_) => 'success',
-          error: (_, __, ___) => 'error',
+          error: (_, _, _) => 'error',
         );
 
         expect(result, 'loading');
@@ -51,7 +51,7 @@ void main() {
           idle: () => 'idle',
           loading: () => 'loading',
           success: (data) => 'success:$data',
-          error: (_, __, ___) => 'error',
+          error: (_, _, _) => 'error',
         );
 
         expect(result, 'success:42');
@@ -343,7 +343,7 @@ void main() {
 
         final result = mutation.state.whenOrNull(
           success: (_) => 'success',
-          error: (_, __, ___) => 'error',
+          error: (_, _, _) => 'error',
         );
 
         expect(result, isNull);

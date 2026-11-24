@@ -10,6 +10,11 @@
 analyzer:
   errors:
     file_names: ignore
+  exclude:
+    - build/**
+    - android/**
+    - ios/**
+    - web/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

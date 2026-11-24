@@ -233,7 +233,7 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   ///   child: const MyPage(),
   /// );
   /// ```
-  static of<P extends StateListenable<T>, T>({
+  static StateListener<T> of<P extends StateListenable<T>, T>({
     Key? key,
     required ListenerCallback<T> listener,
     ListenWhen<T>? listenWhen,
@@ -269,7 +269,7 @@ abstract class StateListener<T> extends SingleChildStatefulWidget {
   ///   child: const MyPage(),
   /// );
   /// ```
-  static select<P extends ChangeNotifier, T>({
+  static StateListener<T> select<P extends ChangeNotifier, T>({
     Key? key,
     required SelectStateListenable<P, T> selector,
     required ListenerCallback<T> listener,

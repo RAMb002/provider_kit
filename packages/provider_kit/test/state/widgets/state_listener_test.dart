@@ -1,6 +1,6 @@
 ﻿import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nested/nested.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
@@ -115,7 +115,7 @@ void main() {
       await tester.pumpWidget(
         StateListener<int>(
           listenable: CounterProvider(),
-          listener: (_, __) {},
+          listener: (_, _) {},
           child: const SizedBox(key: targetKey),
         ),
       );
@@ -307,7 +307,7 @@ void main() {
     test('of returns StateListener<T>', () {
       final StateListener<int> listener =
           StateListener.of<CounterProvider, int>(
-            listener: (_, __) {},
+            listener: (_, _) {},
             child: const SizedBox(),
           );
 
@@ -378,7 +378,7 @@ void main() {
       final builder = DiagnosticPropertiesBuilder();
 
       StateListener.of<CounterProvider, int>(
-        listener: (_, __) {},
+        listener: (_, _) {},
         child: const SizedBox(),
       ).debugFillProperties(builder);
 
@@ -395,7 +395,7 @@ void main() {
 
       StateListener.select<CounterProvider, int>(
         selector: (provider) => provider,
-        listener: (_, __) {},
+        listener: (_, _) {},
         child: const SizedBox(),
       ).debugFillProperties(builder);
 

@@ -1,6 +1,9 @@
 ## Unreleased
 
+- Fixed static analysis issues.
+
 ## 0.5.0
+
 **Multi-State**
 
 - Added type-safe, heterogeneous listenable combinations to `MultiState` and `MultiViewState`.

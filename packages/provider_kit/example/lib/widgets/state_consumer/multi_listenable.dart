@@ -1,6 +1,6 @@
 import 'package:example/widgets/shared/notifiers/counter_notifier.dart';
 import 'package:example/widgets/shared/notifiers/step_notifier.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider_kit/provider_kit.dart';
 
 /// Build and listen to a combined record from directly owned listenables.

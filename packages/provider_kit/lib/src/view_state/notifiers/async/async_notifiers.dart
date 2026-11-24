@@ -1,5 +1,3 @@
-library provider_kit.async_notifiers;
-
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';

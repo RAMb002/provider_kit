@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider_kit/provider_kit.dart';
 
@@ -177,7 +177,7 @@ void main() {
           child: StateBuilder<int>(
             listenable: provider,
             rebuildWhen: (_, current) => current.isEven,
-            builder: (_, state, __) {
+            builder: (_, state, _) {
               states.add(state);
               return Text('State: $state');
             },
@@ -298,7 +298,7 @@ void main() {
               value: provider,
               child: StateBuilder.select<_SelectableCounterProvider, int>(
                 selector: (notifier) => notifier.selected,
-                builder: (_, state, __) {
+                builder: (_, state, _) {
                   states.add(state);
                   return Text('$state');
                 },
@@ -322,7 +322,7 @@ void main() {
 
     test('of returns StateBuilder<T>', () {
       final StateBuilder<int> builder = StateBuilder.of<CounterProvider, int>(
-        builder: (_, __, ___) => const SizedBox(),
+        builder: (_, _, _) => const SizedBox(),
       );
 
       expect(builder, isA<StateBuilder<int>>());
