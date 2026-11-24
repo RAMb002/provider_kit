@@ -59,7 +59,7 @@
 #### Add them to your `pubspec.yaml` file
 ```yaml
 dependencies:
-  provider_kit: ^0.5.0
+  provider_kit: ^0.5.1
   provider: ^6.1.5 # For dependency injection
   ```
 ### Provider integration
