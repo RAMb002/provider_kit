@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 mixin DemoStatusController<T extends StatefulWidget> on State<T> {
   Timer? _statusTimer;

@@ -1,5 +1,5 @@
 import 'package:example/readme_stuff_ignore/demos/widgets/demo_status_pill.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class DemoCard extends StatelessWidget {
   const DemoCard({
