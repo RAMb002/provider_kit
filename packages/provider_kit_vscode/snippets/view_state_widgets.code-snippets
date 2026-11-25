@@ -1,62 +1,115 @@
 {
     "ViewStateBuilder": {
         "prefix": "pkViewStateBuilder",
-        "description": "Create a ViewStateBuilder with an explicitly provided provider.",
+        "description": "Create a ViewStateBuilder.",
         "body": [
             "ViewStateBuilder(",
-            "  provider: ${1:provider},",
-            "  dataBuilder: (data) => ${2:widget},",
+            "  listenable: ${1:viewStateNotifier},",
+            "  dataBuilder: (context, data, child) {",
+            "    return ${2:widget};",
+            "  },",
             ")$0"
         ]
     },
     "ViewStateBuilder.of": {
         "prefix": "pkViewStateBuilderOf",
-        "description": "Create a ViewStateBuilder with provider resolved from the widget tree.",
+        "description": "Create a ViewStateBuilder that resolves a ViewStateNotifier from the widget tree.",
         "body": [
-            "ViewStateBuilder.of<${1:ProviderType}, ${2:DataType}>(",
-            "  dataBuilder: (data) => ${3:widget},",
+            "ViewStateBuilder.of<${1:NotifierType}, ${2:DataType}>(",
+            "  dataBuilder: (context, data, child) {",
+            "    return ${3:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "ViewStateBuilder.multi": {
+        "prefix": "pkViewStateBuilderMulti",
+        "description": "Create a ViewStateBuilder that combines multiple ViewStateNotifiers.",
+        "body": [
+            "ViewStateBuilder.multi(",
+            "  listenables: () => $1,",
+            "  dataBuilder: (context, state, child) {",
+            "    return ${2:widget};",
+            "  },",
             ")$0"
         ]
     },
     "ViewStateListener": {
         "prefix": "pkViewStateListener",
-        "description": "Create a ViewStateListener with an explicitly provided provider.",
+        "description": "Create a ViewStateListener.",
         "body": [
             "ViewStateListener(",
-            "  provider: ${1:provider},",
-            "  dataStateListener: (data) => ${2:code},",
-            "  child: ${3:child},",
+            "  listenable: ${1:viewStateNotifier},",
+            "  dataStateListener: (context, data) {",
+            "    ${2:code}",
+            "  },",
             ")$0"
         ]
     },
     "ViewStateListener.of": {
         "prefix": "pkViewStateListenerOf",
-        "description": "Create a ViewStateListener with provider resolved from the widget tree.",
+        "description": "Create a ViewStateListener that resolves a ViewStateNotifier from the widget tree.",
         "body": [
-            "ViewStateListener.of<${1:ProviderType}, ${2:DataType}>(",
-            "  dataStateListener: (data) => ${3:code},",
-            "  child: ${4:child},",
+            "ViewStateListener.of<${1:NotifierType}, ${2:DataType}>(",
+            "  dataStateListener: (context, data) {",
+            "    ${3:code}",
+            "  },",
+            ")$0"
+        ]
+    },
+    "ViewStateListener.multi": {
+        "prefix": "pkViewStateListenerMulti",
+        "description": "Create a ViewStateListener that combines multiple ViewStateNotifiers.",
+        "body": [
+            "ViewStateListener.multi(",
+            "  listenables: () => $1,",
+            "  dataStateListener: (context, state) {",
+            "    ${2:code}",
+            "  },",
             ")$0"
         ]
     },
     "ViewStateConsumer": {
         "prefix": "pkViewStateConsumer",
-        "description": "Create a ViewStateConsumer with an explicitly provided provider.",
+        "description": "Create a ViewStateConsumer.",
         "body": [
             "ViewStateConsumer(",
-            "  provider: ${1:provider},",
-            "  dataStateListener: (data) => ${2:code},",
-            "  dataBuilder: (data) => ${3:widget},",
+            "  listenable: ${1:viewStateNotifier},",
+            "  dataStateListener: (context, data) {",
+            "    ${2:code}",
+            "  },",
+            "  dataBuilder: (context, data, child) {",
+            "    return ${3:widget};",
+            "  },",
             ")$0"
         ]
     },
     "ViewStateConsumer.of": {
         "prefix": "pkViewStateConsumerOf",
-        "description": "Create a ViewStateConsumer with provider resolved from the widget tree.",
+        "description": "Create a ViewStateConsumer that resolves a ViewStateNotifier from the widget tree.",
         "body": [
-            "ViewStateConsumer.of<${1:ProviderType}, ${2:DataType}>(",
-            "  dataStateListener: (data) => ${3:code},",
-            "  dataBuilder: (data) => ${4:widget},",
+            "ViewStateConsumer.of<${1:NotifierType}, ${2:DataType}>(",
+            "  dataStateListener: (context, data) {",
+            "    ${3:code}",
+            "  },",
+            "  dataBuilder: (context, data, child) {",
+            "    return ${4:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "ViewStateConsumer.multi": {
+        "prefix": "pkViewStateConsumerMulti",
+        "description": "Create a ViewStateConsumer that combines multiple ViewStateNotifiers.",
+        "body": [
+            "ViewStateConsumer.multi(",
+            "  listenables: () => $1,",
+            "  dataStateListener: (context, state) {",
+            "    ${2:code}",
+            "  },",
+            "  dataBuilder: (context, state, child) {",
+            "    return ${3:widget};",
+            "  },",
             ")$0"
         ]
     }

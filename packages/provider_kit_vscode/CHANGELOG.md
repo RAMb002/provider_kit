@@ -1,3 +1,14 @@
+## [0.1.0] - 2026-11-25
+
+- Added `FutureNotifier` and `StreamNotifier` snippets.
+- Replaced the `AsyncViewStateNotifier` snippet with the new asynchronous notifier snippets.
+- Added `.select` and `.multi` variants for `StateBuilder`, `StateListener`, and `StateConsumer`.
+- Added `.multi` variants for `ViewStateBuilder`, `ViewStateListener`, and `ViewStateConsumer`.
+- Added the `WatchBuilder` snippet for reactive state dependencies.
+- Updated ViewState snippets to match the latest ProviderKit APIs and callback signatures.
+- Updated the `ViewStateWidgetsProvider` snippet to support the latest builder signatures.
+- Removed outdated standalone multi-state widget snippets in favor of `.multi` constructors.
+
 ## [0.0.1] - 2026-08-15
 
 - Added ProviderKit `StateNotifier` snippet.
