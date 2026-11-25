@@ -1,10 +1,10 @@
 {
     "StateBuilder": {
         "prefix": "pkStateBuilder",
-        "description": "Create a StateBuilder with an explicitly provided provider.",
+        "description": "Create a StateBuilder.",
         "body": [
             "StateBuilder(",
-            "  provider: ${1:provider},",
+            "  listenable: ${1:stateListenable},",
             "  builder: (context, state, child) {",
             "    return ${2:widget};",
             "  },",
@@ -13,46 +13,92 @@
     },
     "StateBuilder.of": {
         "prefix": "pkStateBuilderOf",
-        "description": "Create a StateBuilder with provider resolved from the widget tree.",
+        "description": "Create a StateBuilder that resolves a StateListenable from the widget tree.",
         "body": [
-            "StateBuilder.of<${1:ProviderType}, ${2:StateType}>(",
+            "StateBuilder.of<${1:StateListenableType}, ${2:StateType}>(",
             "  builder: (context, state, child) {",
             "    return ${3:widget};",
             "  },",
             ")$0"
         ]
     },
+    "StateBuilder.select": {
+        "prefix": "pkStateBuilderSelect",
+        "description": "Create a StateBuilder that selects a nested StateListenable.",
+        "body": [
+            "StateBuilder.select(",
+            "  selector: (${1:NotifierType} notifier) => notifier.${2:stateListenable},",
+            "  builder: (context, state, child) {",
+            "    return ${3:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateBuilder.multi": {
+        "prefix": "pkStateBuilderMulti",
+        "description": "Create a StateBuilder that combines multiple StateListenables.",
+        "body": [
+            "StateBuilder.multi(",
+            "  listenables: () => $1,",
+            "  builder: (context, state, child) {",
+            "    return ${2:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
     "StateListener": {
         "prefix": "pkStateListener",
-        "description": "Create a StateListener with an explicitly provided provider.",
+        "description": "Create a StateListener.",
         "body": [
             "StateListener(",
-            "  provider: ${1:provider},",
+            "  listenable: ${1:stateListenable},",
             "  listener: (context, state) {",
             "    ${2:code}",
             "  },",
-            "  child: ${3:child},",
             ")$0"
         ]
     },
     "StateListener.of": {
         "prefix": "pkStateListenerOf",
-        "description": "Create a StateListener with provider resolved from the widget tree.",
+        "description": "Create a StateListener that resolves a StateListenable from the widget tree.",
         "body": [
-            "StateListener.of<${1:ProviderType}, ${2:StateType}>(",
+            "StateListener.of<${1:StateListenableType}, ${2:StateType}>(",
             "  listener: (context, state) {",
             "    ${3:code}",
             "  },",
-            "  child: ${4:child},",
+            ")$0"
+        ]
+    },
+    "StateListener.select": {
+        "prefix": "pkStateListenerSelect",
+        "description": "Create a StateListener that selects a nested StateListenable.",
+        "body": [
+            "StateListener.select(",
+            "  selector: (${1:NotifierType} notifier) => notifier.${2:stateListenable},",
+            "  listener: (context, state) {",
+            "    ${3:code}",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateListener.multi": {
+        "prefix": "pkStateListenerMulti",
+        "description": "Create a StateListener that combines multiple StateListenables.",
+        "body": [
+            "StateListener.multi(",
+            "  listenables: () => $1,",
+            "  listener: (context, state) {",
+            "    ${2:code}",
+            "  },",
             ")$0"
         ]
     },
     "StateConsumer": {
         "prefix": "pkStateConsumer",
-        "description": "Create a StateConsumer with an explicitly provided provider.",
+        "description": "Create a StateConsumer.",
         "body": [
             "StateConsumer(",
-            "  provider: ${1:provider},",
+            "  listenable: ${1:stateListenable},",
             "  listener: (context, state) {",
             "    ${2:code}",
             "  },",
@@ -64,14 +110,56 @@
     },
     "StateConsumer.of": {
         "prefix": "pkStateConsumerOf",
-        "description": "Create a StateConsumer with provider resolved from the widget tree.",
+        "description": "Create a StateConsumer that resolves a StateListenable from the widget tree.",
         "body": [
-            "StateConsumer.of<${1:ProviderType}, ${2:StateType}>(",
+            "StateConsumer.of<${1:StateListenableType}, ${2:StateType}>(",
             "  listener: (context, state) {",
             "    ${3:code}",
             "  },",
             "  builder: (context, state, child) {",
             "    return ${4:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateConsumer.select": {
+        "prefix": "pkStateConsumerSelect",
+        "description": "Create a StateConsumer that selects a nested StateListenable.",
+        "body": [
+            "StateConsumer.select(",
+            "  selector: (${1:NotifierType} notifier) => notifier.${2:stateListenable},",
+            "  listener: (context, state) {",
+            "    ${3:code}",
+            "  },",
+            "  builder: (context, state, child) {",
+            "    return ${4:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "StateConsumer.multi": {
+        "prefix": "pkStateConsumerMulti",
+        "description": "Create a StateConsumer that combines multiple StateListenables.",
+        "body": [
+            "StateConsumer.multi(",
+            "  listenables: () => $1,",
+            "  listener: (context, state) {",
+            "    ${2:code}",
+            "  },",
+            "  builder: (context, state, child) {",
+            "    return ${3:widget};",
+            "  },",
+            ")$0"
+        ]
+    },
+    "WatchBuilder": {
+        "prefix": "pkWatchBuilder",
+        "description": "Create a WatchBuilder that automatically rebuilds when watched StateListenables change.",
+        "body": [
+            "WatchBuilder(",
+            "  builder: (context, child) {",
+            "    final ${1:value} = ${2:stateListenable}.watch;",
+            "    return ${3:widget};",
             "  },",
             ")$0"
         ]

@@ -2,7 +2,7 @@
   "name": "providerkit-snippets",
   "displayName": "ProviderKit Snippets",
   "description": "Dart snippets for ProviderKit to quickly insert common ProviderKit boilerplate.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "Ram-Prasanth",
   "icon": "images/icon.png",
   "homepage": "https://github.com/RAMb002/provider_kit",
@@ -25,6 +25,7 @@
     "Dart",
     "Flutter",
     "snippets",
+    "ChangeNotifier",
     "state management",
     "VS Code",
     "Visual Studio Code"
@@ -33,7 +34,7 @@
     "snippets": [
       {
         "language": "dart",
-        "path": "./snippets/providers.code-snippets"
+        "path": "./snippets/notifiers.code-snippets"
       },
       {
         "language": "dart",
@@ -41,15 +42,7 @@
       },
       {
         "language": "dart",
-        "path": "./snippets/multi_state_widgets.code-snippets"
-      },
-      {
-        "language": "dart",
         "path": "./snippets/view_state_widgets.code-snippets"
-      },
-      {
-        "language": "dart",
-        "path": "./snippets/multi_view_state_widgets.code-snippets"
       },
       {
         "language": "dart",

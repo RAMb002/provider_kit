@@ -4,12 +4,12 @@
         "description": "Configure default widgets for ProviderKit ViewStates.",
         "body": [
             "ViewStateWidgetsProvider(",
-            "  initialStateBuilder: (isSliver) => ${1:initialWidget},",
-            "  loadingStateBuilder: (message, progress, isSliver) => ${2:loadingWidget},",
-            "  errorStateBuilder: (message, onRetry, exception, stackTrace, isSliver) => ${3:errorWidget},",
-            "  emptyStateBuilder: (message, isSliver) => ${4:emptyWidget},",
+            "  initialStateBuilder: (context, isSliver) => ${1:initialWidget},",
+            "  loadingStateBuilder: (context, details, isSliver) => ${2:loadingWidget},",
+            "  errorStateBuilder: (context, details, isSliver) => ${3:errorWidget},",
+            "  emptyStateBuilder: (context, details, isSliver) => ${4:emptyWidget},",
             "  child: ${5:child},",
             ")$0"
         ]
-    },
+    }
 }
