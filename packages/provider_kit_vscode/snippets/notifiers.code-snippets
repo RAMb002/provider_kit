@@ -1,0 +1,62 @@
+{
+    "StateNotifier": {
+        "prefix": "pkStateNotifier",
+        "description": "Create a StateNotifier.",
+        "body": [
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:NotifierName}Notifier extends StateNotifier<${2:StateType}> {",
+            "",
+            "  ${1:NotifierName}Notifier(super.state);",
+            "",
+            "  $0",
+            "}"
+        ]
+    },
+    "ViewStateNotifier": {
+        "prefix": "pkViewStateNotifier",
+        "description": "Create a ViewStateNotifier.",
+        "body": [
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:NotifierName}Notifier extends ViewStateNotifier<${2:DataType}> {",
+            "",
+            "  ${1:NotifierName}Notifier() : super(const LoadingState());",
+            "",
+            "  $0",
+            "}"
+        ]
+    },
+    "FutureNotifier": {
+        "prefix": "pkFutureNotifier",
+        "description": "Create a FutureNotifier for asynchronous data loading.",
+        "body": [
+            "import 'dart:async';",
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:NotifierName}Notifier extends FutureNotifier<${2:DataType}> {",
+            "",
+            "  @override",
+            "  Future<${2:DataType}> build() {",
+            "    return $0;",
+            "  }",
+            "}"
+        ]
+    },
+    "StreamNotifier": {
+        "prefix": "pkStreamNotifier",
+        "description": "Create a StreamNotifier for reactive data updates.",
+        "body": [
+            "import 'dart:async';",
+            "import 'package:provider_kit/provider_kit.dart';",
+            "",
+            "class ${1:NotifierName}Notifier extends StreamNotifier<${2:DataType}> {",
+            "",
+            "  @override",
+            "  Stream<${2:DataType}> build() {",
+            "    return $0;",
+            "  }",
+            "}"
+        ]
+    }
+}

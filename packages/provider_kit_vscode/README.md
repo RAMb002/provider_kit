@@ -1,24 +1,20 @@
 # ProviderKit Snippets
 
-[![VS Code](https://img.shields.io/badge/VS%20Code-1.125.0+-blue.svg)](https://code.visualstudio.com/)
-[![Dart](https://img.shields.io/badge/Dart-3.3+-blue.svg)](https://dart.dev/)
-[![Flutter](https://img.shields.io/badge/Flutter-1.17.0+-blue.svg)](https://flutter.dev/)
+[![ProviderKit](https://img.shields.io/badge/ProviderKit-pub.dev-0175C2?logo=dart)](https://pub.dev/packages/provider_kit)
+[![Pub Points](https://img.shields.io/pub/points/provider_kit?logo=dart)](https://pub.dev/packages/provider_kit)
 [![License: BSD 2-Clause](https://img.shields.io/badge/License-BSD%202--Clause-blue.svg)](https://opensource.org/license/bsd-2-clause/)
 
-<p>
-  <img
-    width="720"
-    height="440"
-    alt="Snippets demo"
-    src="https://github.com/user-attachments/assets/ce6d937b-7322-485f-845b-aaecaf00f78a"
-  />
-</p>
-
-**ProviderKit Snippets** is a lightweight Visual Studio Code extension that provides useful Dart snippets for the [provider_kit](https://pub.dev/packages/provider_kit) state management library.
+**ProviderKit Snippets** is a lightweight Visual Studio Code extension that provides handy Dart snippets for [ProviderKit](https://pub.dev/packages/provider_kit), a Flutter toolkit built around Flutter's `ChangeNotifier` and `Listenable` APIs.
 
 Type a `pk` prefix, choose a snippet, press `Tab`, and keep coding.
 
-
+<p>
+  <img
+    width="100%"
+    alt="Snippets demo"
+    src="https://github.com/user-attachments/assets/2d463256-548f-409c-af26-117f2f7429c4"
+  />
+</p>
 
 ---
 
@@ -42,8 +38,8 @@ Once installed, open any `.dart` file and start typing a `pk` prefix. IntelliSen
 Type `pkStateBuilder` + `Tab` to generate:
 
 ```dart
-StateBuilder<MyState>(
-  provider: provider,
+StateBuilder(
+  listenable: myNotifier,
   builder: (context, state, child) {
     return widget;
   },
@@ -55,59 +51,52 @@ StateBuilder<MyState>(
 
 ## Available Snippets
 
-All snippets are prefixed with `pk` for fast discovery and to avoid collisions with other snippet libraries.
+### Notifiers
 
-### Providers
-
-| Prefix | Provider |
-|--------|-----------|
-| `pkStateNotifier` |  `StateNotifier` class |
-| `pkViewStateNotifier` |  `ViewStateNotifier` class |
-| `pkAsyncViewStateNotifier` |  `AsyncViewStateNotifier` class |
+| Prefix | Notifier |
+|--------|----------|
+| pkStateNotifier | `StateNotifier` |
+| pkViewStateNotifier | `ViewStateNotifier` |
+| pkFutureNotifier | `FutureNotifier` |
+| pkStreamNotifier | `StreamNotifier` |
 
 ### State Widgets
 
 | Prefix | Widget |
-|--------|-----------|
-| `pkStateBuilder` | `StateBuilder` |
-| `pkStateBuilderOf` | `StateBuilder.of` |
-| `pkStateListener` | `StateListener` |
-| `pkStateListenerOf` | `StateListener.of` |
-| `pkStateConsumer` | `StateConsumer` |
-| `pkStateConsumerOf` | `StateConsumer.of` |
-
-### Multi-State Widgets
-
-| Prefix | Widget |
-|--------|-----------|
-| `pkMultiStateBuilder` | `MultiStateBuilder` |
-| `pkMultiStateListener` | `MultiStateListener` |
-| `pkMultiStateConsumer` | `MultiStateConsumer` |
+|--------|--------|
+| pkStateBuilder | `StateBuilder` |
+| pkStateBuilderOf | `StateBuilder.of` |
+| pkStateBuilderSelect | `StateBuilder.select` |
+| pkStateBuilderMulti | `StateBuilder.multi` |
+| pkStateListener | `StateListener` |
+| pkStateListenerOf | `StateListener.of` |
+| pkStateListenerSelect | `StateListener.select` |
+| pkStateListenerMulti | `StateListener.multi` |
+| pkStateConsumer | `StateConsumer` |
+| pkStateConsumerOf | `StateConsumer.of` |
+| pkStateConsumerSelect | `StateConsumer.select` |
+| pkStateConsumerMulti | `StateConsumer.multi` |
+| pkWatchBuilder | `WatchBuilder` |
 
 ### ViewState Widgets
 
 | Prefix | Widget |
-|--------|-----------|
-| `pkViewStateBuilder` | `ViewStateBuilder` |
-| `pkViewStateBuilderOf` | `ViewStateBuilder.of` |
-| `pkViewStateListener` | `ViewStateListener` |
-| `pkViewStateListenerOf` | `ViewStateListener.of` |
-| `pkViewStateConsumer` | `ViewStateConsumer` |
-| `pkViewStateConsumerOf` | `ViewStateConsumer.of` |
+|--------|--------|
+| pkViewStateBuilder | `ViewStateBuilder` |
+| pkViewStateBuilderOf | `ViewStateBuilder.of` |
+| pkViewStateBuilderMulti | `ViewStateBuilder.multi` |
+| pkViewStateListener | `ViewStateListener` |
+| pkViewStateListenerOf | `ViewStateListener.of` |
+| pkViewStateListenerMulti | `ViewStateListener.multi` |
+| pkViewStateConsumer | `ViewStateConsumer` |
+| pkViewStateConsumerOf | `ViewStateConsumer.of` |
+| pkViewStateConsumerMulti | `ViewStateConsumer.multi` |
 
-### Multi-ViewState Widgets
-
-| Prefix | Widget |
-|--------|-----------|
-| `pkMultiViewStateBuilder` | `MultiViewStateBuilder` |
-| `pkMultiViewStateListener` | `MultiViewStateListener` |
-| `pkMultiViewStateConsumer` | `MultiViewStateConsumer` |
-
-### ViewState Providers
+### ViewState Configuration
 
 | Prefix | Widget |
-|--------|-----------|
-| `pkViewStateWidgetsProvider` | `ViewStateWidgetsProvider` |
+|--------|--------|
+| pkViewStateWidgetsProvider | `ViewStateWidgetsProvider` |
 
 
 ---
